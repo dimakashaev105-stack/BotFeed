@@ -151,6 +151,15 @@ app.post('/api/bots', { preHandler: auth }, async (req, reply) => {
     if (!username || !name) return reply.code(400).send({ error: 'Username и имя обязательны' })
     const clean = username.replace('@', '').toLowerCase()
 
+    // Лимит: 1 бот на пользователя
+    const { rows: existing } = await db.query(
+      'SELECT id FROM bots WHERE owner_id = $1',
+      [req.user.id]
+    )
+    if (existing.length >= 1) {
+      return reply.code(400).send({ error: 'У вас уже есть бот. Удалите его, чтобы добавить новый.' })
+    }
+
     const { rows } = await db.query(`
       INSERT INTO bots (owner_id, username, name, description, long_desc, categories)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -177,6 +186,29 @@ app.put('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
   return rows[0]
 })
 
+// Удалить бота
+app.delete('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT id FROM bots WHERE id = $1 AND owner_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден или нет доступа' })
+
+    // Каскадное удаление: реакции → комментарии → посты → подписки → бот
+    await db.query('DELETE FROM reactions WHERE post_id IN (SELECT id FROM posts WHERE bot_id = $1)', [req.params.id])
+    await db.query('DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE bot_id = $1)', [req.params.id])
+    await db.query('DELETE FROM posts WHERE bot_id = $1', [req.params.id])
+    await db.query('DELETE FROM subscriptions WHERE bot_id = $1', [req.params.id])
+    await db.query('DELETE FROM bots WHERE id = $1', [req.params.id])
+
+    return { ok: true, message: 'Бот удалён' }
+  } catch (e) {
+    console.error('Delete bot error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
 // Верификация — запросить код
 app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply) => {
   try {
@@ -198,29 +230,40 @@ app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply
     // Отправляем код через Telegram Bot API
     const telegramId = req.user.telegram_id
     const botToken = process.env.TELEGRAM_BOT_TOKEN
+
+    if (!botToken) {
+      console.warn('TELEGRAM_BOT_TOKEN not set, returning code directly')
+      return { ok: true, code, tgFailed: true, message: `Токен бота не настроен. Твой код: ${code}` }
+    }
+
     const msg = `🔐 Код подтверждения для бота @${rows[0].username}:\n\n<b>${code}</b>\n\nДействителен 15 минут.\nВведи его на сайте BotFeed.`
 
-    const tgRes = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: telegramId,
-          text: msg,
-          parse_mode: 'HTML'
-        })
-      }
-    )
-    const tgData = await tgRes.json()
-    console.log('Telegram send result:', JSON.stringify(tgData))
+    try {
+      const tgRes = await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: telegramId,
+            text: msg,
+            parse_mode: 'HTML'
+          })
+        }
+      )
+      const tgData = await tgRes.json()
+      console.log('Telegram send result:', JSON.stringify(tgData))
 
-    if (tgData.ok) {
-      return { ok: true, message: 'Код отправлен в Telegram!' }
-    } else {
-      // Если не смогли отправить — возвращаем код напрямую
-      console.error('TG send failed:', tgData.description)
-      return { ok: true, code, message: 'Введи этот код: ' + code }
+      if (tgData.ok) {
+        return { ok: true, message: 'Код отправлен в Telegram! Проверь бота @botfeeds_bot' }
+      } else {
+        console.error('TG send failed:', tgData.description)
+        // Код всегда возвращаем — пользователь увидит его в интерфейсе
+        return { ok: true, code, tgFailed: true, message: `Не удалось отправить в Telegram (${tgData.description}). Код: ${code}` }
+      }
+    } catch (fetchErr) {
+      console.error('TG fetch error:', fetchErr.message)
+      return { ok: true, code, tgFailed: true, message: `Ошибка связи с Telegram. Код: ${code}` }
     }
   } catch (e) {
     console.error('Verify request error:', e.message)
@@ -272,7 +315,7 @@ app.get('/api/feed/discover', async (req) => {
         ) as reactions,
         COUNT(DISTINCT c.id) as comments_count
       FROM posts p
-      JOIN bots b ON p.bot_id = b.id AND b.verified = true
+      JOIN bots b ON p.bot_id = b.id
       LEFT JOIN (
         SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
       ) r ON p.id = r.post_id
