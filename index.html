@@ -91,265 +91,325 @@ html, body {
 .nav-lbl { font-size: 10px; font-weight: 600; color: var(--muted); transition: color .2s, transform .2s; }
 .nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.05); }
 
-/* Screen transition animations */
+/* ══════════════════════════════════════
+   SCREEN TRANSITIONS — cinematic slide
+══════════════════════════════════════ */
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(22px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(28px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0)    scale(1); }
 }
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-22px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-28px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0)     scale(1); }
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.screen.anim-fade  { animation: fadeIn .2s ease both; }
+.screen.anim-right { animation: slideInRight .28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.screen.anim-left  { animation: slideInLeft  .28s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Post cards entrance animation */
+/* ══════════════════════════════════════
+   NAV — spring indicator + icon bounce
+══════════════════════════════════════ */
+.nav-indicator {
+  position: absolute;
+  top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--acc), transparent);
+  width: 25%; left: 0;
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: blur(0.5px);
+}
+.nav-ico svg {
+  transition: stroke .2s, transform .35s cubic-bezier(0.34, 1.56, 0.64, 1), filter .2s;
+}
+.nav-item.active .nav-ico svg {
+  stroke: var(--acc);
+  transform: scale(1.22) translateY(-2px);
+  filter: drop-shadow(0 0 6px rgba(46,166,255,0.5));
+}
+.nav-lbl { transition: color .2s, transform .25s cubic-bezier(0.34,1.56,0.64,1); }
+.nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.08); }
+.nav-item:active .nav-ico svg { transform: scale(0.9); }
+
+/* ══════════════════════════════════════
+   FEED — staggered card entrance
+══════════════════════════════════════ */
 @keyframes cardIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
-.post { animation: cardIn .3s ease both; }
-.post:nth-child(1) { animation-delay: .03s; }
-.post:nth-child(2) { animation-delay: .08s; }
-.post:nth-child(3) { animation-delay: .13s; }
-.post:nth-child(4) { animation-delay: .18s; }
-.post:nth-child(5) { animation-delay: .22s; }
-.post:nth-child(n+6) { animation-delay: .25s; }
+.post { animation: cardIn .4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.post:nth-child(1)  { animation-delay: .04s; }
+.post:nth-child(2)  { animation-delay: .1s; }
+.post:nth-child(3)  { animation-delay: .16s; }
+.post:nth-child(4)  { animation-delay: .22s; }
+.post:nth-child(5)  { animation-delay: .27s; }
+.post:nth-child(n+6){ animation-delay: .31s; }
 
-/* Bot row entrance */
-.bot-row { animation: cardIn .25s ease both; }
-.bot-row:nth-child(1) { animation-delay: .04s; }
-.bot-row:nth-child(2) { animation-delay: .09s; }
-.bot-row:nth-child(3) { animation-delay: .14s; }
-.bot-row:nth-child(4) { animation-delay: .18s; }
-.bot-row:nth-child(n+5) { animation-delay: .22s; }
+.bot-row { animation: cardIn .35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.bot-row:nth-child(1)  { animation-delay: .03s; }
+.bot-row:nth-child(2)  { animation-delay: .08s; }
+.bot-row:nth-child(3)  { animation-delay: .13s; }
+.bot-row:nth-child(4)  { animation-delay: .17s; }
+.bot-row:nth-child(5)  { animation-delay: .21s; }
+.bot-row:nth-child(n+6){ animation-delay: .24s; }
 
-/* React button pop animation */
+/* ══════════════════════════════════════
+   REACT — satisfying spring pop
+══════════════════════════════════════ */
 @keyframes reactPop {
   0%   { transform: scale(1); }
-  40%  { transform: scale(1.3); }
-  70%  { transform: scale(0.9); }
+  30%  { transform: scale(1.45) rotate(-5deg); }
+  55%  { transform: scale(0.88) rotate(3deg); }
+  75%  { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
-.react.popping { animation: reactPop .35s cubic-bezier(0.34,1.56,0.64,1); }
+.react.popping {
+  animation: reactPop .45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.react {
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
+}
+.react:active { transform: scale(0.9); }
 
-/* Sub button animation */
-@keyframes subPop {
+/* ══════════════════════════════════════
+   SUBSCRIBE — elastic confirmation
+══════════════════════════════════════ */
+@keyframes subConfirm {
   0%   { transform: scale(1); }
-  50%  { transform: scale(1.15); }
+  25%  { transform: scale(0.85); }
+  60%  { transform: scale(1.18); }
+  80%  { transform: scale(0.95); }
   100% { transform: scale(1); }
 }
-.sub-btn.popping { animation: subPop .3s cubic-bezier(0.34,1.56,0.64,1); }
+.sub-btn { transition: all .2s; }
+.sub-btn.popping { animation: subConfirm .5s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
-/* Sheet open animation */
-.overlay.open .sheet { animation: sheetUp .28s cubic-bezier(0.32,0.72,0,1) forwards; }
-@keyframes sheetUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-
-/* Toast animation */
-@keyframes toastBounce {
-  0%   { transform: translateX(-50%) translateY(-80px); }
-  60%  { transform: translateX(-50%) translateY(4px); }
-  80%  { transform: translateX(-50%) translateY(-2px); }
-  100% { transform: translateX(-50%) translateY(0); }
-}
-.toast.show { animation: toastBounce .35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-
-/* Featured card hover */
-.feat-card { transition: transform .2s cubic-bezier(0.34,1.56,0.64,1), background .15s; }
-.feat-card:active { transform: scale(0.96); }
-
-/* Profile avatar pulse on load */
-@keyframes avaPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(46,166,255,0.4); }
-  70%  { box-shadow: 0 0 0 10px rgba(46,166,255,0); }
-  100% { box-shadow: 0 0 0 0 rgba(46,166,255,0); }
-}
-.prof-ava { animation: avaPulse 1.5s ease-out 0.5s; }
-
-/* TOPBAR */
-.topbar {
-  position: sticky; top: 0; z-index: 50;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  height: 52px;
-  display: flex; align-items: center;
-  padding: 0 16px; gap: 12px;
-}
-.topbar-logo { font-size: 17px; font-weight: 700; flex: 1; letter-spacing: -0.3px; }
-.topbar-title { font-size: 17px; font-weight: 600; flex: 1; }
-.tb-btn {
-  width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; cursor: pointer; transition: background .15s;
-}
-.tb-btn:active { background: var(--hover); }
-.tb-btn svg { width:20px; height:20px; stroke: var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-
-.divider { height: 1px; background: var(--border); }
-
-/* SEARCH SCREEN */
-.search-top {
-  position: sticky; top: 0; z-index: 50;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 12px;
-}
-.search-box {
-  background: var(--card);
-  border-radius: 10px;
+/* ══════════════════════════════════════
+   TOAST — gravity drop with bounce
+══════════════════════════════════════ */
+.toast {
+  position: fixed; top: 12px;
+  left: 50%; transform: translateX(-50%) translateY(-90px);
+  background: rgba(36, 47, 61, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(46,166,255,0.2);
+  border-radius: 12px;
+  padding: 10px 18px;
   display: flex; align-items: center; gap: 9px;
-  padding: 10px 13px;
-  border: 1px solid transparent;
-  transition: border-color .15s;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+  z-index: 9999; white-space: nowrap;
+  transition: none;
+  max-width: calc(100% - 32px);
 }
-.search-box:focus-within { border-color: rgba(46,166,255,.3); }
-.search-box svg { width:16px; height:16px; stroke: var(--sub); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
-.search-box input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Inter',sans-serif; font-size:14px; }
-.search-box input::placeholder { color: var(--muted); }
-.search-clear { color: var(--muted); cursor: pointer; font-size: 18px; line-height:1; display:none; }
-.search-clear.show { display:block; }
-
-.cats-bar {
-  display: flex; gap: 7px;
-  padding: 10px 12px 0;
-  overflow-x: auto; scrollbar-width: none;
+@keyframes toastIn {
+  0%   { transform: translateX(-50%) translateY(-90px) scale(0.8); opacity: 0; }
+  60%  { transform: translateX(-50%) translateY(6px)   scale(1.02); opacity: 1; }
+  80%  { transform: translateX(-50%) translateY(-3px)  scale(0.99); }
+  100% { transform: translateX(-50%) translateY(0)     scale(1); opacity: 1; }
 }
-.cats-bar::-webkit-scrollbar { display: none; }
-.cat-chip {
-  padding: 6px 13px;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 8px; font-size: 12px; font-weight: 600;
-  color: var(--sub); cursor: pointer; white-space: nowrap; flex-shrink: 0;
-  transition: all .15s;
+@keyframes toastOut {
+  0%   { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-90px) scale(0.85); opacity: 0; }
 }
-.cat-chip:active { transform: scale(.96); }
-.cat-chip.on { background: var(--acc-dim); border-color: rgba(46,166,255,.25); color: var(--acc); }
+.toast.show  { animation: toastIn  .45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.toast.hide  { animation: toastOut .3s  cubic-bezier(0.55, 0, 1, 0.45)  forwards; }
+.t-ico { font-size: 16px; }
+.t-msg { font-size: 13px; font-weight: 600; }
 
-.search-results { padding: 8px 0; }
-.no-results { text-align: center; padding: 48px 24px; color: var(--sub); font-size: 14px; }
-.no-results-ico { font-size: 40px; margin-bottom: 12px; }
-.no-results-txt { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+/* ══════════════════════════════════════
+   SHEET — smooth spring up
+══════════════════════════════════════ */
+@keyframes sheetUp {
+  from { transform: translateY(100%) scale(0.97); opacity: 0.5; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+@keyframes sheetDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+.overlay { transition: background .25s; }
+.overlay.open .sheet {
+  animation: sheetUp .38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
 
-.trending-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
-.trend-item { background: var(--surface); padding: 13px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background .12s; }
-.trend-item:active { background: var(--hover); }
-.tr-ico { font-size: 20px; }
-.tr-name { font-size: 13px; font-weight: 600; margin-bottom: 1px; }
-.tr-cnt { font-size: 11px; color: var(--sub); }
-.s-lbl { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.8px; padding: 14px 14px 8px; display: block; }
+/* ══════════════════════════════════════
+   FEATURED CARDS — 3D tilt on active
+══════════════════════════════════════ */
+.feat-card {
+  transition: transform .25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background .15s,
+              box-shadow .25s;
+}
+.feat-card:active {
+  transform: scale(0.94) translateY(2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
 
+/* ══════════════════════════════════════
+   BOT ROW — press feedback
+══════════════════════════════════════ */
+.bot-row { transition: background .12s, transform .15s; }
+.bot-row:active { transform: scale(0.98); background: var(--hover); }
 
-
-/* POSTS */
-.feed { display: flex; flex-direction: column; }
-.post { background: var(--surface); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; }
+/* ══════════════════════════════════════
+   POST — subtle press
+══════════════════════════════════════ */
+.post { transition: background .12s; }
 .post:active { background: var(--hover); }
-.post-head { padding: 12px 14px 0; display: flex; align-items: center; gap: 10px; }
-.p-ava { width: 40px; height: 40px; border-radius: 12px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.p-meta { flex: 1; min-width: 0; }
-.p-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-.p-badge { width: 14px; height: 14px; background: var(--acc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white; flex-shrink:0; }
-.p-cat { font-size: 12px; color: var(--sub); margin-top: 1px; }
-.p-time { font-size: 11px; color: var(--muted); flex-shrink: 0; }
-.post-text { padding: 10px 14px 12px; font-size: 14px; line-height: 1.6; color: var(--text); }
-.post-img { margin: 0 14px 12px; border-radius: 10px; background: var(--card); height: 150px; display: flex; align-items: center; justify-content: center; font-size: 44px; }
-.post-foot { padding: 0 14px 12px; display: flex; gap: 6px; align-items: center; }
-.react { display: flex; align-items: center; gap: 5px; padding: 6px 10px; background: var(--card); border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--sub); cursor: pointer; transition: all .15s; border: 1px solid transparent; }
-.react:active { transform: scale(.94); }
-.react.on { color: var(--acc); background: var(--acc-dim); border-color: rgba(46,166,255,.2); }
-.react-sep { flex: 1; }
-.share { width: 32px; height: 32px; background: var(--card); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; }
-.share:active { background: var(--hover); }
-.share svg { width:15px; height:15px; stroke: var(--sub); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
-/* CATALOG */
-.cat-banner { background: var(--card); margin: 10px 12px; border-radius: 12px; padding: 16px; border: 1px solid var(--border); }
-.cat-banner-title { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
-.cat-banner-sub { font-size: 12px; color: var(--sub); margin-bottom: 12px; }
-.banner-stats { display: flex; gap: 20px; }
-.bstat-n { font-size: 16px; font-weight: 700; color: var(--acc); }
-.bstat-l { font-size: 10px; font-weight: 600; color: var(--sub); text-transform: uppercase; letter-spacing: 0.4px; }
-.sec-head { padding: 14px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
-.sec-title { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; }
-.sec-more { font-size: 13px; color: var(--acc); font-weight: 500; cursor: pointer; }
+/* ══════════════════════════════════════
+   PROFILE AVATAR — glow pulse on load
+══════════════════════════════════════ */
+@keyframes avatarIn {
+  0%   { transform: scale(0.5);  opacity: 0; filter: blur(8px); }
+  60%  { transform: scale(1.08); opacity: 1; filter: blur(0); }
+  80%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(46,166,255,0.3); }
+  50%       { box-shadow: 0 0 0 12px rgba(46,166,255,0); }
+}
+.prof-ava {
+  animation: avatarIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both,
+             glowPulse 2s ease-in-out 0.8s 2;
+}
 
-.feat-scroll { display: flex; gap: 8px; padding: 0 12px 4px; overflow-x: auto; scrollbar-width: none; }
-.feat-scroll::-webkit-scrollbar { display: none; }
-.feat-card { width: 180px; flex-shrink: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; transition: background .15s; }
-.feat-card:active { background: var(--hover); }
-.feat-ava { width: 44px; height: 44px; border-radius: 12px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 10px; }
-.feat-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
-.feat-desc { font-size: 11px; color: var(--sub); line-height: 1.5; margin-bottom: 10px; }
-.feat-foot { display: flex; align-items: center; justify-content: space-between; }
-.feat-m { font-size: 11px; color: var(--sub); display: flex; align-items: center; gap: 4px; }
-.gdot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; flex-shrink:0; }
-.bot-rows { display: flex; flex-direction: column; }
-.bot-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; }
-.bot-row:active { background: var(--hover); }
-.br-ava { width: 48px; height: 48px; border-radius: 13px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-.br-info { flex: 1; min-width: 0; }
-.br-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 5px; }
-.br-desc { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
-.br-tags { display: flex; gap: 4px; }
-.tag { padding: 2px 7px; background: var(--card); border-radius: 5px; font-size: 10px; font-weight: 600; color: var(--sub); }
-.br-right { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex-shrink: 0; }
-.br-count { font-size: 11px; color: var(--sub); display: flex; align-items: center; gap: 3px; }
-.sub-btn { padding: 5px 11px; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; background: var(--acc); color: white; }
-.sub-btn:active { opacity: .8; }
-.sub-btn.subbed { background: var(--card); color: var(--sub); }
+/* ══════════════════════════════════════
+   NAV ITEM — ripple on tap
+══════════════════════════════════════ */
+.nav-item { position: relative; overflow: hidden; }
+@keyframes ripple {
+  from { transform: scale(0); opacity: 0.4; }
+  to   { transform: scale(2.5); opacity: 0; }
+}
+.nav-ripple {
+  position: absolute;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--acc);
+  pointer-events: none;
+  transform: scale(0);
+  animation: ripple .5s ease-out forwards;
+  margin: auto; inset: 0;
+}
 
+/* ══════════════════════════════════════
+   STEP INDICATORS — see full definition below
+══════════════════════════════════════ */
 
+/* ══════════════════════════════════════
+   SHEET STEPS — smooth slide in/out
+══════════════════════════════════════ */
+@keyframes stepIn {
+  from { opacity: 0; transform: translateX(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes stepOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(-24px) scale(0.98); }
+}
+#st1, #st2, #st3 {
+  animation: stepIn .32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 
-/* PROFILE */
-.prof-head { background: var(--surface); padding: 16px 16px 0; border-bottom: 1px solid var(--border); }
-.prof-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
-.prof-ava { width: 70px; height: 70px; border-radius: 20px; background: var(--acc); display: flex; align-items: center; justify-content: center; font-size: 32px; flex-shrink: 0; }
-.prof-info { flex: 1; min-width: 0; padding-top: 2px; }
-.prof-name { font-size: 17px; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
-.prof-badge { width: 16px; height: 16px; background: var(--acc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; }
-.prof-user { font-size: 13px; color: var(--sub); margin-bottom: 8px; }
-.prof-bio { font-size: 13px; color: var(--sub); line-height: 1.5; }
-.prof-actions { display: flex; gap: 8px; margin-bottom: 14px; }
-.prof-btn { padding: 8px 0; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; flex: 1; text-align: center; }
-.prof-btn-main { background: var(--acc-dim); color: var(--acc); }
-.prof-btn-main:active { background: rgba(46,166,255,.2); }
-.prof-btn-sec { background: var(--card); color: var(--text); }
-.prof-btn-sec:active { background: var(--hover); }
-.prof-stats { display: flex; border-top: 1px solid var(--border); }
-.ps { flex: 1; padding: 12px 8px; text-align: center; border-right: 1px solid var(--border); cursor: pointer; }
-.ps:last-child { border-right: none; }
-.ps:active { background: var(--hover); }
-.ps-n { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
-.ps-l { font-size: 10px; font-weight: 600; color: var(--sub); text-transform: uppercase; letter-spacing: 0.3px; }
-.p-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
-.p-tab { flex: 1; text-align: center; padding: 12px 0 10px; font-size: 13px; font-weight: 600; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
-.p-tab.on { color: var(--acc); border-bottom-color: var(--acc); }
-.my-bot { display: flex; align-items: center; gap: 12px; padding: 13px 14px; background: var(--surface); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; }
-.my-bot:active { background: var(--hover); }
-.mb-ava { width: 46px; height: 46px; border-radius: 13px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 23px; flex-shrink: 0; }
-.mb-info { flex: 1; }
-.mb-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 5px; }
-.mb-meta { font-size: 12px; color: var(--sub); }
-.mb-chev { color: var(--muted); font-size: 18px; }
-.add-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; background: var(--surface); cursor: pointer; transition: background .12s; }
-.add-row:active { background: var(--hover); }
-.add-ico { width: 46px; height: 46px; border-radius: 13px; background: var(--acc-dim); display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--acc); flex-shrink: 0; }
-.add-lbl { font-size: 14px; font-weight: 600; color: var(--acc); }
-.add-sub { font-size: 12px; color: var(--sub); }
-.set-group { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-.set-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; }
-.set-row:last-child { border-bottom: none; }
-.set-row:active { background: var(--hover); }
-.set-ico { width: 34px; height: 34px; border-radius: 9px; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
-.set-lbl { flex: 1; font-size: 14px; font-weight: 500; }
-.set-chev { color: var(--muted); font-size: 16px; }
-.set-row.danger .set-lbl { color: var(--red); }
+/* ══════════════════════════════════════
+   STEP INDICATOR — progress bar fill
+══════════════════════════════════════ */
+.step-s {
+  height: 3px; flex: 1;
+  background: var(--card);
+  border-radius: 3px;
+  transition: background .4s cubic-bezier(0.22, 1, 0.36, 1),
+              transform .4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: left;
+  position: relative;
+  overflow: hidden;
+}
+.step-s::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: translateX(-100%);
+}
+.step-s.cur {
+  background: var(--acc);
+  box-shadow: 0 0 10px rgba(46,166,255,0.5);
+}
+.step-s.cur::after {
+  animation: stepShimmer 1s ease-in-out infinite;
+}
+.step-s.done { background: rgba(46,166,255,0.45); }
+
+@keyframes stepShimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* ══════════════════════════════════════
+   CATEGORY TAGS — spring select
+══════════════════════════════════════ */
+@keyframes tagPick {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.88); }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.t-opt.picked { animation: tagPick .3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.t-opt {
+  transition: background .15s, border-color .15s, color .15s, transform .12s;
+}
+.t-opt:active { transform: scale(0.92); }
+
+/* ══════════════════════════════════════
+   LOADING SHIMMER for placeholders
+══════════════════════════════════════ */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    var(--card) 25%,
+    rgba(255,255,255,0.04) 50%,
+    var(--card) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ══════════════════════════════════════
+   VERIFIED BADGE — sparkle
+══════════════════════════════════════ */
+@keyframes badgePop {
+  0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+  70%  { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.p-badge { animation: badgePop .5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ══════════════════════════════════════
+   DELETE CONFIRM — slide down
+══════════════════════════════════════ */
+@keyframes confirmSlide {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+#deleteBotConfirm[style*="block"] {
+  animation: confirmSlide .25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ══════════════════════════════════════
+   INPUT FOCUS — glow ring
+══════════════════════════════════════ */
+.f-inp {
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+.f-inp:focus {
+  border-color: rgba(46,166,255,.5);
+  box-shadow: 0 0 0 3px rgba(46,166,255,.08);
+  transform: translateY(-1px);
+}
 
 /* SHEET */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity .2s; }
@@ -361,8 +421,6 @@ html, body {
 .sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
 .sheet-sub { font-size: 13px; color: var(--sub); margin-bottom: 20px; line-height: 1.5; }
 .steps { display: flex; gap: 5px; margin-bottom: 22px; }
-.step-s { height: 2px; flex: 1; background: var(--card); border-radius: 2px; transition: background .2s; }
-.step-s.done, .step-s.cur { background: var(--acc); }
 .f-lbl { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
 .f-inp { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 13px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; margin-bottom: 14px; transition: border-color .15s; }
 .f-inp:focus { border-color: rgba(46,166,255,.4); }
@@ -375,11 +433,6 @@ html, body {
 .sh-btn { width: 100%; padding: 13px; background: var(--acc); color: white; border: none; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .15s; }
 .sh-btn:active { opacity: .8; }
 
-/* TOAST */
-.toast { position: fixed; top: 10px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; gap: 9px; box-shadow: 0 4px 24px rgba(0,0,0,.4); z-index: 9999; white-space: nowrap; transition: transform .25s cubic-bezier(.32,.72,0,1); max-width: calc(100% - 32px); }
-.toast.show { transform: translateX(-50%) translateY(0); }
-.t-ico { font-size: 16px; }
-.t-msg { font-size: 13px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -725,23 +778,26 @@ html, body {
       <div id="st1">
         <div class="f-lbl">Username бота</div>
         <input class="f-inp" id="botUsername" placeholder="@my_bot" type="text">
-        <div class="f-lbl">Описание</div>
+        <div class="f-hint" style="margin-top:-10px;margin-bottom:12px;">Только латиница, цифры и _</div>
+        <div class="f-lbl">Название (отображается в каталоге)</div>
+        <input class="f-inp" id="botName" placeholder="Например: ChatAI Bot" type="text">
+        <div class="f-lbl">Краткое описание</div>
         <input class="f-inp" id="botDesc" placeholder="Что умеет твой бот?" type="text">
-        <button class="sh-btn" onclick="submitBotStep1()">Далее</button>
+        <button class="sh-btn" onclick="submitBotStep1()">Далее →</button>
       </div>
       <div id="st2" style="display:none">
         <div class="f-lbl">Категории</div>
         <div class="tags-grid">
-          <div class="t-opt" onclick="this.classList.toggle('picked')">🤖 ИИ</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">🎮 Игры</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">🎵 Музыка</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">📈 Финансы</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">📰 Новости</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">🛠 Утилиты</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">🌐 Перевод</div>
-          <div class="t-opt" onclick="this.classList.toggle('picked')">📚 Обучение</div>
+          <div class="t-opt" onclick="pickTag(this)">🤖 ИИ</div>
+          <div class="t-opt" onclick="pickTag(this)">🎮 Игры</div>
+          <div class="t-opt" onclick="pickTag(this)">🎵 Музыка</div>
+          <div class="t-opt" onclick="pickTag(this)">📈 Финансы</div>
+          <div class="t-opt" onclick="pickTag(this)">📰 Новости</div>
+          <div class="t-opt" onclick="pickTag(this)">🛠 Утилиты</div>
+          <div class="t-opt" onclick="pickTag(this)">🌐 Перевод</div>
+          <div class="t-opt" onclick="pickTag(this)">📚 Обучение</div>
         </div>
-        <button class="sh-btn" onclick="submitBotStep2()">Далее</button>
+        <button class="sh-btn" onclick="submitBotStep2()">Далее →</button>
       </div>
       <div id="st3" style="display:none">
         <div class="sheet-title" style="margin-bottom:6px;">Подтверди владение</div>
@@ -962,13 +1018,39 @@ async function loadMySubs() {
 // ════════════════════════════════
 // ЛЕНТА
 // ════════════════════════════════
+function skeletonPost() {
+  return `<div style="padding:14px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <div class="shimmer" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div class="shimmer" style="height:13px;width:55%;border-radius:6px;margin-bottom:7px;"></div>
+        <div class="shimmer" style="height:11px;width:35%;border-radius:6px;"></div>
+      </div>
+    </div>
+    <div class="shimmer" style="height:12px;width:90%;border-radius:6px;margin-bottom:6px;"></div>
+    <div class="shimmer" style="height:12px;width:75%;border-radius:6px;margin-bottom:6px;"></div>
+    <div class="shimmer" style="height:12px;width:60%;border-radius:6px;"></div>
+  </div>`;
+}
+
+function skeletonBotRow() {
+  return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);">
+    <div class="shimmer" style="width:48px;height:48px;border-radius:13px;flex-shrink:0;"></div>
+    <div style="flex:1;">
+      <div class="shimmer" style="height:13px;width:50%;border-radius:6px;margin-bottom:7px;"></div>
+      <div class="shimmer" style="height:11px;width:80%;border-radius:6px;"></div>
+    </div>
+    <div class="shimmer" style="width:72px;height:28px;border-radius:7px;"></div>
+  </div>`;
+}
+
 async function loadFeed() {
   const feedEl = document.querySelector('.feed');
   if (!feedEl) return;
-  feedEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--sub)">Загрузка...</div>';
+  feedEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
   const data = await api('GET', TOKEN ? '/feed' : '/feed/discover');
   if (!data?.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--sub)">Постов пока нет 👀</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">👀</div><div style="font-weight:600;color:var(--text);margin-bottom:6px;">Постов пока нет</div><div style="font-size:13px;">Подпишись на ботов чтобы видеть их посты</div></div>';
     return;
   }
   feedEl.innerHTML = data.map(postHTML).join('');
@@ -1071,9 +1153,12 @@ function closeComments(e) {
 async function loadCatalog() {
   const el = document.getElementById('catalogList');
   if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--sub)">Загрузка...</div>';
+  el.innerHTML = Array(4).fill(0).map(skeletonBotRow).join('');
   const data = await api('GET', '/bots');
-  if (!data?.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--sub)">Ботов пока нет</div>'; return; }
+  if (!data?.length) {
+    el.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">🤖</div><div style="font-weight:600;color:var(--text);">Ботов пока нет</div></div>';
+    return;
+  }
   el.innerHTML = data.map(b => botRowHTML(b)).join('');
 }
 
@@ -1165,7 +1250,15 @@ let newBotId = null;
 
 function openSheet() {
   if (!TOKEN) { toast('👤', 'Сначала войди через Telegram'); return; }
-  step = 1; newBotId = null;
+  step = 1; newBotId = null; verifyToken = '';
+  // Сбрасываем поля
+  ['botUsername', 'botName', 'botDesc', 'verifyTokenDisplay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value !== undefined ? el.value = '' : el.textContent = '—';
+  });
+  document.querySelectorAll('.t-opt.picked').forEach(el => el.classList.remove('picked'));
+  const hint = document.getElementById('verifyHint');
+  if (hint) { hint.style.display = 'none'; hint.textContent = ''; }
   updateSheet();
   document.getElementById('overlay').classList.add('open');
 }
@@ -1178,8 +1271,18 @@ function closeOverlay(e) {
 function nextSt() { step++; updateSheet(); }
 
 function updateSheet() {
-  for (let i = 1; i <= 3; i++)
-    document.getElementById('st'+i).style.display = i === step ? 'block' : 'none';
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('st'+i);
+    if (i === step) {
+      el.style.display = 'block';
+      // Re-trigger animation
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    } else {
+      el.style.display = 'none';
+    }
+  }
   document.querySelectorAll('.step-s').forEach((s, i) => {
     s.classList.remove('done','cur');
     if (i < step-1) s.classList.add('done');
@@ -1187,24 +1290,67 @@ function updateSheet() {
   });
 }
 
+function pickTag(el) {
+  const wasOn = el.classList.contains('picked');
+  el.classList.toggle('picked');
+  // Re-trigger CSS animation
+  if (!wasOn) {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  }
+  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+}
+
 async function submitBotStep1() {
   const username = document.getElementById('botUsername').value.trim();
+  const name = document.getElementById('botName').value.trim();
   const description = document.getElementById('botDesc').value.trim();
-  if (!username || !description) { toast('⚠️', 'Заполни все поля'); return; }
-  const name = username.replace('@','');
-  const res = await api('POST', '/bots', { username: name, name, description, categories: [] });
-  if (res?.id) { newBotId = res.id; nextSt(); }
-  else toast('❌', res?.error || 'Ошибка, попробуй снова');
+
+  if (!username) { toast('⚠️', 'Введи username бота'); return; }
+  if (!name) { toast('⚠️', 'Введи название бота'); return; }
+  if (!description) { toast('⚠️', 'Введи описание'); return; }
+
+  const cleanUsername = username.replace('@', '').toLowerCase();
+
+  const btn = document.querySelector('#st1 .sh-btn');
+  if (btn) { btn.textContent = '⏳ Создаём...'; btn.disabled = true; }
+
+  const res = await api('POST', '/bots', {
+    username: cleanUsername,
+    name,
+    description,
+    categories: []
+  });
+
+  if (btn) { btn.textContent = 'Далее →'; btn.disabled = false; }
+
+  if (res?.id) {
+    newBotId = res.id;
+    nextSt();
+  } else {
+    toast('❌', res?.error || 'Ошибка, попробуй снова');
+  }
 }
 
 let verifyToken = '';
 
 async function submitBotStep2() {
+  if (!newBotId) { toast('❌', 'Сначала заполни шаг 1'); return; }
   const cats = [...document.querySelectorAll('.t-opt.picked')].map(el => el.textContent.trim());
-  if (newBotId) await api('PUT', `/bots/${newBotId}`, { categories: cats });
+
+  const btn = document.querySelector('#st2 .sh-btn');
+  if (btn) { btn.textContent = '⏳ Сохраняем...'; btn.disabled = true; }
+
+  // Сохраняем категории
+  if (cats.length > 0) {
+    await api('PUT', `/bots/${newBotId}`, { categories: cats });
+  }
 
   // Получаем токен верификации
   const res = await api('POST', `/bots/${newBotId}/verify/request`);
+  if (btn) { btn.textContent = 'Далее →'; btn.disabled = false; }
+
   if (!res?.ok) {
     toast('❌', res?.error || 'Ошибка получения токена');
     return;
@@ -1403,8 +1549,26 @@ async function deleteBot() {
 const NAV_ORDER = ['home', 'catalog', 'search', 'profile'];
 let currentScreen = 'home';
 
+function navRipple(el) {
+  // Remove existing ripples
+  el.querySelectorAll('.nav-ripple').forEach(r => r.remove());
+  const r = document.createElement('div');
+  r.className = 'nav-ripple';
+  el.appendChild(r);
+  r.addEventListener('animationend', () => r.remove());
+}
+
 function go(id, el) {
-  if (id === currentScreen) return;
+  if (id === currentScreen) {
+    // Tap same tab — scroll to top
+    const screen = document.getElementById('s-' + id);
+    if (screen) screen.scrollTo({ top: 0, behavior: 'smooth' });
+    navRipple(el);
+    return;
+  }
+
+  navRipple(el);
+  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
 
   const prevIdx = NAV_ORDER.indexOf(currentScreen);
   const nextIdx = NAV_ORDER.indexOf(id);
@@ -1412,23 +1576,20 @@ function go(id, el) {
 
   // Hide current screen
   const prev = document.querySelector('.screen.active');
-  if (prev) {
-    prev.classList.remove('active', 'anim-right', 'anim-left', 'anim-fade');
-  }
+  if (prev) prev.classList.remove('active', 'anim-right', 'anim-left');
 
   // Show new screen with animation
   const next = document.getElementById('s-' + id);
-  next.classList.remove('anim-right', 'anim-left', 'anim-fade');
+  next.classList.remove('anim-right', 'anim-left');
   next.classList.add('active');
-  // Force reflow for animation restart
   void next.offsetWidth;
   next.classList.add(dir === 'right' ? 'anim-right' : 'anim-left');
 
-  // Nav items
+  // Nav
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
 
-  // Move nav indicator
+  // Slide indicator
   const indicator = document.getElementById('navIndicator');
   if (indicator) indicator.style.left = (nextIdx * 25) + '%';
 
@@ -1438,7 +1599,7 @@ function go(id, el) {
   if (id === 'profile') showProfile();
 }
 
-// Init nav indicator position
+// Init nav indicator
 document.addEventListener('DOMContentLoaded', () => {
   const ind = document.getElementById('navIndicator');
   if (ind) ind.style.left = '0%';
@@ -1465,9 +1626,15 @@ function toast(ico, msg) {
   document.getElementById('tIco').textContent = ico;
   document.getElementById('tMsg').textContent = msg;
   const t = document.getElementById('toast');
+  t.classList.remove('show', 'hide');
+  void t.offsetWidth; // reflow
   t.classList.add('show');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('show'), 2500);
+  toastT = setTimeout(() => {
+    t.classList.remove('show');
+    t.classList.add('hide');
+    setTimeout(() => t.classList.remove('hide'), 300);
+  }, 2400);
 }
 
 // ════════════════════════════════
@@ -1477,4 +1644,4 @@ loadFeed();
 showProfile();
 </script>
 </body>
-</html>
+                                                                                                                                                                                           </html>
