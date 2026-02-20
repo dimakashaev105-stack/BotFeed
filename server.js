@@ -11,7 +11,7 @@ const db = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectU
 
 db.query('SELECT 1').then(() => console.log('✅ База данных подключена')).catch(e => console.error('❌ БД:', e.message))
 
-await app.register(cors, { origin: process.env.FRONTEND_URL || '*', credentials: true })
+await app.register(cors, { origin: '*', credentials: false }) 
 await app.register(jwt, { secret: process.env.JWT_SECRET || 'dev_secret_32_chars_minimum_here' })
 
 // ── Middleware ──
