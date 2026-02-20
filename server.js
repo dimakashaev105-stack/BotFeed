@@ -26,33 +26,31 @@ async function optAuth(req) {
 // AUTH
 // ════════════════════════════════
 
-// Войти через Telegram
 app.post('/api/auth/telegram', async (req, reply) => {
+  console.log('Auth request:', JSON.stringify(req.body));
   const { id, first_name, last_name, username, photo_url, hash, auth_date } = req.body
 
-  // Проверяем подпись Telegram
-  const secret = crypto.createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest()
-  const str = Object.entries({ id, first_name, last_name, username, photo_url, auth_date })
-    .filter(([, v]) => v != null)
-    .map(([k, v]) => `${k}=${v}`)
-    .sort().join('\n')
-  const hmac = crypto.createHmac('sha256', secret).update(str).digest('hex')
+  try {
+    const { rows } = await db.query(`
+      INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
+      VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (telegram_id) DO UPDATE SET
+        username=EXCLUDED.username, first_name=EXCLUDED.first_name,
+        last_name=EXCLUDED.last_name, photo_url=EXCLUDED.photo_url
+      RETURNING *
+    `, [id, username, first_name, last_name, photo_url])
 
-  //if (hmac !== hash) return reply.code(401).send({ error: 'Неверная подпись' })
-  //if (Date.now() / 1000 - auth_date > 3600) return reply.code(401).send({ error: 'Данные устарели' })
-
-  const { rows } = await db.query(`
-    INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
-    VALUES ($1,$2,$3,$4,$5)
-    ON CONFLICT (telegram_id) DO UPDATE SET
-      username=EXCLUDED.username, first_name=EXCLUDED.first_name,
-      last_name=EXCLUDED.last_name, photo_url=EXCLUDED.photo_url
-    RETURNING *
-  `, [id, username, first_name, last_name, photo_url])
-
-  const user = rows[0]
-  const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
-  return { token, user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url } }
+    const user = rows[0]
+    const token = app.jwt.sign(
+      { id: user.id, telegram_id: user.telegram_id },
+      { expiresIn: '30d' }
+    )
+    console.log('Auth success:', user.first_name);
+    return { token, user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url } }
+  } catch(e) {
+    console.error('Auth DB error:', e.message);
+    return reply.code(500).send({ error: e.message })
+  }
 })
 
 // Текущий пользователь
