@@ -664,6 +664,14 @@ html, body {
         <!-- Посты бота -->
         <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Мои посты</div>
         <div id="myPostsList"></div>
+
+        <!-- Удалить бота -->
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+          <button onclick="confirmDeleteBot()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;">
+            🗑 Удалить бота навсегда
+          </button>
+          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Все посты и подписчики будут удалены</div>
+        </div>
       </div>
     </div>
   </div><!-- end .screens -->
@@ -729,9 +737,9 @@ html, body {
       </div>
       <div id="st3" style="display:none">
         <div class="f-lbl">Код верификации</div>
-        <input class="f-inp" id="verifyCode" placeholder="Введи код из Telegram..." type="text">
-        <div class="f-hint">🔒 Мы отправили код в Telegram — введи его чтобы подтвердить что ты владелец бота.</div>
-        <button class="sh-btn" onclick="submitBot()">Опубликовать</button>
+        <input class="f-inp" id="verifyCode" placeholder="Введи код из Telegram..." type="text" style="font-size:18px;letter-spacing:3px;text-transform:uppercase;">
+        <div class="f-hint" id="verifyHint">🔒 Код отправляется в Telegram боту @botfeeds_bot — введи его здесь.</div>
+        <button class="sh-btn" onclick="submitBot()">Опубликовать ✓</button>
       </div>
     </div>
   </div>
@@ -1145,7 +1153,14 @@ async function submitBotStep2() {
   nextSt();
   if (newBotId) {
     const res = await api('POST', `/bots/${newBotId}/verify/request`);
-    toast('📨', res?.message || 'Код отправлен в Telegram');
+    if (res?.tgFailed && res?.code) {
+      // Telegram не сработал — показываем код прямо в поле
+      document.getElementById('verifyCode').value = res.code;
+      document.getElementById('verifyHint').textContent = `⚠️ Telegram недоступен. Твой код уже вставлен — просто нажми «Опубликовать».`;
+    } else {
+      toast('📨', res?.message || 'Код отправлен в Telegram');
+      document.getElementById('verifyHint').textContent = '🔒 Код отправлен в Telegram боту @botfeeds_bot — введи его здесь.';
+    }
   }
 }
 
@@ -1251,6 +1266,36 @@ async function deletePost(postId, el) {
     mng.textContent = Math.max(0, parseInt(mng.textContent) - 1);
   }
 }
+
+function confirmDeleteBot() {
+  // Используем Telegram нативный confirm или обычный
+  const name = document.getElementById('manageTitle').textContent;
+  if (window.Telegram?.WebApp?.showConfirm) {
+    Telegram.WebApp.showConfirm(
+      `Удалить бота «${name}»?\n\nВсе посты и подписчики будут удалены безвозвратно.`,
+      (confirmed) => { if (confirmed) deleteBot(); }
+    );
+  } else if (confirm(`Удалить бота «${name}»? Все посты и подписчики будут удалены безвозвратно.`)) {
+    deleteBot();
+  }
+}
+
+async function deleteBot() {
+  if (!currentBotId) return;
+  toast('⏳', 'Удаляем...');
+  const res = await api('DELETE', `/bots/${currentBotId}`);
+  if (res?.ok) {
+    toast('✓', 'Бот удалён');
+    currentBotId = null;
+    // Возвращаемся в профиль
+    goBack();
+    // Обновляем список ботов
+    setTimeout(() => { loadMyBots(); loadMySubs(); }, 300);
+  } else {
+    toast('❌', res?.error || 'Ошибка удаления');
+  }
+}
+
 const NAV_ORDER = ['home', 'catalog', 'search', 'profile'];
 let currentScreen = 'home';
 
@@ -1328,4 +1373,4 @@ loadFeed();
 showProfile();
 </script>
 </body>
-            </html>
+</html>
