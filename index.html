@@ -666,11 +666,19 @@ html, body {
         <div id="myPostsList"></div>
 
         <!-- Удалить бота -->
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
-          <button onclick="confirmDeleteBot()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;">
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);" id="deleteBotSection">
+          <button id="deleteBotBtn" onclick="showDeleteConfirm()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;">
             🗑 Удалить бота навсегда
           </button>
-          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Все посты и подписчики будут удалены</div>
+          <div id="deleteBotConfirm" style="display:none;margin-top:10px;background:rgba(240,64,64,0.08);border:1px solid rgba(240,64,64,0.3);border-radius:10px;padding:14px;">
+            <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px;">⚠️ Это необратимо!</div>
+            <div style="font-size:12px;color:var(--sub);margin-bottom:12px;">Все посты, подписчики и данные бота будут удалены навсегда.</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="hideDeleteConfirm()" style="flex:1;padding:10px;background:var(--card);color:var(--text);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Отмена</button>
+              <button id="deleteBotFinalBtn" onclick="deleteBot()" style="flex:1;padding:10px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Удалить</button>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Лимит: 1 бот на аккаунт</div>
         </div>
       </div>
     </div>
@@ -736,10 +744,52 @@ html, body {
         <button class="sh-btn" onclick="submitBotStep2()">Далее</button>
       </div>
       <div id="st3" style="display:none">
-        <div class="f-lbl">Код верификации</div>
-        <input class="f-inp" id="verifyCode" placeholder="Введи код из Telegram..." type="text" style="font-size:18px;letter-spacing:3px;text-transform:uppercase;">
-        <div class="f-hint" id="verifyHint">🔒 Код отправляется в Telegram боту @botfeeds_bot — введи его здесь.</div>
-        <button class="sh-btn" onclick="submitBot()">Опубликовать ✓</button>
+        <div class="sheet-title" style="margin-bottom:6px;">Подтверди владение</div>
+        <div class="sheet-sub" style="margin-bottom:16px;">Нужно доказать что ты владелец бота, а не просто знаешь его username</div>
+
+        <!-- Токен -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:16px;">
+          <div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">Твой токен верификации</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div id="verifyTokenDisplay" style="flex:1;font-size:13px;font-weight:700;color:var(--acc);font-family:monospace;word-break:break-all;line-height:1.4;">—</div>
+            <button onclick="copyVerifyToken()" style="flex-shrink:0;padding:6px 10px;background:var(--acc-dim);color:var(--acc);border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;" id="copyTokenBtn">Копировать</button>
+          </div>
+        </div>
+
+        <!-- Инструкции -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">Как добавить токен в описание:</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
+              <div style="font-size:13px;line-height:1.5;">Открой <b style="color:var(--text);">@BotFather</b> в Telegram</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
+              <div style="font-size:13px;line-height:1.5;">Отправь команду <b style="color:var(--text);font-family:monospace;">/setdescription</b></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
+              <div style="font-size:13px;line-height:1.5;">Выбери своего бота из списка</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">4</div>
+              <div style="font-size:13px;line-height:1.5;">Вставь скопированный токен как описание</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">5</div>
+              <div style="font-size:13px;line-height:1.5;">Вернись сюда и нажми «Проверить» ↓</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="verifyHint" style="font-size:12px;color:var(--sub);margin-bottom:14px;padding:10px;background:var(--card);border-radius:8px;display:none;"></div>
+
+        <a href="https://t.me/BotFather" target="_blank" style="display:block;text-align:center;padding:11px;background:var(--card);color:var(--acc);border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">
+          Открыть @BotFather →
+        </a>
+        <button class="sh-btn" id="verifyCheckBtn" onclick="submitBot()">✓ Проверить</button>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">После проверки можно убрать токен из описания</div>
       </div>
     </div>
   </div>
@@ -1147,33 +1197,77 @@ async function submitBotStep1() {
   else toast('❌', res?.error || 'Ошибка, попробуй снова');
 }
 
+let verifyToken = '';
+
 async function submitBotStep2() {
   const cats = [...document.querySelectorAll('.t-opt.picked')].map(el => el.textContent.trim());
   if (newBotId) await api('PUT', `/bots/${newBotId}`, { categories: cats });
-  nextSt();
-  if (newBotId) {
-    const res = await api('POST', `/bots/${newBotId}/verify/request`);
-    if (res?.tgFailed && res?.code) {
-      // Telegram не сработал — показываем код прямо в поле
-      document.getElementById('verifyCode').value = res.code;
-      document.getElementById('verifyHint').textContent = `⚠️ Telegram недоступен. Твой код уже вставлен — просто нажми «Опубликовать».`;
-    } else {
-      toast('📨', res?.message || 'Код отправлен в Telegram');
-      document.getElementById('verifyHint').textContent = '🔒 Код отправлен в Telegram боту @botfeeds_bot — введи его здесь.';
-    }
+
+  // Получаем токен верификации
+  const res = await api('POST', `/bots/${newBotId}/verify/request`);
+  if (!res?.ok) {
+    toast('❌', res?.error || 'Ошибка получения токена');
+    return;
   }
+
+  verifyToken = res.code;
+  nextSt();
+
+  // Показываем токен в UI
+  const tokenDisplay = document.getElementById('verifyTokenDisplay');
+  if (tokenDisplay) tokenDisplay.textContent = verifyToken;
+
+  // Скрываем hint по умолчанию
+  const hint = document.getElementById('verifyHint');
+  if (hint) hint.style.display = 'none';
+}
+
+function copyVerifyToken() {
+  if (!verifyToken) return;
+  navigator.clipboard?.writeText(verifyToken).then(() => {
+    const btn = document.getElementById('copyTokenBtn');
+    if (btn) { btn.textContent = '✓ Скопировано'; setTimeout(() => btn.textContent = 'Копировать', 2000); }
+    toast('📋', 'Токен скопирован');
+  }).catch(() => {
+    // Fallback для браузеров без clipboard API
+    const el = document.createElement('textarea');
+    el.value = verifyToken;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    toast('📋', 'Токен скопирован');
+  });
 }
 
 async function submitBot() {
-  const code = document.getElementById('verifyCode').value.trim();
-  if (!code) { toast('⚠️', 'Введи код'); return; }
-  const res = await api('POST', `/bots/${newBotId}/verify/confirm`, { code });
+  if (!newBotId) return;
+  const btn = document.getElementById('verifyCheckBtn');
+  if (btn) { btn.textContent = '⏳ Проверяем...'; btn.disabled = true; }
+
+  const res = await api('POST', `/bots/${newBotId}/verify/confirm`, {});
+
+  if (btn) { btn.textContent = '✓ Проверить'; btn.disabled = false; }
+
   if (res?.ok) {
     document.getElementById('overlay').classList.remove('open');
-    toast('🚀', 'Бот добавлен в каталог!');
+    toast('🚀', 'Бот верифицирован и добавлен в каталог!');
     loadCatalog();
     loadMyBots();
-  } else toast('❌', res?.error || 'Неверный код');
+  } else {
+    // Показываем детальную ошибку
+    const hint = document.getElementById('verifyHint');
+    if (hint) {
+      hint.style.display = 'block';
+      hint.style.color = 'var(--red)';
+      hint.textContent = res?.error || 'Ошибка проверки';
+      // Если токен не найден — показываем что нашли
+      if (res?.description_found) {
+        hint.textContent += ` (найдено: "${res.description_found}")`;
+      }
+    }
+    toast('❌', 'Токен не найден в описании');
+  }
 }
 
 // ════════════════════════════════
@@ -1187,6 +1281,12 @@ function openBotManage(botId, botName, members, posts, subs) {
   document.getElementById('mngMembers').textContent = members;
   document.getElementById('mngPosts').textContent = posts;
   document.getElementById('mngSubs').textContent = subs;
+
+  // Сбрасываем состояние кнопки удаления
+  const btn = document.getElementById('deleteBotBtn');
+  const confirm = document.getElementById('deleteBotConfirm');
+  if (btn) { btn.style.display = 'block'; btn.textContent = '🗑 Удалить бота навсегда'; }
+  if (confirm) confirm.style.display = 'none';
 
   // Показываем экран управления с анимацией
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'anim-right', 'anim-left'));
@@ -1267,32 +1367,36 @@ async function deletePost(postId, el) {
   }
 }
 
-function confirmDeleteBot() {
-  // Используем Telegram нативный confirm или обычный
-  const name = document.getElementById('manageTitle').textContent;
-  if (window.Telegram?.WebApp?.showConfirm) {
-    Telegram.WebApp.showConfirm(
-      `Удалить бота «${name}»?\n\nВсе посты и подписчики будут удалены безвозвратно.`,
-      (confirmed) => { if (confirmed) deleteBot(); }
-    );
-  } else if (confirm(`Удалить бота «${name}»? Все посты и подписчики будут удалены безвозвратно.`)) {
-    deleteBot();
-  }
+function showDeleteConfirm() {
+  document.getElementById('deleteBotBtn').style.display = 'none';
+  document.getElementById('deleteBotConfirm').style.display = 'block';
+}
+
+function hideDeleteConfirm() {
+  document.getElementById('deleteBotBtn').style.display = 'block';
+  document.getElementById('deleteBotConfirm').style.display = 'none';
 }
 
 async function deleteBot() {
-  if (!currentBotId) return;
-  toast('⏳', 'Удаляем...');
+  if (!currentBotId) {
+    toast('❌', 'Бот не выбран');
+    return;
+  }
+  const btn = document.getElementById('deleteBotFinalBtn');
+  if (btn) { btn.textContent = 'Удаляем...'; btn.disabled = true; }
+
   const res = await api('DELETE', `/bots/${currentBotId}`);
+  console.log('deleteBot result:', res);
+
   if (res?.ok) {
     toast('✓', 'Бот удалён');
+    const deletedId = currentBotId;
     currentBotId = null;
-    // Возвращаемся в профиль
     goBack();
-    // Обновляем список ботов
-    setTimeout(() => { loadMyBots(); loadMySubs(); }, 300);
+    setTimeout(() => { loadMyBots(); }, 400);
   } else {
-    toast('❌', res?.error || 'Ошибка удаления');
+    if (btn) { btn.textContent = 'Удалить'; btn.disabled = false; }
+    toast('❌', res?.error || 'Ошибка удаления — обнови server.js на сервере');
   }
 }
 
