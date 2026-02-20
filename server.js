@@ -176,14 +176,37 @@ app.post('/api/bots', { preHandler: auth }, async (req, reply) => {
 })
 
 app.put('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
-  const { name, description, long_desc, categories } = req.body
-  const { rows } = await db.query(`
-    UPDATE bots SET name=$1, description=$2, long_desc=$3, categories=$4
-    WHERE id=$5 AND owner_id=$6
-    RETURNING *
-  `, [name, description, long_desc, categories || [], req.params.id, req.user.id])
-  if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
-  return rows[0]
+  try {
+    const { name, description, long_desc, categories } = req.body
+
+    // Берём текущие данные бота чтобы не затереть поля которые не переданы
+    const { rows: cur } = await db.query(
+      'SELECT * FROM bots WHERE id = $1 AND owner_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!cur[0]) return reply.code(404).send({ error: 'Бот не найден' })
+
+    const { rows } = await db.query(`
+      UPDATE bots SET
+        name        = $1,
+        description = $2,
+        long_desc   = $3,
+        categories  = $4
+      WHERE id=$5 AND owner_id=$6
+      RETURNING *
+    `, [
+      name        ?? cur[0].name,
+      description ?? cur[0].description,
+      long_desc   ?? cur[0].long_desc,
+      categories  ?? cur[0].categories,
+      req.params.id,
+      req.user.id
+    ])
+    return rows[0]
+  } catch (e) {
+    console.error('PUT /bots/:id error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
 })
 
 // Удалить бота
