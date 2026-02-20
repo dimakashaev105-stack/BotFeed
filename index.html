@@ -41,16 +41,17 @@ html, body {
   margin: 0 auto;
 }
 
-.screens { flex: 1; overflow: hidden; position: relative; }
+.screens { flex: 1; overflow: hidden; position: relative; min-height: 0; }
 .screen {
   position: absolute; inset: 0;
   overflow-y: auto; overflow-x: hidden;
   scrollbar-width: none;
-  opacity: 0; pointer-events: none;
-  transition: opacity .15s ease;
+  display: none;
 }
 .screen::-webkit-scrollbar { display: none; }
-.screen.active { opacity: 1; pointer-events: all; }
+.screen.active { display: block; }
+.screen.anim-right { animation: slideInRight .22s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.screen.anim-left  { animation: slideInLeft  .22s cubic-bezier(0.25,0.46,0.45,0.94) both; }
 
 /* NAV */
 .nav {
@@ -60,20 +61,116 @@ html, body {
   border-top: 1px solid var(--border);
   display: flex;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  position: relative;
 }
+
+/* Sliding indicator under active nav item */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  height: 2px;
+  background: var(--acc);
+  border-radius: 0 0 3px 3px;
+  width: 25%;
+  left: 0;
+  transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .nav-item {
   flex: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 4px; cursor: pointer;
   transition: opacity .15s;
+  position: relative;
 }
 .nav-item:active { opacity: .6; }
 .nav-ico { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-.nav-ico svg { width:22px; height:22px; stroke: var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition: stroke .15s; }
-.nav-item.active .nav-ico svg { stroke: var(--acc); }
-.nav-lbl { font-size: 10px; font-weight: 600; color: var(--muted); transition: color .15s; }
-.nav-item.active .nav-lbl { color: var(--acc); }
+.nav-ico svg { width:22px; height:22px; stroke: var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition: stroke .2s, transform .3s cubic-bezier(0.34,1.56,0.64,1); }
+.nav-item.active .nav-ico svg { stroke: var(--acc); transform: scale(1.18) translateY(-1px); }
+.nav-lbl { font-size: 10px; font-weight: 600; color: var(--muted); transition: color .2s, transform .2s; }
+.nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.05); }
+
+/* Screen transition animations */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(22px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-22px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen.anim-fade  { animation: fadeIn .2s ease both; }
+
+/* Post cards entrance animation */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.post { animation: cardIn .3s ease both; }
+.post:nth-child(1) { animation-delay: .03s; }
+.post:nth-child(2) { animation-delay: .08s; }
+.post:nth-child(3) { animation-delay: .13s; }
+.post:nth-child(4) { animation-delay: .18s; }
+.post:nth-child(5) { animation-delay: .22s; }
+.post:nth-child(n+6) { animation-delay: .25s; }
+
+/* Bot row entrance */
+.bot-row { animation: cardIn .25s ease both; }
+.bot-row:nth-child(1) { animation-delay: .04s; }
+.bot-row:nth-child(2) { animation-delay: .09s; }
+.bot-row:nth-child(3) { animation-delay: .14s; }
+.bot-row:nth-child(4) { animation-delay: .18s; }
+.bot-row:nth-child(n+5) { animation-delay: .22s; }
+
+/* React button pop animation */
+@keyframes reactPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.3); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.react.popping { animation: reactPop .35s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* Sub button animation */
+@keyframes subPop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.sub-btn.popping { animation: subPop .3s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* Sheet open animation */
+.overlay.open .sheet { animation: sheetUp .28s cubic-bezier(0.32,0.72,0,1) forwards; }
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Toast animation */
+@keyframes toastBounce {
+  0%   { transform: translateX(-50%) translateY(-80px); }
+  60%  { transform: translateX(-50%) translateY(4px); }
+  80%  { transform: translateX(-50%) translateY(-2px); }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+.toast.show { animation: toastBounce .35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+/* Featured card hover */
+.feat-card { transition: transform .2s cubic-bezier(0.34,1.56,0.64,1), background .15s; }
+.feat-card:active { transform: scale(0.96); }
+
+/* Profile avatar pulse on load */
+@keyframes avaPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(46,166,255,0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(46,166,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(46,166,255,0); }
+}
+.prof-ava { animation: avaPulse 1.5s ease-out 0.5s; }
 
 /* TOPBAR */
 .topbar {
@@ -569,7 +666,9 @@ html, body {
         <div id="myPostsList"></div>
       </div>
     </div>
+  </div><!-- end .screens -->
   <div class="nav">
+    <div class="nav-indicator" id="navIndicator"></div>
     <div class="nav-item active" onclick="go('home',this)">
       <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
       <div class="nav-lbl">Главная</div>
@@ -653,6 +752,27 @@ const API = 'https://botfeed-9v15.onrender.com/api';
 let TOKEN = localStorage.getItem('bf_token') || null;
 let ME = null;
 try { ME = JSON.parse(localStorage.getItem('bf_me')); } catch {}
+
+// ════════════════════════════════
+// УТИЛИТЫ
+// ════════════════════════════════
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Тоггл реакций для статичных демо-постов
+function tap(el) {
+  const on = el.classList.toggle('on');
+  const sp = el.querySelector('span');
+  if (sp) sp.textContent = parseInt(sp.textContent) + (on ? 1 : -1);
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+}
 
 // ════════════════════════════════
 // API ЗАПРОСЫ
@@ -758,16 +878,22 @@ async function loadMyBots() {
   list.innerHTML = res.map(b => {
     total += Number(b.members || 0);
     const badge = b.verified ? '<div class="p-badge">✓</div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
-    return `<div class="my-bot" onclick="openBotManage(${b.id},'${b.name}',${b.members||0},${b.posts_count||0},${b.subscribers||0})">
+    return `<div class="my-bot" data-bot-id="${b.id}" data-bot-name="${esc(b.name)}" data-members="${b.members||0}" data-posts="${b.posts_count||0}" data-subs="${b.subscribers||0}">
       <div class="mb-ava">🤖</div>
       <div class="mb-info">
-        <div class="mb-name">${b.name} ${badge}</div>
+        <div class="mb-name">${esc(b.name)} ${badge}</div>
         <div class="mb-meta">${b.members||0} участников · ${b.posts_count||0} постов</div>
       </div>
       <div class="mb-chev">›</div>
     </div>`;
   }).join('');
   statMembers.textContent = total > 1000 ? Math.floor(total/1000)+'K' : total;
+  // Вешаем обработчики через JS (безопасно)
+  list.querySelectorAll('.my-bot').forEach(el => {
+    el.addEventListener('click', () => {
+      openBotManage(el.dataset.botId, el.dataset.botName, el.dataset.members, el.dataset.posts, el.dataset.subs);
+    });
+  });
 }
 
 async function loadMySubs() {
@@ -794,19 +920,19 @@ function postHTML(p) {
   const reacts = (p.reactions || []).map(r =>
     `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
   ).join('') || `<div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
-  const img = p.image_url ? `<div class="post-img" style="background:url('${p.image_url}') center/cover;height:200px;border-radius:10px;margin-bottom:10px;"></div>` : '';
+  const img = p.image_url ? `<div class="post-img" style="background:url('${esc(p.image_url)}') center/cover;height:200px;border-radius:10px;margin-bottom:10px;"></div>` : '';
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
   return `<div class="post" data-id="${p.id}">
     <div class="post-head">
       <div class="p-ava">🤖</div>
       <div class="p-meta">
-        <div class="p-name">${p.bot_name||'Бот'} ${badge}</div>
-        <div class="p-cat">@${p.bot_username||''}</div>
+        <div class="p-name">${esc(p.bot_name||'Бот')} ${badge}</div>
+        <div class="p-cat">@${esc(p.bot_username||'')}</div>
       </div>
       <div class="p-time">${timeAgo(p.created_at)}</div>
     </div>
     ${img}
-    <div class="post-text">${p.text}</div>
+    <div class="post-text">${esc(p.text)}</div>
     <div class="post-foot">
       ${reacts}
       <div class="react" onclick="openComments(${p.id})">💬 <span>${p.comments_count||0}</span></div>
@@ -831,6 +957,10 @@ function timeAgo(ts) {
 // ════════════════════════════════
 async function reactPost(postId, emoji, el) {
   if (!TOKEN) { toast('👤', 'Войди чтобы ставить реакции'); return; }
+  // Optimistic animation
+  el.classList.add('popping');
+  el.addEventListener('animationend', () => el.classList.remove('popping'), { once: true });
+
   const res = await api('POST', `/posts/${postId}/react`, { emoji });
   if (res?.action) {
     const on = res.action === 'added';
@@ -851,8 +981,8 @@ async function openComments(postId) {
   const data = await api('GET', `/posts/${postId}/comments`);
   document.getElementById('commentsList').innerHTML = (data?.length
     ? data.map(c => `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
-        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${c.first_name}</div>
-        <div style="font-size:14px;">${c.text}</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${esc(c.first_name)}</div>
+        <div style="font-size:14px;">${esc(c.text)}</div>
       </div>`).join('')
     : '<div style="color:var(--sub);text-align:center;padding:24px;">Комментариев пока нет</div>'
   );
@@ -891,12 +1021,12 @@ async function loadCatalog() {
 
 function botRowHTML(b) {
   const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
-  const tags = (b.categories||[]).map(t => `<div class="tag">${t}</div>`).join('');
+  const tags = (b.categories||[]).map(t => `<div class="tag">${esc(t)}</div>`).join('');
   return `<div class="bot-row">
     <div class="br-ava">🤖</div>
     <div class="br-info">
-      <div class="br-name">${b.name} ${badge}</div>
-      <div class="br-desc">${b.description||''}</div>
+      <div class="br-name">${esc(b.name)} ${badge}</div>
+      <div class="br-desc">${esc(b.description||'')}</div>
       <div class="br-tags">${tags}</div>
     </div>
     <div class="br-right">
@@ -908,12 +1038,15 @@ function botRowHTML(b) {
 
 async function subBot(botId, el) {
   if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
+  el.classList.add('popping');
+  el.addEventListener('animationend', () => el.classList.remove('popping'), { once: true });
   const res = await api('POST', `/bots/${botId}/subscribe`);
   if (res) {
     const on = res.subscribed;
     el.classList.toggle('subbed', on);
     el.textContent = on ? '✓ Подписан' : 'Подписаться';
     toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
   }
 }
 
@@ -1040,9 +1173,12 @@ function openBotManage(botId, botName, members, posts, subs) {
   document.getElementById('mngPosts').textContent = posts;
   document.getElementById('mngSubs').textContent = subs;
 
-  // Показываем экран управления
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-botmanage').classList.add('active');
+  // Показываем экран управления с анимацией
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'anim-right', 'anim-left'));
+  const manageScreen = document.getElementById('s-botmanage');
+  manageScreen.classList.add('active', 'anim-right');
+  manageScreen.addEventListener('animationend', () => manageScreen.classList.remove('anim-right'), { once: true });
+  currentScreen = 'botmanage';
 
   // Загружаем посты
   loadMyPostsList();
@@ -1056,10 +1192,15 @@ function openBotManage(botId, botName, members, posts, subs) {
 }
 
 function goBack() {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-profile').classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'anim-right', 'anim-left'));
+  const profileScreen = document.getElementById('s-profile');
+  profileScreen.classList.add('active', 'anim-left');
+  profileScreen.addEventListener('animationend', () => profileScreen.classList.remove('anim-left'), { once: true });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector('.nav-item:last-child').classList.add('active');
+  const indicator = document.getElementById('navIndicator');
+  if (indicator) indicator.style.left = '75%';
+  currentScreen = 'profile';
 }
 
 async function publishPost() {
@@ -1092,7 +1233,7 @@ async function loadMyPostsList() {
   }
   el.innerHTML = data.map(p => `
     <div style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px;">
-      <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">${p.text}</div>
+      <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">${esc(p.text)}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="font-size:12px;color:var(--sub);">${timeAgo(p.created_at)}</div>
         <div style="font-size:12px;color:var(--red);cursor:pointer;" onclick="deletePost(${p.id},this)">Удалить</div>
@@ -1110,15 +1251,49 @@ async function deletePost(postId, el) {
     mng.textContent = Math.max(0, parseInt(mng.textContent) - 1);
   }
 }
+const NAV_ORDER = ['home', 'catalog', 'search', 'profile'];
+let currentScreen = 'home';
+
 function go(id, el) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-' + id).classList.add('active');
+  if (id === currentScreen) return;
+
+  const prevIdx = NAV_ORDER.indexOf(currentScreen);
+  const nextIdx = NAV_ORDER.indexOf(id);
+  const dir = nextIdx > prevIdx ? 'right' : 'left';
+
+  // Hide current screen
+  const prev = document.querySelector('.screen.active');
+  if (prev) {
+    prev.classList.remove('active', 'anim-right', 'anim-left', 'anim-fade');
+  }
+
+  // Show new screen with animation
+  const next = document.getElementById('s-' + id);
+  next.classList.remove('anim-right', 'anim-left', 'anim-fade');
+  next.classList.add('active');
+  // Force reflow for animation restart
+  void next.offsetWidth;
+  next.classList.add(dir === 'right' ? 'anim-right' : 'anim-left');
+
+  // Nav items
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
+
+  // Move nav indicator
+  const indicator = document.getElementById('navIndicator');
+  if (indicator) indicator.style.left = (nextIdx * 25) + '%';
+
+  currentScreen = id;
   if (id === 'home')    loadFeed();
   if (id === 'catalog') loadCatalog();
   if (id === 'profile') showProfile();
 }
+
+// Init nav indicator position
+document.addEventListener('DOMContentLoaded', () => {
+  const ind = document.getElementById('navIndicator');
+  if (ind) ind.style.left = '0%';
+});
 
 function profTab(el, id) {
   document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('on'));
@@ -1152,378 +1327,5 @@ function toast(ico, msg) {
 loadFeed();
 showProfile();
 </script>
-
-// ── API ──
-const API = 'https://botfeed-9v15.onrender.com/api';
-let TOKEN = localStorage.getItem('bf_token') || null;
-let ME = JSON.parse(localStorage.getItem('bf_me') || 'null');
-
-async function api(method, path, body) {
-  const opts = {
-    method: method || 'GET',
-    headers: { 'Content-Type': 'application/json', ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}) }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  try {
-    const r = await fetch(API + path, opts);
-    return await r.json();
-  } catch { return null; }
-}
-
-// ── Авторизация через Telegram ──
-async function loginTelegram(data) {
-  const res = await api('POST', '/auth/telegram', data);
-  if (res?.token) {
-    TOKEN = res.token;
-    ME = res.user;
-    localStorage.setItem('bf_token', TOKEN);
-    localStorage.setItem('bf_me', JSON.stringify(ME));
-    updateProfileUI();
-    loadFeed();
-    toast('👋', `Привет, ${ME.first_name}!`);
-  }
-}
-
-function showProfile() {
-  if (ME) {
-    document.getElementById('prof-guest').style.display = 'none';
-    document.getElementById('prof-auth').style.display = 'block';
-    const ava = document.getElementById('profAva');
-    ava.innerHTML = ME.photo_url
-      ? `<img src="${ME.photo_url}" style="width:100%;height:100%;border-radius:20px;object-fit:cover;">`
-      : '👤';
-    document.getElementById('profName').childNodes[0].textContent = (ME.first_name || '') + ' ';
-    document.getElementById('profUser').textContent = ME.username ? `@${ME.username}` : '';
-    loadMyBots();
-  } else {
-    document.getElementById('prof-guest').style.display = 'block';
-    document.getElementById('prof-auth').style.display = 'none';
-  }
-}
-
-async function loadMyBots() {
-  const res = await api('GET', '/my/bots');
-  const list = document.getElementById('myBotsList');
-  if (!res?.length) { list.innerHTML = ''; document.getElementById('statBots').textContent = '0'; return; }
-  document.getElementById('statBots').textContent = res.length;
-  let totalMembers = 0;
-  list.innerHTML = res.map(b => {
-    totalMembers += Number(b.members || 0);
-    const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
-    return `<div class="my-bot">
-      <div class="mb-ava">${b.photo_url ? `<img src="${b.photo_url}" style="width:100%;height:100%;border-radius:13px;object-fit:cover;">` : '🤖'}</div>
-      <div class="mb-info">
-        <div class="mb-name">${b.name} ${badge}</div>
-        <div class="mb-meta">${b.members||0} участников · ${b.posts_count||0} постов</div>
-      </div>
-      <div class="mb-chev">›</div>
-    </div>`;
-  }).join('');
-  document.getElementById('statMembers').textContent = totalMembers > 1000 ? Math.floor(totalMembers/1000)+'K' : totalMembers;
-}
-
-async function loadMySubs() {
-  const res = await api('GET', '/my/subscriptions');
-  document.getElementById('statSubs').textContent = res?.length || 0;
-}
-
-function updateProfileUI() { showProfile(); }
-
-function logout() {
-  TOKEN = null; ME = null;
-  localStorage.removeItem('bf_token');
-  localStorage.removeItem('bf_me');
-  showProfile();
-  toast('👋', 'Вышел из аккаунта');
-}
-
-// ── Загрузка ленты с бэкенда ──
-async function loadFeed() {
-  const feedEl = document.querySelector('.feed');
-  if (!feedEl) return;
-  feedEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--sub)">Загрузка...</div>';
-
-  const data = await api('GET', TOKEN ? '/feed' : '/feed/discover');
-  if (!data || !data.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--sub)">Постов пока нет</div>';
-    return;
-  }
-  feedEl.innerHTML = data.map(postHTML).join('');
-}
-
-function postHTML(p) {
-  const reactions = (p.reactions || []).map(r =>
-    `<div class="react${(p.my_reactions||[]).includes(r.emoji) ? ' on' : ''}" onclick="reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
-  ).join('');
-  const img = p.image_url ? `<div class="post-img" style="background-image:url(${p.image_url});background-size:cover;"></div>` : '';
-  const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
-  return `<div class="post" data-id="${p.id}">
-    <div class="post-head">
-      <div class="p-ava">${p.bot_photo ? `<img src="${p.bot_photo}" style="width:100%;height:100%;border-radius:12px;object-fit:cover;">` : '🤖'}</div>
-      <div class="p-meta">
-        <div class="p-name">${p.bot_name} ${badge}</div>
-        <div class="p-cat">@${p.bot_username}</div>
-      </div>
-      <div class="p-time">${timeAgo(p.created_at)}</div>
-    </div>
-    ${img}
-    <div class="post-text">${p.text}</div>
-    <div class="post-foot">
-      ${reactions || `<div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`}
-      <div class="react" onclick="openComments(${p.id})">💬 <span>${p.comments_count||0}</span></div>
-      <div class="react-sep"></div>
-      <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-    </div>
-  </div>`;
-}
-
-function timeAgo(ts) {
-  const d = Math.floor((Date.now() - new Date(ts)) / 1000);
-  if (d < 60) return 'только что';
-  if (d < 3600) return Math.floor(d/60) + ' мин';
-  if (d < 86400) return Math.floor(d/3600) + ' ч';
-  return Math.floor(d/86400) + ' д';
-}
-
-// ── Реакции (реальные) ──
-async function reactPost(postId, emoji, el) {
-  if (!TOKEN) { toast('👤', 'Войди чтобы ставить реакции'); return; }
-  const res = await api('POST', `/posts/${postId}/react`, { emoji });
-  if (res?.action) {
-    const on = res.action === 'added';
-    el.classList.toggle('on', on);
-    const sp = el.querySelector('span');
-    sp.textContent = parseInt(sp.textContent) + (on ? 1 : -1);
-    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-  }
-}
-
-// ── Комментарии ──
-async function openComments(postId) {
-  const data = await api('GET', `/posts/${postId}/comments`);
-  const list = (data || []).map(c =>
-    `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
-      <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${c.first_name}</div>
-      <div style="font-size:14px;color:var(--text);">${c.text}</div>
-    </div>`
-  ).join('') || '<div style="color:var(--sub);text-align:center;padding:24px;">Комментариев пока нет</div>';
-
-  document.getElementById('commentsPostId').value = postId;
-  document.getElementById('commentsList').innerHTML = list;
-  document.getElementById('commentsOverlay').classList.add('open');
-}
-
-async function sendComment() {
-  if (!TOKEN) { toast('👤', 'Войди чтобы комментировать'); return; }
-  const postId = document.getElementById('commentsPostId').value;
-  const text = document.getElementById('commentInput').value.trim();
-  if (!text) return;
-  const res = await api('POST', `/posts/${postId}/comments`, { text });
-  if (res?.id) {
-    document.getElementById('commentInput').value = '';
-    openComments(postId);
-    toast('💬', 'Комментарий отправлен');
-  }
-}
-
-// ── Загрузка каталога с бэкенда ──
-async function loadCatalog() {
-  const listEl = document.getElementById('catalogList');
-  if (!listEl) return;
-  listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--sub)">Загрузка...</div>';
-  const data = await api('GET', '/bots');
-  if (!data?.length) { listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--sub)">Ботов пока нет</div>'; return; }
-  listEl.innerHTML = data.map(b => {
-    const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
-    const tags = (b.categories||[]).map(t => `<div class="tag">${t}</div>`).join('');
-    return `<div class="bot-row">
-      <div class="br-ava">${b.photo_url ? `<img src="${b.photo_url}" style="width:100%;height:100%;border-radius:13px;object-fit:cover;">` : '🤖'}</div>
-      <div class="br-info">
-        <div class="br-name">${b.name} ${badge}</div>
-        <div class="br-desc">${b.description||''}</div>
-        <div class="br-tags">${tags}</div>
-      </div>
-      <div class="br-right">
-        <div class="br-count"><div class="gdot"></div>${b.members||b.subscribers||0}</div>
-        <div class="sub-btn" onclick="subBot(${b.id},this)">Подписаться</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function subBot(botId, el) {
-  if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
-  const res = await api('POST', `/bots/${botId}/subscribe`);
-  if (res) {
-    const on = res.subscribed;
-    el.classList.toggle('subbed', on);
-    el.textContent = on ? '✓ Подписан' : 'Подписаться';
-    toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
-  }
-}
-
-// ── Добавить бота (реальный) ──
-let newBotId = null;
-async function submitBotStep1() {
-  const username = document.querySelector('#st1 .f-inp:first-of-type')?.value;
-  const description = document.querySelector('#st1 .f-inp:last-of-type')?.value;
-  if (!username || !description) { toast('⚠️', 'Заполни все поля'); return; }
-  if (!TOKEN) { toast('👤', 'Сначала войди'); return; }
-  const res = await api('POST', '/bots', { username, name: username.replace('@',''), description, categories: [] });
-  if (res?.id) { newBotId = res.id; nextSt(); }
-  else toast('❌', res?.error || 'Ошибка');
-}
-
-async function submitBotStep2() {
-  const cats = [...document.querySelectorAll('.t-opt.picked')].map(el => el.textContent.trim());
-  if (newBotId) await api('PUT', `/bots/${newBotId}`, { categories: cats });
-  nextSt();
-  // Запрашиваем код верификации
-  if (newBotId) {
-    const res = await api('POST', `/bots/${newBotId}/verify/request`);
-    if (res?.message) toast('📨', res.message);
-  }
-}
-
-async function submitBot() {
-  const code = document.querySelector('#st3 .f-inp')?.value?.trim();
-  if (!code || !newBotId) return;
-  const res = await api('POST', `/bots/${newBotId}/verify/confirm`, { code });
-  if (res?.ok) {
-    document.getElementById('overlay').classList.remove('open');
-    toast('🚀', 'Бот добавлен в каталог!');
-    loadCatalog();
-  } else toast('❌', res?.error || 'Неверный код');
-}
-
-// ── Поиск с реальным API ──
-const BOTS = [];
-let activeCat = 'all';
-let searchQ = '';
-
-async function doSearch() {
-  const inp = document.getElementById('searchInput');
-  searchQ = inp.value;
-  document.getElementById('searchClear').classList.toggle('show', searchQ.length > 0);
-  if (!searchQ && activeCat === 'all') { renderResults(); return; }
-  const params = new URLSearchParams();
-  if (searchQ) params.set('q', searchQ);
-  if (activeCat !== 'all') params.set('category', activeCat);
-  const data = await api('GET', '/bots?' + params);
-  renderResultsData(data || []);
-}
-
-function renderResults() {
-  const hasQuery = searchQ.length > 0 || activeCat !== 'all';
-  document.getElementById('searchDefault').style.display = hasQuery ? 'none' : 'block';
-  document.getElementById('searchResults').style.display = hasQuery ? 'block' : 'none';
-}
-
-function renderResultsData(data) {
-  document.getElementById('searchDefault').style.display = 'none';
-  document.getElementById('searchResults').style.display = 'block';
-  document.getElementById('resultsLabel').textContent =
-    data.length > 0 ? `Найдено: ${data.length} ${data.length===1?'бот':data.length<5?'бота':'ботов'}` : 'Ничего не найдено';
-  const list = document.getElementById('resultsList');
-  if (!data.length) {
-    list.innerHTML = `<div class="no-results"><div class="no-results-ico">🔍</div><div class="no-results-txt">Ботов не найдено</div><div>Попробуй другой запрос</div></div>`;
-    return;
-  }
-  list.innerHTML = data.map(b => {
-    const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
-    const tags = (b.categories||[]).map(t => `<div class="tag">${t}</div>`).join('');
-    return `<div class="bot-row">
-      <div class="br-ava">🤖</div>
-      <div class="br-info"><div class="br-name">${b.name} ${badge}</div><div class="br-desc">${b.description||''}</div><div class="br-tags">${tags}</div></div>
-      <div class="br-right"><div class="br-count"><div class="gdot"></div>${b.members||0}</div>
-      <div class="sub-btn" onclick="subBot(${b.id},this)">Подписаться</div></div>
-    </div>`;
-  }).join('');
-}
-
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  searchQ = '';
-  document.getElementById('searchClear').classList.remove('show');
-  renderResults();
-}
-
-function setCat(el) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('on'));
-  el.classList.add('on');
-  activeCat = el.dataset.cat;
-  doSearch();
-}
-
-function tapCat(cat) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === cat));
-  activeCat = cat;
-  doSearch();
-}
-
-// ── Navigation ──
-function go(id, el) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-' + id).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  el.classList.add('active');
-  if (id === 'home') loadFeed();
-  if (id === 'catalog') loadCatalog();
-  if (id === 'profile') { showProfile(); loadMySubs(); }
-}
-
-// ── Toast ──
-let toastT;
-function toast(ico, msg) {
-  document.getElementById('tIco').textContent = ico;
-  document.getElementById('tMsg').textContent = msg;
-  const t = document.getElementById('toast');
-  t.classList.add('show');
-  clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('show'), 2000);
-}
-
-function subToggle(el) {
-  const on = el.classList.toggle('subbed');
-  el.textContent = on ? '✓ Подписан' : 'Подписаться';
-  toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
-}
-
-function profTab(el, id) {
-  document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('on'));
-  el.classList.add('on');
-  ['tb-bots','tb-settings'].forEach(i => document.getElementById(i).style.display = 'none');
-  document.getElementById(id).style.display = 'block';
-}
-
-// ── Sheet ──
-let step = 1;
-function openSheet() {
-  if (!TOKEN) { toast('👤', 'Сначала войди через Telegram'); return; }
-  step = 1; newBotId = null; updateSheet();
-  document.getElementById('overlay').classList.add('open');
-}
-function closeOverlay(e) {
-  if (e.target === document.getElementById('overlay'))
-    document.getElementById('overlay').classList.remove('open');
-}
-function closeComments(e) {
-  if (e.target === document.getElementById('commentsOverlay'))
-    document.getElementById('commentsOverlay').classList.remove('open');
-}
-function nextSt() { step++; updateSheet(); }
-function updateSheet() {
-  for(let i=1;i<=3;i++) document.getElementById('st'+i).style.display = i===step?'block':'none';
-  document.querySelectorAll('.step-s').forEach((s,i) => {
-    s.classList.remove('done','cur');
-    if(i<step-1) s.classList.add('done');
-    else if(i===step-1) s.classList.add('cur');
-  });
-}
-
-// ── Init ──
-loadFeed();
-showProfile();
-</script>
 </body>
-</html>
+            </html>
