@@ -30,6 +30,10 @@ db.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFE
 db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'`)
   .catch(e => console.log('Buttons migration note:', e.message))
 
+// Миграция постов — просмотры
+db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0`)
+  .catch(e => console.log('Views migration note:', e.message))
+
 // OTP таблицы
 try {
   await db.query(`
@@ -588,6 +592,13 @@ app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
   if (rows[0]) { await db.query('DELETE FROM reactions WHERE id=$1', [rows[0].id]); return { action: 'removed' } }
   await db.query('INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1,$2,$3)', [req.params.id, req.user.id, emoji])
   return { action: 'added' }
+})
+
+app.post('/api/posts/:id/view', async (req, reply) => {
+  try {
+    await db.query('UPDATE posts SET views_count = COALESCE(views_count,0) + 1 WHERE id=$1', [req.params.id])
+    return { ok: true }
+  } catch (e) { return { ok: false } }
 })
 
 app.get('/api/posts/:id/comments', async (req) => {
