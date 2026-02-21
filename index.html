@@ -2104,9 +2104,11 @@ function go(id, el) {
   navRipple(el);
   window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
 
-  const prevIdx = NAV_ORDER.indexOf(currentScreen);
-  const nextIdx = NAV_ORDER.indexOf(id);
-  const dir = nextIdx > prevIdx ? 'right' : 'left';
+  const NAV_TABS = ['home', 'catalog', 'search', 'profile'];
+  const prevIdx = NAV_TABS.indexOf(currentScreen);
+  const nextIdx = NAV_TABS.indexOf(id);
+  // Если переходим из sub-screen (botpage, postdetail, etc.) — анимация всегда влево
+  const dir = (prevIdx === -1 || nextIdx > prevIdx) ? 'right' : 'left';
 
   // Hide current screen
   const prev = document.querySelector('.screen.active');
@@ -2123,7 +2125,7 @@ function go(id, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
 
-  // Slide indicator
+  // Slide indicator — always based on 4-item nav
   const indicator = document.getElementById('navIndicator');
   if (indicator) indicator.style.left = (nextIdx * 25) + '%';
 
