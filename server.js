@@ -609,6 +609,32 @@ app.delete('/api/posts/:id', { preHandler: auth }, async (req, reply) => {
   } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
+app.get('/api/posts/:id', { preHandler: optAuth }, async (req, reply) => {
+  try {
+    const myReactsCond = req.user?.id
+      ? `COALESCE(json_agg(DISTINCT mr.emoji) FILTER (WHERE mr.emoji IS NOT NULL), '[]') as my_reactions`
+      : `'[]'::json as my_reactions`
+    const myReactsJoin = req.user?.id
+      ? `LEFT JOIN reactions mr ON p.id=mr.post_id AND mr.user_id=${req.user.id}`
+      : ''
+    const { rows } = await db.query(`
+      SELECT p.*, b.name as bot_name, b.username as bot_username, b.id as bot_id,
+        b.photo_url as bot_photo, b.verified as bot_verified,
+        COALESCE(json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt)) FILTER (WHERE r.emoji IS NOT NULL), '[]') as reactions,
+        COUNT(DISTINCT c.id) as comments_count,
+        ${myReactsCond}
+      FROM posts p JOIN bots b ON p.bot_id=b.id
+      LEFT JOIN (SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji) r ON p.id=r.post_id
+      LEFT JOIN comments c ON p.id=c.post_id
+      ${myReactsJoin}
+      WHERE p.id=$1
+      GROUP BY p.id, b.name, b.username, b.id, b.photo_url, b.verified
+    `, [req.params.id])
+    if (!rows[0]) return reply.code(404).send({ error: 'Пост не найден' })
+    return rows[0]
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
+})
+
 app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
   const { emoji } = req.body
   if (!['🔥', '👍', '❤️', '😂', '👏', '🎉'].includes(emoji)) return reply.code(400).send({ error: 'Неверный эмодзи' })
