@@ -177,20 +177,59 @@ app.post('/api/tg/webhook', async (req, reply) => {
 // Вход / регистрация через Google
 app.post('/api/auth/google', async (req, reply) => {
   try {
-    const { accessToken, googleUser, credential } = req.body
+    const { code, redirectUri, accessToken, googleUser } = req.body
 
     let googleId, email, firstName, lastName, photoUrl
 
-    if (accessToken) {
-      // Сервер сам спрашивает Google по access_token
+    if (code) {
+      // Authorization code flow — обмениваем code на токены
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id:     process.env.GOOGLE_CLIENT_ID || '443378593916-3atdtlsqnpc2b88av03i932948iv83m9.apps.googleusercontent.com',
+          client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+          redirect_uri:  redirectUri || 'https://botfeed.vercel.app',
+          grant_type:    'authorization_code'
+        })
+      })
+      const tokenData = await tokenRes.json()
+      console.log('Token exchange:', JSON.stringify(tokenData).slice(0, 200))
+
+      if (tokenData.error) {
+        return reply.code(401).send({ error: 'Ошибка обмена кода: ' + tokenData.error_description })
+      }
+
+      // Получаем профиль через id_token или access_token
+      const idToken = tokenData.id_token
+      if (idToken) {
+        const parts  = idToken.split('.')
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString())
+        googleId  = payload.sub
+        email     = payload.email       || null
+        firstName = payload.given_name  || payload.name?.split(' ')[0] || 'User'
+        lastName  = payload.family_name || null
+        photoUrl  = payload.picture     || null
+      } else {
+        // Fallback — получаем профиль через access_token
+        const uRes  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + tokenData.access_token }
+        })
+        const uData = await uRes.json()
+        googleId  = uData.sub
+        email     = uData.email         || null
+        firstName = uData.given_name    || uData.name?.split(' ')[0] || 'User'
+        lastName  = uData.family_name   || null
+        photoUrl  = uData.picture       || null
+      }
+
+    } else if (accessToken) {
       const gRes  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + accessToken }
       })
       const gData = await gRes.json()
-      if (!gData.sub) {
-        console.error('Google userinfo error:', gData)
-        return reply.code(401).send({ error: 'Неверный Google токен: ' + (gData.error || 'нет sub') })
-      }
+      if (!gData.sub) return reply.code(401).send({ error: 'Неверный access token' })
       googleId  = gData.sub
       email     = gData.email        || null
       firstName = gData.given_name   || gData.name?.split(' ')[0] || 'User'
@@ -198,25 +237,11 @@ app.post('/api/auth/google', async (req, reply) => {
       photoUrl  = gData.picture      || null
 
     } else if (googleUser) {
-      // Данные уже получены фронтендом
       googleId  = googleUser.sub
       email     = googleUser.email       || null
       firstName = googleUser.given_name  || googleUser.name?.split(' ')[0] || 'User'
       lastName  = googleUser.family_name || null
       photoUrl  = googleUser.picture     || null
-
-    } else if (credential) {
-      // ID Token
-      const gRes  = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`)
-      const gData = await gRes.json()
-      if (gData.error || !gData.sub) {
-        return reply.code(401).send({ error: 'Неверный ID token' })
-      }
-      googleId  = gData.sub
-      email     = gData.email        || null
-      firstName = gData.given_name   || gData.name?.split(' ')[0] || 'User'
-      lastName  = gData.family_name  || null
-      photoUrl  = gData.picture      || null
 
     } else {
       return reply.code(400).send({ error: 'Нет данных Google' })
@@ -245,12 +270,7 @@ app.post('/api/auth/google', async (req, reply) => {
     console.log('✅ Google auth:', user.first_name, user.email)
     return {
       token,
-      user: {
-        id: user.id,
-        first_name: user.first_name,
-        username: user.username,
-        photo_url: user.photo_url
-      }
+      user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url }
     }
   } catch (e) {
     console.error('Google auth error:', e.message)
