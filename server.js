@@ -22,6 +22,10 @@ db.query(`
   CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
 `).catch(e => console.log('Migration note:', e.message))
 
+// Миграция комментариев — reply_to_id
+db.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFERENCES comments(id) ON DELETE SET NULL`)
+  .catch(e => console.log('Comments migration note:', e.message))
+
 // OTP таблицы
 try {
   await db.query(`
@@ -567,8 +571,12 @@ app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
 
 app.get('/api/posts/:id/comments', async (req) => {
   const { rows } = await db.query(`
-    SELECT c.*, u.first_name, u.username, u.photo_url
-    FROM comments c JOIN users u ON c.user_id=u.id
+    SELECT c.*, u.first_name, u.username, u.photo_url,
+      rc.text as reply_to_text, ru.first_name as reply_to_name
+    FROM comments c 
+    JOIN users u ON c.user_id=u.id
+    LEFT JOIN comments rc ON c.reply_to_id=rc.id
+    LEFT JOIN users ru ON rc.user_id=ru.id
     WHERE c.post_id=$1 ORDER BY c.created_at ASC
   `, [req.params.id])
   return rows
@@ -576,8 +584,21 @@ app.get('/api/posts/:id/comments', async (req) => {
 
 app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => {
   if (!req.body.text?.trim()) return reply.code(400).send({ error: 'Пустой комментарий' })
-  const { rows } = await db.query('INSERT INTO comments (post_id, user_id, text) VALUES ($1,$2,$3) RETURNING *', [req.params.id, req.user.id, req.body.text.trim()])
-  return rows[0]
+  const replyToId = req.body.reply_to_id ? parseInt(req.body.reply_to_id) : null
+  try {
+    const { rows } = await db.query(
+      'INSERT INTO comments (post_id, user_id, text, reply_to_id) VALUES ($1,$2,$3,$4) RETURNING *',
+      [req.params.id, req.user.id, req.body.text.trim(), replyToId]
+    )
+    return rows[0]
+  } catch {
+    // Fallback без reply_to_id если колонки ещё нет
+    const { rows } = await db.query(
+      'INSERT INTO comments (post_id, user_id, text) VALUES ($1,$2,$3) RETURNING *',
+      [req.params.id, req.user.id, req.body.text.trim()]
+    )
+    return rows[0]
+  }
 })
 
 // ════════════════════════════════
