@@ -54,26 +54,38 @@ html, body {
 .screen.anim-left  { animation: slideInLeft  .22s cubic-bezier(0.25,0.46,0.45,0.94) both; }
 
 /* NAV */
-.nav {
+.nav-wrap {
   flex-shrink: 0;
-  height: 56px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: transparent;
   position: relative;
+  z-index: 50;
+}
+
+.nav {
+  height: 58px;
+  background: rgba(36, 47, 61, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 22px;
+  display: flex;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2);
+  overflow: hidden;
 }
 
 /* Sliding indicator under active nav item */
 .nav-indicator {
   position: absolute;
-  top: 0;
-  height: 2px;
+  bottom: 6px;
+  height: 3px;
   background: var(--acc);
-  border-radius: 0 0 3px 3px;
-  width: 25%;
-  left: 0;
-  transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 3px;
+  width: calc(25% - 24px);
+  left: 12px;
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 10px rgba(46,166,255,0.6);
 }
 
 .nav-item {
@@ -731,10 +743,10 @@ html, body {
   margin-bottom: 2px;
 }
 .comment-item {
-  display: flex; gap: 10px; padding: 10px 0;
+  display: flex; gap: 11px; padding: 12px 0 10px;
   border-bottom: 1px solid var(--border);
   position: relative;
-  background: var(--bg);
+  background: transparent;
   transform: translateX(0);
   transition: transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
   will-change: transform;
@@ -1353,6 +1365,7 @@ html, body {
     </div>
 
   </div><!-- end .screens -->
+  <div class="nav-wrap">
   <div class="nav">
     <div class="nav-indicator" id="navIndicator"></div>
     <div class="nav-item active" onclick="go('home',this)">
@@ -1371,6 +1384,7 @@ html, body {
       <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="nav-lbl">Профиль</div>
     </div>
+  </div>
   </div>
 
   <!-- COMMENTS OVERLAY -->
@@ -1962,7 +1976,7 @@ function closeBotPage() {
   const idx = navMap[prevScreenBeforeBot] ?? 0;
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
   const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = (idx * 25) + '%';
+  if (indicator) indicator.style.left = 'calc(' + idx + ' * 25% + 12px)';
 }
 
 // ════════════════════════════════
@@ -2838,7 +2852,7 @@ function goBack() {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector('.nav-item:last-child').classList.add('active');
   const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = '75%';
+  if (indicator) indicator.style.left = 'calc(75% + 12px)';
   currentScreen = 'profile';
 }
 
@@ -3024,7 +3038,11 @@ function startReply(commentId, name, text) {
 function renderPostDetailComments(data) {
   const el = document.getElementById('postDetailComments');
   if (!data?.length) {
-    el.innerHTML = '<div style="color:var(--sub);text-align:center;padding:32px 0;padding-bottom:80px;"><div style="font-size:36px;margin-bottom:10px;">💬</div><div>Будь первым — напиши комментарий!</div></div>';
+    el.innerHTML = `<div style="color:var(--sub);text-align:center;padding:40px 0 80px;">
+      <div style="font-size:48px;margin-bottom:12px;">💬</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Комментариев пока нет</div>
+      <div style="font-size:13px;">Будь первым — напиши что-нибудь!</div>
+    </div>`;
     return;
   }
 
@@ -3040,23 +3058,58 @@ function renderPostDetailComments(data) {
     }
   });
 
+  function avatarHTML(c, size = 38) {
+    const r = Math.round(size / 2);
+    if (c.photo_url) {
+      return `<img src="${esc(c.photo_url)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;display:block;"
+        onerror="this.outerHTML=initials('${esc(c.first_name||'?')}',${size})">`;
+    }
+    return initialsEl(c.first_name||'?', size);
+  }
+
+  function initialsEl(name, size) {
+    const colors = ['#2ea6ff','#4dcd6a','#f5a623','#ff4c6d','#a855f7','#f97316'];
+    const color = colors[(name.charCodeAt(0)||0) % colors.length];
+    const letter = (name||'?')[0].toUpperCase();
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0;">${letter}</div>`;
+  }
+
+  // Глобальная функция для onerror
+  window.initials = initialsEl;
+
   function commentHTML(c, isReply = false) {
     const replyQuote = (c.reply_to_id && c.reply_to_name)
-      ? `<div class="reply-quote"><strong>${esc(c.reply_to_name)}</strong>: ${esc((c.reply_to_text||'').slice(0,60))}${(c.reply_to_text||'').length>60?'…':''}</div>`
+      ? `<div style="display:flex;align-items:flex-start;gap:6px;background:var(--hover);border-left:2.5px solid var(--acc);border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:7px;">
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+           <div style="font-size:12px;line-height:1.4;min-width:0;"><span style="color:var(--acc);font-weight:700;">${esc(c.reply_to_name)}</span> <span style="color:var(--sub);">${esc((c.reply_to_text||'').slice(0,55))}${(c.reply_to_text||'').length>55?'…':''}</span></div>
+         </div>`
       : '';
+
+    const ava = avatarHTML(c, isReply ? 28 : 36);
     const replies = (c.replies||[]).map(r => commentHTML(r, true)).join('');
+
     return `
-      <div class="comment-item" data-id="${c.id}" data-name="${esc(c.first_name||'Пользователь')}" data-text="${esc(c.text)}" style="${isReply?'padding-left:46px;':''};padding-bottom:${c.replies?.length?'2px':'10px'}">
-        <div style="width:36px;height:36px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;${isReply?'display:none;':''}">👤</div>
+      <div class="comment-item" data-id="${c.id}" 
+           data-name="${esc(c.first_name||'Пользователь')}" 
+           data-text="${esc(c.text)}"
+           style="${isReply ? 'padding-left:44px;background:rgba(46,166,255,0.03);' : ''}">
+        <div style="flex-shrink:0;${isReply?'display:none;':''}">${ava}</div>
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-            <span style="font-weight:700;font-size:13px;">${esc(c.first_name||'Пользователь')}</span>
-            <span style="font-size:11px;color:var(--sub);">${timeAgo(c.created_at||Date.now())}</span>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+            ${isReply ? `<div style="flex-shrink:0;">${ava}</div>` : ''}
+            <span style="font-weight:700;font-size:13px;color:var(--text);">${esc(c.first_name||'Пользователь')}</span>
+            ${c.username ? `<span style="font-size:11px;color:var(--muted);">@${esc(c.username)}</span>` : ''}
+            <span style="font-size:11px;color:var(--muted);margin-left:auto;">${timeAgo(c.created_at||Date.now())}</span>
           </div>
           ${replyQuote}
-          <div style="font-size:14px;line-height:1.5;">${esc(c.text)}</div>
-          <div style="margin-top:5px;">
-            <span style="font-size:12px;color:var(--sub);cursor:pointer;" onclick="startReply(${c.id},'${esc(c.first_name||'Пользователь')}','${esc(c.text.replace(/'/g,"&#39;"))}')">↩ Ответить</span>
+          <div style="font-size:14px;line-height:1.55;color:var(--text);word-break:break-word;">${esc(c.text)}</div>
+          <div style="margin-top:7px;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 0;"
+                  onclick="startReply(${c.id},'${esc(c.first_name||'Пользователь').replace(/'/g,'&#39;')}','${esc(c.text).replace(/'/g,'&#39;').slice(0,80)}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+              Ответить
+            </span>
+            ${c.replies?.length ? `<span style="font-size:12px;color:var(--acc);">↳ ${c.replies.length} ${c.replies.length===1?'ответ':c.replies.length<5?'ответа':'ответов'}</span>` : ''}
           </div>
         </div>
         <div class="comment-reply-indicator" id="ri-${c.id}">
@@ -3064,34 +3117,33 @@ function renderPostDetailComments(data) {
         </div>
       </div>
       ${replies}
-      <div style="height:1px;background:var(--border);margin:0;"></div>`;
+      <div style="height:1px;background:var(--border);"></div>`;
   }
 
-  el.innerHTML = roots.map(c => commentHTML(c)).join('') + '<div style="height:80px;"></div>';
+  el.innerHTML = roots.map(c => commentHTML(c)).join('') + '<div style="height:90px;"></div>';
 
   // Свайп-ответ на комментарий
   el.querySelectorAll('.comment-item').forEach(item => {
-    let startX = 0, startY = 0, dx = 0, triggered = false;
+    let startX = 0, startY = 0, triggered = false;
     const indicator = item.querySelector('.comment-reply-indicator');
 
     item.addEventListener('touchstart', e => {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      dx = 0; triggered = false;
+      triggered = false;
       item.classList.add('swiping');
     }, { passive: true });
 
     item.addEventListener('touchmove', e => {
-      dx = e.touches[0].clientX - startX;
+      const dx = e.touches[0].clientX - startX;
       const dy = Math.abs(e.touches[0].clientY - startY);
-      if (dy > 20) { item.style.transform = ''; return; } // вертикальный скролл
-      if (dx < 0) return; // только вправо
+      if (dy > 20) { item.style.transform = ''; return; }
+      if (dx < 0) return;
       const clamped = Math.min(dx, 72);
       item.style.transform = `translateX(${clamped}px)`;
       if (indicator) {
         const pct = Math.min(clamped / 60, 1);
         indicator.style.opacity = pct;
-        indicator.style.right = `${8 - clamped * 0.3}px`;
         if (pct >= 1 && !triggered) {
           triggered = true;
           indicator.classList.add('visible');
@@ -3108,11 +3160,7 @@ function renderPostDetailComments(data) {
       item.style.transform = '';
       if (indicator) { indicator.style.opacity = '0'; indicator.classList.remove('visible'); }
       if (triggered) {
-        startReply(
-          Number(item.dataset.id),
-          item.dataset.name,
-          item.dataset.text
-        );
+        startReply(Number(item.dataset.id), item.dataset.name, item.dataset.text);
       }
     });
   });
@@ -3152,7 +3200,7 @@ function closePostDetail() {
   const idx = navMap[prevScreenBeforePost] ?? 0;
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
   const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = (idx * 25) + '%';
+  if (indicator) indicator.style.left = 'calc(' + idx + ' * 25% + 12px)';
 }
 
 
@@ -3202,7 +3250,7 @@ function go(id, el) {
 
   // Slide indicator — always based on 4-item nav
   const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = (nextIdx * 25) + '%';
+  if (indicator) indicator.style.left = 'calc(' + nextIdx + ' * 25% + 12px)';
 
   currentScreen = id;
   if (id === 'home')    loadFeed();
