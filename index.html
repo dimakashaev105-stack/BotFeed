@@ -1439,22 +1439,23 @@ html, body {
         <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;padding-top:4px;">Комментарии</div>
         <div id="postDetailComments" style="padding-bottom:90px;"></div>
       </div>
-      <!-- Инпут комментария -->
-      <div id="commentInputBar" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;">
-        <div id="replyBar">
-          <div class="reply-bar-inner">
-            <span>↩ Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
-          </div>
-          <div class="reply-cancel" onclick="cancelReply()">×</div>
-        </div>
-        <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;">
-          <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
-          <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
-        </div>
-      </div>
     </div>
 
   </div><!-- end .screens -->
+
+  <!-- Инпут комментария (вне .screen чтобы position:fixed работал корректно) -->
+  <div id="commentInputBar" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;">
+    <div id="replyBar">
+      <div class="reply-bar-inner">
+        <span>↩ Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
+      </div>
+      <div class="reply-cancel" onclick="cancelReply()">×</div>
+    </div>
+    <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;">
+      <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
+      <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
+    </div>
+  </div>
   <div class="nav-wrap">
   <div class="nav">
     <div class="nav-indicator" id="navIndicator"></div>
@@ -2245,12 +2246,19 @@ function postHTML(p) {
     <div class="post-foot">
       ${reacts}
       <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
+      <div class="react" style="cursor:default;opacity:0.7;">👁 <span>${fmtViews(p.views_count||0)}</span></div>
       <div class="react-sep"></div>
       <div class="share" onclick="event.stopPropagation();toast('🔗','Ссылка скопирована')">
         <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       </div>
     </div>
   </div>`;
+}
+
+function fmtViews(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + 'K';
+  return String(n);
 }
 
 function timeAgo(ts) {
@@ -3125,8 +3133,12 @@ async function openPostDetail(postId, event) {
   const page = document.getElementById('s-postdetail');
   page.classList.add('active','anim-right');
   page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
+  document.getElementById('commentInputBar').style.display = 'block';
   currentScreen = 'postdetail';
   page.scrollTo(0, 0);
+
+  // Считаем просмотр
+  api('POST', `/posts/${postId}/view`).catch(() => {});
 
   // Skeleton
   document.getElementById('postDetailContent').innerHTML = '<div class="shimmer" style="height:120px;margin-bottom:12px;border-radius:14px;"></div>';
@@ -3160,6 +3172,7 @@ async function openPostDetail(postId, event) {
         <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
           ${reacts}
           <div class="react on">💬 <span>${commentsData?.length||0}</span></div>
+          <div class="react" style="cursor:default;opacity:0.7;">👁 <span>${fmtViews((p.views_count||0)+1)}</span></div>
           <div class="react-sep"></div>
           <div class="share" onclick="sharePostDetail()">
             <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -3347,6 +3360,8 @@ function sharePostDetail() {
 }
 
 function closePostDetail() {
+  document.getElementById('commentInputBar').style.display = 'none';
+  cancelReply();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
   const prev = document.getElementById('s-' + prevScreenBeforePost) || document.getElementById('s-home');
   prev.classList.add('active','anim-left');
