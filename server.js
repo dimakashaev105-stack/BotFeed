@@ -22,15 +22,23 @@ db.query(`
   CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
 `).then(() => console.log('✅ Миграция OK')).catch(e => console.log('Migration note:', e.message))
 
-// Таблица для OTP кодов (устойчива к перезапускам)
-db.query(`
-  CREATE TABLE IF NOT EXISTS email_otp (
-    email TEXT PRIMARY KEY,
-    code TEXT NOT NULL,
-    expires BIGINT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-  )
-`).then(() => console.log('✅ OTP table OK')).catch(e => console.log('OTP table note:', e.message))
+// Таблица для OTP кодов — создаём синхронно перед стартом
+try {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS email_otp (
+      email TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      expires BIGINT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  console.log('✅ OTP table OK')
+} catch(e) {
+  console.log('OTP table note:', e.message)
+}
+
+// Fallback на память если БД недоступна
+const emailCodes = new Map()
 
 // ════════════════════════════════
 // TELEGRAM BOT (уведомления админу)
@@ -201,12 +209,7 @@ app.post('/api/auth/email/send', async (req, reply) => {
     // Генерируем 6-значный код
     const code    = String(Math.floor(100000 + Math.random() * 900000))
     const expires = Date.now() + 10 * 60 * 1000 // 10 минут
-    // Сохраняем в БД (устойчиво к перезапускам Render)
-    await db.query(
-      `INSERT INTO email_otp (email, code, expires) VALUES ($1, $2, $3)
-       ON CONFLICT (email) DO UPDATE SET code = $2, expires = $3, created_at = NOW()`,
-      [email.toLowerCase(), code, expires]
-    )
+    const key     = email.toLowerCase()
 
     // Отправляем через Resend
     const resendKey = process.env.RESEND_API_KEY
@@ -242,6 +245,18 @@ app.post('/api/auth/email/send', async (req, reply) => {
       return reply.code(500).send({ error: 'Ошибка отправки письма: ' + rData.error.message })
     }
 
+    // Письмо отправлено — сохраняем код (БД + fallback в память)
+    emailCodes.set(key, { code, expires })
+    try {
+      await db.query(
+        `INSERT INTO email_otp (email, code, expires) VALUES ($1, $2, $3)
+         ON CONFLICT (email) DO UPDATE SET code = $2, expires = $3, created_at = NOW()`,
+        [key, code, expires]
+      )
+    } catch(dbErr) {
+      console.warn('OTP DB save failed, using memory fallback:', dbErr.message)
+    }
+
     console.log('✅ Email code sent to:', email)
     return { ok: true }
   } catch (e) {
@@ -257,22 +272,34 @@ app.post('/api/auth/email/verify', async (req, reply) => {
     if (!email || !code) return reply.code(400).send({ error: 'Нет email или кода' })
 
     const key   = email.toLowerCase()
-    // Достаём код из БД
-    const { rows: otpRows } = await db.query(
-      'SELECT code, expires FROM email_otp WHERE email = $1',
-      [key]
-    )
-    const entry = otpRows[0]
+
+    // Ищем код: сначала в БД, потом в памяти (fallback)
+    let entry = null
+    try {
+      const { rows: otpRows } = await db.query(
+        'SELECT code, expires FROM email_otp WHERE email = $1',
+        [key]
+      )
+      if (otpRows[0]) entry = otpRows[0]
+    } catch(dbErr) {
+      console.warn('OTP DB read failed:', dbErr.message)
+    }
+    // Fallback на память
+    if (!entry && emailCodes.has(key)) {
+      entry = emailCodes.get(key)
+    }
 
     if (!entry)                            return reply.code(400).send({ error: 'Код не найден. Запроси новый.' })
     if (Date.now() > Number(entry.expires)) {
-      await db.query('DELETE FROM email_otp WHERE email = $1', [key])
+      await db.query('DELETE FROM email_otp WHERE email = $1', [key]).catch(() => {})
+      emailCodes.delete(key)
       return reply.code(400).send({ error: 'Код истёк. Запроси новый.' })
     }
     if (entry.code !== String(code).replace(/\D/g, '').trim()) return reply.code(400).send({ error: 'Неверный код' })
 
-    // Код верный — удаляем
-    await db.query('DELETE FROM email_otp WHERE email = $1', [key])
+    // Код верный — удаляем отовсюду
+    await db.query('DELETE FROM email_otp WHERE email = $1', [key]).catch(() => {})
+    emailCodes.delete(key)
 
     // Генерируем username из email
     const baseUsername = key.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 25)
