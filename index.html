@@ -1391,7 +1391,10 @@ html, body {
             <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:7px;" id="botPageName">—</div>
             <div style="font-size:13px;color:var(--sub);margin-top:3px;" id="botPageUsername">@—</div>
           </div>
-          <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;" onclick="subBotPage()">Подписаться</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-left:12px;flex-shrink:0;">
+            <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;" onclick="subBotPage()">Подписаться</div>
+            <div id="botPageBellBtn" onclick="toggleBotNotify()" style="display:none;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:opacity .2s;">🔔</div>
+          </div>
         </div>
 
         <!-- Description -->
@@ -1437,25 +1440,24 @@ html, body {
       <div style="padding:16px 16px 0;" id="postDetailContent"></div>
       <div style="padding:0 16px;">
         <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;padding-top:4px;">Комментарии</div>
-        <div id="postDetailComments" style="padding-bottom:160px;"></div>
+        <div id="postDetailComments" style="padding-bottom:90px;"></div>
+      </div>
+      <!-- Инпут комментария -->
+      <div id="commentInputBar" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;">
+        <div id="replyBar">
+          <div class="reply-bar-inner">
+            <span>↩ Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
+          </div>
+          <div class="reply-cancel" onclick="cancelReply()">×</div>
+        </div>
+        <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;">
+          <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
+          <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
+        </div>
       </div>
     </div>
 
   </div><!-- end .screens -->
-
-  <!-- Инпут комментария (вне .screen чтобы position:fixed работал корректно) -->
-  <div id="commentInputBar" style="display:none;position:fixed;bottom:calc(58px + 16px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.3);">
-    <div id="replyBar">
-      <div class="reply-bar-inner">
-        <span>↩ Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
-      </div>
-      <div class="reply-cancel" onclick="cancelReply()">×</div>
-    </div>
-    <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;">
-      <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
-      <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
-    </div>
-  </div>
   <div class="nav-wrap">
   <div class="nav">
     <div class="nav-indicator" id="navIndicator"></div>
@@ -1975,12 +1977,23 @@ async function openBotPage(botId, event) {
   const tagsEl = document.getElementById('botPageTags');
   tagsEl.innerHTML = (b.categories||[]).map(t => `<div class="tag" style="padding:5px 10px;font-size:12px;">${esc(t)}</div>`).join('');
 
-  // Кнопка подписки
+  // Кнопка подписки + колокольчик
   const subBtn = document.getElementById('botPageSubBtn');
+  const bellBtn = document.getElementById('botPageBellBtn');
   const isSub = mySubIds.has(Number(botId));
   subBtn.className = isSub ? 'sub-btn subbed' : 'sub-btn';
-  subBtn.style.cssText = 'padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;';
+  subBtn.style.cssText = 'padding:10px 18px;font-size:13px;';
   subBtn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
+  bellBtn.style.display = isSub ? 'flex' : 'none';
+  currentBotNotify = true;
+  if (isSub && TOKEN) {
+    api('GET', '/my/subscriptions').then(subs => {
+      const sub = (subs || []).find(s => Number(s.id) === Number(botId));
+      currentBotNotify = sub ? sub.notify !== false : true;
+      bellBtn.textContent = currentBotNotify ? '🔔' : '🔕';
+      bellBtn.style.opacity = currentBotNotify ? '1' : '0.5';
+    });
+  }
 
   // Посты
   const postsEl = document.getElementById('botPagePostsList');
@@ -2035,24 +2048,42 @@ function shareBotPage() {
   }
 }
 
+let currentBotNotify = true;
+
 async function subBotPage() {
   if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
   const btn = document.getElementById('botPageSubBtn');
+  const bellBtn = document.getElementById('botPageBellBtn');
   const res = await api('POST', `/bots/${currentBotPageId}/subscribe`, {});
   if (res) {
     const on = res.subscribed;
-    if (on) mySubIds.add(Number(currentBotPageId));
-    else mySubIds.delete(Number(currentBotPageId));
+    if (on) { mySubIds.add(Number(currentBotPageId)); currentBotNotify = true; }
+    else    { mySubIds.delete(Number(currentBotPageId)); }
     btn.className = on ? 'sub-btn subbed' : 'sub-btn';
-    btn.style.cssText = 'padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;';
+    btn.style.cssText = 'padding:10px 18px;font-size:13px;';
     btn.textContent = on ? '✓ Подписан' : 'Подписаться';
-    // Обновляем кнопки в каталоге тоже
+    bellBtn.style.display = on ? 'flex' : 'none';
+    bellBtn.textContent = '🔔';
+    bellBtn.style.opacity = '1';
     document.querySelectorAll(`[onclick*="subBot(${currentBotPageId},"]`).forEach(b => {
       b.classList.toggle('subbed', on);
       b.textContent = on ? '✓ Подписан' : 'Подписаться';
     });
     toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
+  }
+}
+
+async function toggleBotNotify() {
+  if (!TOKEN) return;
+  const res = await api('POST', `/bots/${currentBotPageId}/notify`, {});
+  if (res != null) {
+    currentBotNotify = res.notify;
+    const bellBtn = document.getElementById('botPageBellBtn');
+    bellBtn.textContent = currentBotNotify ? '🔔' : '🔕';
+    bellBtn.style.opacity = currentBotNotify ? '1' : '0.5';
+    toast(currentBotNotify ? '🔔' : '🔕', currentBotNotify ? 'Уведомления включены' : 'Уведомления выключены');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
   }
 }
 
@@ -2246,19 +2277,12 @@ function postHTML(p) {
     <div class="post-foot">
       ${reacts}
       <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
-      <div class="react" style="cursor:default;opacity:0.7;">👁 <span>${fmtViews(p.views_count||0)}</span></div>
       <div class="react-sep"></div>
       <div class="share" onclick="event.stopPropagation();toast('🔗','Ссылка скопирована')">
         <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       </div>
     </div>
   </div>`;
-}
-
-function fmtViews(n) {
-  if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
-  if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + 'K';
-  return String(n);
 }
 
 function timeAgo(ts) {
@@ -3133,14 +3157,13 @@ async function openPostDetail(postId, event) {
   const page = document.getElementById('s-postdetail');
   page.classList.add('active','anim-right');
   page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
-  document.getElementById('commentInputBar').style.display = 'block';
   currentScreen = 'postdetail';
   page.scrollTo(0, 0);
 
-  // Считаем просмотр — не чаще раза в 24ч на пост
+  // Счётчик просмотров — не чаще раза в 24ч
   const viewKey = `bf_view_${postId}`;
   const lastView = localStorage.getItem(viewKey);
-  if (!lastView || Date.now() - Number(lastView) > 24 * 60 * 60 * 1000) {
+  if (!lastView || Date.now() - Number(lastView) > 86400000) {
     api('POST', `/posts/${postId}/view`).catch(() => {});
     localStorage.setItem(viewKey, String(Date.now()));
   }
@@ -3177,7 +3200,6 @@ async function openPostDetail(postId, event) {
         <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
           ${reacts}
           <div class="react on">💬 <span>${commentsData?.length||0}</span></div>
-          <div class="react" style="cursor:default;opacity:0.7;">👁 <span>${fmtViews((p.views_count||0)+1)}</span></div>
           <div class="react-sep"></div>
           <div class="share" onclick="sharePostDetail()">
             <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -3365,8 +3387,6 @@ function sharePostDetail() {
 }
 
 function closePostDetail() {
-  document.getElementById('commentInputBar').style.display = 'none';
-  cancelReply();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
   const prev = document.getElementById('s-' + prevScreenBeforePost) || document.getElementById('s-home');
   prev.classList.add('active','anim-left');
@@ -3591,4 +3611,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-</html>
+  </html>
