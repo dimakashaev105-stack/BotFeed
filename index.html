@@ -268,6 +268,18 @@ html, body {
   0%, 100% { box-shadow: 0 0 0 0   rgba(46,166,255,0.3); }
   50%       { box-shadow: 0 0 0 12px rgba(46,166,255,0); }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes authFadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+#prof-guest > * {
+  animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) both;
+}
+#prof-guest > *:nth-child(1) { animation-delay:.05s; }
+#prof-guest > *:nth-child(2) { animation-delay:.12s; }
 .prof-ava {
   animation: avatarIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both,
              glowPulse 2s ease-in-out 0.8s 2;
@@ -898,64 +910,128 @@ html, body {
 
       <!-- Не авторизован -->
       <div id="prof-guest" style="display:none;">
-        <!-- Лого -->
-        <div style="padding:36px 24px 20px;text-align:center;">
-          <div style="font-size:40px;font-weight:900;color:var(--acc);letter-spacing:-1px;margin-bottom:4px;">BotFeed</div>
-          <div style="font-size:14px;color:var(--sub);">Каталог Telegram-ботов</div>
+
+        <!-- Hero секция -->
+        <div style="position:relative;overflow:hidden;padding:48px 24px 36px;text-align:center;">
+          <!-- Декоративные круги -->
+          <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(46,166,255,0.15),transparent 70%);pointer-events:none;"></div>
+          <div style="position:absolute;bottom:-20px;left:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(77,205,106,0.1),transparent 70%);pointer-events:none;"></div>
+
+          <!-- Иконка -->
+          <div style="
+            width:80px;height:80px;margin:0 auto 20px;border-radius:24px;
+            background:linear-gradient(135deg,#2ea6ff,#0d7fd4);
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 8px 32px rgba(46,166,255,0.35);
+            position:relative;
+          ">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <circle cx="9" cy="10" r="1" fill="#fff" stroke="none"/>
+              <circle cx="12" cy="10" r="1" fill="#fff" stroke="none"/>
+              <circle cx="15" cy="10" r="1" fill="#fff" stroke="none"/>
+            </svg>
+          </div>
+
+          <!-- Заголовок -->
+          <div style="font-size:32px;font-weight:900;color:var(--text);letter-spacing:-1.5px;margin-bottom:8px;line-height:1;">
+            Bot<span style="color:var(--acc);">Feed</span>
+          </div>
+          <div style="font-size:14px;color:var(--sub);line-height:1.5;max-width:240px;margin:0 auto;">
+            Каталог и лента Telegram-ботов
+          </div>
+
+          <!-- Фичи -->
+          <div style="display:flex;justify-content:center;gap:20px;margin-top:24px;">
+            <div style="text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:var(--acc);">500+</div>
+              <div style="font-size:11px;color:var(--muted);">ботов</div>
+            </div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div style="text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:var(--green);">1K+</div>
+              <div style="font-size:11px;color:var(--muted);">пользователей</div>
+            </div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div style="text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:#f5a623;">∞</div>
+              <div style="font-size:11px;color:var(--muted);">постов</div>
+            </div>
+          </div>
         </div>
 
-        <!-- Табы способа входа -->
-        <div style="display:flex;margin:0 20px 20px;background:var(--card);border-radius:12px;padding:3px;">
-          <div id="authTabLogin" class="auth-tab active" onclick="switchAuthTab('login')">Войти</div>
-          <div id="authTabReg"   class="auth-tab"        onclick="switchAuthTab('reg')">Регистрация</div>
+        <!-- Карточка входа -->
+        <div style="margin:0 16px 32px;background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;">
+
+          <div style="padding:20px 20px 4px;text-align:center;">
+            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Войди или зарегистрируйся</div>
+            <div style="font-size:12px;color:var(--muted);">Одно нажатие — никаких паролей</div>
+          </div>
+
+          <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;">
+
+            <!-- Google кнопка -->
+            <button id="googleAuthBtn" onclick="loginWithGoogle()" style="
+              width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+              background:#fff;color:#1f1f1f;border:none;border-radius:14px;
+              padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;
+              box-shadow:0 4px 16px rgba(0,0,0,0.25);
+              font-family:'Inter',sans-serif;
+              transition:transform .12s ease, box-shadow .12s ease, opacity .12s;
+              -webkit-tap-highlight-color:transparent;
+              position:relative;overflow:hidden;
+            ">
+              <span id="googleBtnSpinner" style="display:none;width:20px;height:20px;border:2px solid #ccc;border-top-color:#1f1f1f;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></span>
+              <svg id="googleBtnIcon" width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+              <span id="googleBtnText">Продолжить с Google</span>
+            </button>
+
+            <!-- Разделитель -->
+            <div style="display:flex;align-items:center;gap:10px;padding:2px 0;">
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+              <div style="color:var(--muted);font-size:11px;font-weight:500;letter-spacing:.5px;">ИЛИ</div>
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
+
+            <!-- Telegram кнопка-обёртка -->
+            <div style="
+              width:100%;border-radius:14px;overflow:hidden;
+              background:#2481cc;
+              box-shadow:0 4px 16px rgba(36,129,204,0.3);
+              display:flex;align-items:center;justify-content:center;
+              min-height:50px;
+            ">
+              <script async src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="botfeeds_bot"
+                data-size="large"
+                data-radius="14"
+                data-onauth="onTelegramAuth(user)"
+                data-request-access="write">
+              </script>
+            </div>
+
+          </div>
+
+          <!-- Примечание -->
+          <div style="padding:0 20px 18px;text-align:center;">
+            <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+              🔒 Безопасно. Мы не храним пароли.<br>
+              ⚡ Telegram нужен чтобы добавлять своих ботов.
+            </div>
+          </div>
         </div>
 
-        <!-- Форма логин/пароль -->
-        <div id="authFormLogin" style="padding:0 20px;">
-          <div class="f-lbl">Логин</div>
-          <input id="loginUsername" class="f-inp" type="text" placeholder="ваш_логин" autocomplete="username">
-          <div class="f-lbl">Пароль</div>
-          <div style="position:relative;margin-bottom:14px;">
-            <input id="loginPassword" class="f-inp" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-bottom:0;width:100%;padding-right:42px;">
-            <div onclick="togglePwd('loginPassword')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--sub);font-size:18px;">👁</div>
-          </div>
-          <button class="sh-btn" onclick="loginWithPassword()" style="margin-bottom:16px;">Войти</button>
-          <div style="text-align:center;color:var(--sub);font-size:13px;margin-bottom:20px;">— или —</div>
-          <script async src="https://telegram.org/js/telegram-widget.js?22"
-            data-telegram-login="botfeeds_bot"
-            data-size="large"
-            data-onauth="onTelegramAuth(user)"
-            data-request-access="write">
-          </script>
-          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:16px;padding-bottom:32px;line-height:1.6;">
-            Для добавления ботов нужен Telegram-аккаунт
-          </div>
-        </div>
-
-        <!-- Форма регистрации -->
-        <div id="authFormReg" style="display:none;padding:0 20px;">
-          <div class="f-lbl">Логин</div>
-          <input id="regUsername" class="f-inp" type="text" placeholder="придумай_логин" autocomplete="username">
-          <div class="f-lbl">Имя</div>
-          <input id="regName" class="f-inp" type="text" placeholder="Как тебя зовут?">
-          <div class="f-lbl">Пароль</div>
-          <div style="position:relative;margin-bottom:14px;">
-            <input id="regPassword" class="f-inp" type="password" placeholder="минимум 6 символов" autocomplete="new-password" style="margin-bottom:0;width:100%;padding-right:42px;">
-            <div onclick="togglePwd('regPassword')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--sub);font-size:18px;">👁</div>
-          </div>
-          <button class="sh-btn" onclick="registerWithPassword()" style="margin-bottom:16px;">Создать аккаунт</button>
-          <div style="text-align:center;color:var(--sub);font-size:13px;margin-bottom:12px;">— или зайди через —</div>
-          <div style="display:flex;justify-content:center;margin-bottom:8px;">
-            <script async src="https://telegram.org/js/telegram-widget.js?22"
-              data-telegram-login="botfeeds_bot"
-              data-size="medium"
-              data-onauth="onTelegramAuth(user)"
-              data-request-access="write">
-            </script>
-          </div>
-          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;padding-bottom:32px;line-height:1.6;">
-            ⚡ Telegram-аккаунт нужен чтобы добавлять своих ботов
-          </div>
+        <!-- Скрытый Google Sign-In div (для GSI library) -->
+        <div id="g_id_onload"
+          data-client_id="443378593916-3atdtlsqnpc2b88av03i932948iv83m9.apps.googleusercontent.com"
+          data-callback="onGoogleAuth"
+          data-auto_select="false"
+          style="display:none;">
         </div>
       </div>
 
@@ -1422,6 +1498,102 @@ async function loginTelegram(data) {
   }
 }
 
+// ════════════════════════════════
+// AUTH — Google
+// ════════════════════════════════
+
+// Загружаем Google GSI script
+function loadGoogleScript() {
+  if (document.getElementById('gsi-script')) return;
+  const s = document.createElement('script');
+  s.id = 'gsi-script';
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  document.head.appendChild(s);
+}
+loadGoogleScript();
+
+// Вызывается Google после выбора аккаунта
+async function onGoogleAuth(response) {
+  await loginWithGoogleCredential(response.credential);
+}
+
+// Открываем Google-попап выбора аккаунта
+function loginWithGoogle() {
+  const btn = document.getElementById('googleAuthBtn');
+  const icon = document.getElementById('googleBtnIcon');
+  const spinner = document.getElementById('googleBtnSpinner');
+  const txt = document.getElementById('googleBtnText');
+
+  // Показываем загрузку
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '.75';
+    icon && (icon.style.display = 'none');
+    spinner && (spinner.style.display = 'block');
+    txt && (txt.textContent = 'Открываем Google...');
+  }
+
+  const resetBtn = () => {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    icon && (icon.style.display = '');
+    spinner && (spinner.style.display = 'none');
+    txt && (txt.textContent = 'Продолжить с Google');
+  };
+
+  // Если GSI ещё не загружен — ждём
+  if (typeof google === 'undefined' || !google.accounts) {
+    setTimeout(() => { resetBtn(); loginWithGoogle(); }, 900);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: document.getElementById('g_id_onload').dataset.clientId,
+    callback: onGoogleAuth
+  });
+  google.accounts.id.prompt((notification) => {
+    resetBtn();
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      openGoogleOAuthRedirect();
+    }
+  });
+}
+
+// Fallback: классический redirect OAuth (если попап заблокирован)
+function openGoogleOAuthRedirect() {
+  const clientId = document.getElementById('g_id_onload').dataset.clientId;
+  const redirectUri = encodeURIComponent(window.location.origin + '/auth/google/callback');
+  const scope = encodeURIComponent('openid email profile');
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&prompt=select_account`;
+  window.location.href = url;
+}
+
+async function loginWithGoogleCredential(credential) {
+  toast('⏳', 'Входим через Google...');
+  try {
+    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential })
+    });
+    const res = await r.json();
+    if (res?.token) {
+      TOKEN = res.token;
+      ME = res.user;
+      localStorage.setItem('bf_token', TOKEN);
+      localStorage.setItem('bf_me', JSON.stringify(ME));
+      showProfile();
+      loadFeed();
+      toast('🎉', `Привет, ${ME.first_name}!`);
+    } else {
+      toast('❌', res?.error || 'Ошибка входа через Google');
+    }
+  } catch(e) {
+    toast('❌', 'Нет связи с сервером');
+  }
+}
+
 function logout() {
   TOKEN = null;
   ME = null;
@@ -1430,73 +1602,6 @@ function logout() {
   showProfile();
   loadFeed();
   toast('👋', 'Вышел из аккаунта');
-}
-
-// ════════════════════════════════
-// AUTH — логин / пароль
-// ════════════════════════════════
-function switchAuthTab(tab) {
-  const isLogin = tab === 'login';
-  document.getElementById('authTabLogin').classList.toggle('active', isLogin);
-  document.getElementById('authTabReg').classList.toggle('active', !isLogin);
-  document.getElementById('authFormLogin').style.display = isLogin ? 'block' : 'none';
-  document.getElementById('authFormReg').style.display  = isLogin ? 'none'  : 'block';
-}
-
-function togglePwd(id) {
-  const inp = document.getElementById(id);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
-
-async function loginWithPassword() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  if (!username || !password) { toast('⚠️', 'Заполни все поля'); return; }
-  toast('⏳', 'Входим...');
-  try {
-    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const res = await r.json();
-    if (res?.token) {
-      TOKEN = res.token; ME = res.user;
-      localStorage.setItem('bf_token', TOKEN);
-      localStorage.setItem('bf_me', JSON.stringify(ME));
-      showProfile(); loadFeed();
-      toast('👋', `Привет, ${ME.first_name || ME.username}!`);
-    } else {
-      toast('❌', res?.error || 'Неверный логин или пароль');
-    }
-  } catch(e) { toast('❌', 'Нет связи с сервером'); }
-}
-
-async function registerWithPassword() {
-  const username = document.getElementById('regUsername').value.trim();
-  const name     = document.getElementById('regName').value.trim();
-  const password = document.getElementById('regPassword').value;
-  if (!username || !name || !password) { toast('⚠️', 'Заполни все поля'); return; }
-  if (password.length < 6) { toast('⚠️', 'Пароль минимум 6 символов'); return; }
-  if (!/^[a-z0-9_]{3,30}$/i.test(username)) { toast('⚠️', 'Логин: только буквы, цифры, _'); return; }
-  toast('⏳', 'Создаём аккаунт...');
-  try {
-    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, first_name: name, password })
-    });
-    const res = await r.json();
-    if (res?.token) {
-      TOKEN = res.token; ME = res.user;
-      localStorage.setItem('bf_token', TOKEN);
-      localStorage.setItem('bf_me', JSON.stringify(ME));
-      showProfile(); loadFeed();
-      toast('🎉', `Добро пожаловать, ${ME.first_name}!`);
-    } else {
-      toast('❌', res?.error || 'Ошибка регистрации');
-    }
-  } catch(e) { toast('❌', 'Нет связи с сервером'); }
 }
 
 // ════════════════════════════════
@@ -2954,4 +3059,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-                                                                                                                                                                   </html>
+</html>
