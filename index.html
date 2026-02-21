@@ -1437,14 +1437,14 @@ html, body {
       <div style="padding:16px 16px 0;" id="postDetailContent"></div>
       <div style="padding:0 16px;">
         <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;padding-top:4px;">Комментарии</div>
-        <div id="postDetailComments" style="padding-bottom:90px;"></div>
+        <div id="postDetailComments" style="padding-bottom:160px;"></div>
       </div>
     </div>
 
   </div><!-- end .screens -->
 
   <!-- Инпут комментария (вне .screen чтобы position:fixed работал корректно) -->
-  <div id="commentInputBar" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;">
+  <div id="commentInputBar" style="display:none;position:fixed;bottom:calc(58px + 16px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.3);">
     <div id="replyBar">
       <div class="reply-bar-inner">
         <span>↩ Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
@@ -3137,8 +3137,13 @@ async function openPostDetail(postId, event) {
   currentScreen = 'postdetail';
   page.scrollTo(0, 0);
 
-  // Считаем просмотр
-  api('POST', `/posts/${postId}/view`).catch(() => {});
+  // Считаем просмотр — не чаще раза в 24ч на пост
+  const viewKey = `bf_view_${postId}`;
+  const lastView = localStorage.getItem(viewKey);
+  if (!lastView || Date.now() - Number(lastView) > 24 * 60 * 60 * 1000) {
+    api('POST', `/posts/${postId}/view`).catch(() => {});
+    localStorage.setItem(viewKey, String(Date.now()));
+  }
 
   // Skeleton
   document.getElementById('postDetailContent').innerHTML = '<div class="shimmer" style="height:120px;margin-bottom:12px;border-radius:14px;"></div>';
