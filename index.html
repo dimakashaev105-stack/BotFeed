@@ -1513,32 +1513,37 @@ function loginWithGoogle() {
     txt     && (txt.textContent       = 'Открываем Google...');
   }
 
-  // state — случайная строка против CSRF
   const state = Math.random().toString(36).slice(2);
   localStorage.setItem('google_oauth_state', state);
 
   const params = new URLSearchParams({
     client_id:     GOOGLE_CLIENT_ID,
     redirect_uri:  GOOGLE_REDIRECT,
-    response_type: 'token',          // implicit flow — токен прямо в URL
+    response_type: 'code',          // authorization code flow
     scope:         'openid email profile',
     state:         state,
-    prompt:        'select_account'
+    prompt:        'select_account',
+    access_type:   'online'
   });
 
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
 }
 
-// Обрабатываем возврат от Google (access_token в hash #)
+// Обрабатываем возврат от Google (code в query string ?code=...)
 async function handleGoogleCallback() {
-  const hash   = window.location.hash.slice(1);
-  if (!hash) return;
-  const params = new URLSearchParams(hash);
-  const accessToken = params.get('access_token');
-  const state       = params.get('state');
-  if (!accessToken) return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const code  = urlParams.get('code');
+  const state = urlParams.get('state');
+  const error = urlParams.get('error');
 
-  // Очищаем hash из URL
+  if (error) {
+    toast('❌', 'Google отказал: ' + error);
+    history.replaceState(null, '', window.location.pathname);
+    return;
+  }
+  if (!code) return;
+
+  // Очищаем URL
   history.replaceState(null, '', window.location.pathname);
 
   const savedState = localStorage.getItem('google_oauth_state');
@@ -1551,14 +1556,14 @@ async function handleGoogleCallback() {
   toast('⏳', 'Входим через Google...');
 
   try {
-    // Передаём access_token прямо на бэкенд — он сам спросит Google
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 25000);
 
+    // Отправляем code на бэкенд — он обменяет на токен и получит профиль
     const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/google', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ accessToken }),
+      body:    JSON.stringify({ code, redirectUri: GOOGLE_REDIRECT }),
       signal:  ctrl.signal
     });
 
@@ -1577,7 +1582,7 @@ async function handleGoogleCallback() {
       showScreen('profile');
       toast('🎉', `Привет, ${ME.first_name}!`);
     } else {
-      toast('❌', 'Ошибка: ' + (res?.error || JSON.stringify(res).slice(0, 80)));
+      toast('❌', 'Ошибка: ' + (res?.error || JSON.stringify(res).slice(0, 100)));
     }
   } catch(e) {
     if (e.name === 'AbortError') {
