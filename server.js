@@ -174,33 +174,47 @@ app.post('/api/tg/webhook', async (req, reply) => {
 // AUTH
 // ════════════════════════════════
 
-// Вход / регистрация через Google (ID Token верификация)
+// Вход / регистрация через Google
 app.post('/api/auth/google', async (req, reply) => {
   try {
-    const { credential } = req.body
-    if (!credential) return reply.code(400).send({ error: 'Нет Google credential' })
+    // Принимаем либо googleUser (от implicit flow), либо credential (ID token)
+    const { googleUser, credential } = req.body
 
-    // Верифицируем ID token через Google API
-    const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`)
-    const gData = await gRes.json()
+    let googleId, email, firstName, lastName, photoUrl
 
-    if (gData.error || !gData.sub) {
-      console.error('Google token error:', gData.error)
-      return reply.code(401).send({ error: 'Неверный Google токен' })
+    if (googleUser) {
+      // Implicit flow — данные пришли напрямую после верификации access_token фронтендом
+      googleId  = googleUser.sub
+      email     = googleUser.email     || null
+      firstName = googleUser.given_name  || googleUser.name?.split(' ')[0] || 'User'
+      lastName  = googleUser.family_name || null
+      photoUrl  = googleUser.picture    || null
+
+    } else if (credential) {
+      // ID Token flow — верифицируем через Google API
+      const gRes  = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`)
+      const gData = await gRes.json()
+
+      if (gData.error || !gData.sub) {
+        return reply.code(401).send({ error: 'Неверный Google токен' })
+      }
+      const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+      if (GOOGLE_CLIENT_ID && gData.aud !== GOOGLE_CLIENT_ID) {
+        return reply.code(401).send({ error: 'Неверный Google Client ID' })
+      }
+      googleId  = gData.sub
+      email     = gData.email          || null
+      firstName = gData.given_name     || gData.name?.split(' ')[0] || 'User'
+      lastName  = gData.family_name    || null
+      photoUrl  = gData.picture        || null
+
+    } else {
+      return reply.code(400).send({ error: 'Нет данных Google' })
     }
 
-    // Проверяем что audience совпадает с нашим CLIENT_ID
-    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
-    if (GOOGLE_CLIENT_ID && gData.aud !== GOOGLE_CLIENT_ID) {
-      return reply.code(401).send({ error: 'Неверный Google Client ID' })
-    }
+    if (!googleId) return reply.code(400).send({ error: 'Нет Google ID' })
 
-    const googleId  = gData.sub
-    const email     = gData.email || null
-    const firstName = gData.given_name || gData.name?.split(' ')[0] || 'User'
-    const lastName  = gData.family_name || null
-    const photoUrl  = gData.picture || null
-    // Генерируем username из email или google id
+    // Генерируем username из email
     const baseUsername = email
       ? email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 25)
       : `g_${googleId.slice(-8)}`
@@ -785,4 +799,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-}
+                   }
