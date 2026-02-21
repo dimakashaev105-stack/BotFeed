@@ -14,7 +14,56 @@ const db = new Pool({
 
 db.query('SELECT 1').then(() => console.log('✅ БД подключена')).catch(e => console.error('❌ БД:', e.message))
 
+// ════════════════════════════════
+// TELEGRAM BOT (уведомления админу)
+// ════════════════════════════════
+const TG_TOKEN   = process.env.TELEGRAM_BOT_TOKEN  // токен @BotFeeds_bot
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID    // твой Telegram ID (число)
+
+async function tgSend(chatId, text, replyMarkup) {
+  if (!TG_TOKEN || !chatId) return
+  try {
+    const body = { chat_id: String(chatId), text, parse_mode: 'HTML' }
+    if (replyMarkup) body.reply_markup = replyMarkup
+    const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    const json = await res.json()
+    if (!json.ok) console.error('TG error:', json.description)
+  } catch (e) {
+    console.error('TG send error:', e.message)
+  }
+}
+
+async function tgEditMessage(chatId, messageId, text) {
+  if (!TG_TOKEN) return
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: String(chatId), message_id: messageId, text, parse_mode: 'HTML' })
+    })
+  } catch (e) {
+    console.error('TG edit error:', e.message)
+  }
+}
+
+async function tgAnswerCallback(callbackId, text) {
+  if (!TG_TOKEN) return
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackId, text })
+    })
+  } catch (e) {}
+}
+
+// ════════════════════════════════
 // CORS — открытый для всех
+// ════════════════════════════════
 await app.register(cors, {
   origin: true,
   credentials: false,
@@ -34,6 +83,86 @@ async function auth(req, reply) {
 async function optAuth(req) {
   try { await req.jwtVerify() } catch { req.user = null }
 }
+
+// ════════════════════════════════
+// TELEGRAM WEBHOOK (кнопки одобрить/отклонить)
+// ════════════════════════════════
+app.post('/api/tg/webhook', async (req, reply) => {
+  try {
+    const update = req.body
+    const cb = update.callback_query
+    if (!cb) return { ok: true }
+
+    const data = cb.data || ''
+    const [action, botId] = data.split(':')
+    const msgId  = cb.message?.message_id
+    const chatId = cb.message?.chat?.id
+
+    if (!botId || !['approve', 'reject'].includes(action)) {
+      await tgAnswerCallback(cb.id, '⚠️ Неизвестное действие')
+      return { ok: true }
+    }
+
+    // Получаем данные бота и его владельца
+    const { rows } = await db.query(`
+      SELECT b.id, b.name, b.username, b.description, b.categories,
+             u.telegram_id, u.first_name
+      FROM bots b JOIN users u ON b.owner_id = u.id
+      WHERE b.id = $1
+    `, [botId])
+
+    const b = rows[0]
+    if (!b) {
+      await tgAnswerCallback(cb.id, '⚠️ Бот не найден')
+      return { ok: true }
+    }
+
+    if (action === 'approve') {
+      await db.query('UPDATE bots SET verified=true WHERE id=$1', [botId])
+
+      // Редактируем сообщение у себя
+      await tgEditMessage(chatId, msgId,
+        `✅ <b>ОДОБРЕНО</b>\n\n` +
+        `Бот: <b>${b.name}</b> (@${b.username})\n` +
+        `Владелец: ${b.first_name}\n` +
+        `Статус: верифицирован ✓`
+      )
+
+      // Уведомляем владельца
+      await tgSend(b.telegram_id,
+        `🎉 <b>Поздравляем! Бот верифицирован</b>\n\n` +
+        `Ваш бот <b>${b.name}</b> (@${b.username}) прошёл проверку и теперь отображается в каталоге BotFeed с галочкой верификации ✓\n\n` +
+        `Открыть BotFeed → https://t.me/BotFeeds_bot`
+      )
+
+      await tgAnswerCallback(cb.id, '✅ Бот одобрен!')
+
+    } else if (action === 'reject') {
+      await db.query('UPDATE bots SET verified=false WHERE id=$1', [botId])
+
+      // Редактируем сообщение у себя
+      await tgEditMessage(chatId, msgId,
+        `❌ <b>ОТКЛОНЕНО</b>\n\n` +
+        `Бот: <b>${b.name}</b> (@${b.username})\n` +
+        `Владелец: ${b.first_name}\n` +
+        `Статус: верификация отказана`
+      )
+
+      // Уведомляем владельца
+      await tgSend(b.telegram_id,
+        `❌ <b>Верификация отклонена</b>\n\n` +
+        `Бот <b>${b.name}</b> (@${b.username}) не прошёл проверку.\n\n` +
+        `Если вы считаете что это ошибка — напишите в поддержку.`
+      )
+
+      await tgAnswerCallback(cb.id, '❌ Отклонено')
+    }
+
+  } catch (e) {
+    console.error('Webhook error:', e.message)
+  }
+  return { ok: true }
+})
 
 // ════════════════════════════════
 // AUTH
@@ -179,7 +308,6 @@ app.put('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
   try {
     const { name, description, long_desc, categories } = req.body
 
-    // Берём текущие данные бота чтобы не затереть поля которые не переданы
     const { rows: cur } = await db.query(
       'SELECT * FROM bots WHERE id = $1 AND owner_id = $2',
       [req.params.id, req.user.id]
@@ -218,7 +346,6 @@ app.delete('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
     )
     if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден или нет доступа' })
 
-    // Каскадное удаление: реакции → комментарии → посты → подписки → бот
     await db.query('DELETE FROM reactions WHERE post_id IN (SELECT id FROM posts WHERE bot_id = $1)', [req.params.id])
     await db.query('DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE bot_id = $1)', [req.params.id])
     await db.query('DELETE FROM posts WHERE bot_id = $1', [req.params.id])
@@ -232,36 +359,91 @@ app.delete('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
   }
 })
 
-// Верификация — запросить код
+// ════════════════════════════════
+// ВЕРИФИКАЦИЯ — теперь с уведомлением админу
+// ════════════════════════════════
 app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply) => {
   try {
     const { rows } = await db.query(
-      'SELECT * FROM bots WHERE id = $1 AND owner_id = $2',
+      'SELECT b.*, u.first_name, u.username as owner_username, u.telegram_id FROM bots b JOIN users u ON b.owner_id = u.id WHERE b.id = $1 AND b.owner_id = $2',
       [req.params.id, req.user.id]
     )
     if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
+    const b = rows[0]
 
-    // Автоматически верифицируем бота сразу
-    await db.query(
-      'UPDATE bots SET verified=true WHERE id=$1',
-      [req.params.id]
-    )
+    // Генерируем токен верификации
+    const verifyToken = crypto.randomBytes(12).toString('hex')
+    await db.query('UPDATE bots SET verify_token=$1 WHERE id=$2', [verifyToken, req.params.id])
 
-    return { ok: true, code: 'auto-verified', auto: true }
+    // Отправляем уведомление админу с кнопками
+    if (ADMIN_CHAT_ID) {
+      const cats = (b.categories || []).join(', ') || 'не указаны'
+      await tgSend(
+        ADMIN_CHAT_ID,
+        `🔔 <b>Новая заявка на верификацию!</b>\n\n` +
+        `Бот: <b>${b.name}</b> (@${b.username})\n` +
+        `Описание: ${b.description || '—'}\n` +
+        `Категории: ${cats}\n` +
+        `Владелец: ${b.first_name}${b.owner_username ? ` (@${b.owner_username})` : ''}\n` +
+        `Ссылка: https://t.me/${b.username}\n\n` +
+        `Токен верификации: <code>${verifyToken}</code>`,
+        {
+          inline_keyboard: [[
+            { text: '✅ Одобрить', callback_data: `approve:${b.id}` },
+            { text: '❌ Отклонить', callback_data: `reject:${b.id}` }
+          ]]
+        }
+      )
+    }
+
+    return { ok: true, code: verifyToken }
   } catch (e) {
     console.error('Verify request error:', e.message)
     return reply.code(500).send({ error: e.message })
   }
 })
 
-// Верификация — confirm (просто возвращаем ok)
+// Verify confirm — пользователь нажал "Проверить" (для совместимости оставляем)
 app.post('/api/bots/:id/verify/confirm', { preHandler: auth }, async (req, reply) => {
   try {
-    await db.query(
-      'UPDATE bots SET verified=true WHERE id=$1 AND owner_id=$2',
+    // Проверяем токен в описании бота через Telegram API
+    const { rows } = await db.query(
+      'SELECT b.*, u.telegram_id FROM bots b JOIN users u ON b.owner_id = u.id WHERE b.id = $1 AND b.owner_id = $2',
       [req.params.id, req.user.id]
     )
-    return { ok: true, message: 'Бот верифицирован!' }
+    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
+    const b = rows[0]
+
+    if (!TG_TOKEN || !b.verify_token) {
+      return { ok: true, pending: true, message: 'Заявка отправлена на проверку' }
+    }
+
+    // Проверяем описание бота в Telegram
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getChat?chat_id=@${b.username}`)
+      const tgData = await tgRes.json()
+      const desc = tgData?.result?.description || ''
+
+      if (desc.includes(b.verify_token)) {
+        // Токен найден — подтверждаем верификацию автоматически
+        await db.query('UPDATE bots SET verified=true WHERE id=$1', [req.params.id])
+
+        // Уведомляем себя
+        if (ADMIN_CHAT_ID) {
+          await tgSend(ADMIN_CHAT_ID,
+            `✅ <b>Авто-верификация прошла</b>\n\nБот @${b.username} подтвердил владение через токен в описании.`
+          )
+        }
+
+        return { ok: true, verified: true, message: 'Бот верифицирован!' }
+      } else {
+        return { ok: false, verified: false, message: 'Токен не найден в описании бота. Заявка ожидает ручной проверки.' }
+      }
+    } catch (tgErr) {
+      // Не смогли проверить — ждём ручной проверки
+      return { ok: true, pending: true, message: 'Заявка отправлена. Мы проверим вручную.' }
+    }
+
   } catch (e) {
     console.error('Verify confirm error:', e.message)
     return reply.code(500).send({ error: e.message })
@@ -301,31 +483,62 @@ app.get('/api/feed/discover', async (req) => {
   }
 })
 
-app.get('/api/feed', { preHandler: auth }, async (req) => {
+app.get('/api/feed', { preHandler: optAuth }, async (req) => {
   try {
     const { limit = 20, offset = 0 } = req.query
-    const { rows } = await db.query(`
-      SELECT p.*,
-        b.name as bot_name, b.username as bot_username,
-        b.photo_url as bot_photo, b.verified as bot_verified,
-        COALESCE(
-          json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
-          FILTER (WHERE r.emoji IS NOT NULL), '[]'
-        ) as reactions,
-        COUNT(DISTINCT c.id) as comments_count
-      FROM posts p
-      JOIN bots b ON p.bot_id = b.id
-      JOIN subscriptions s ON b.id = s.bot_id AND s.user_id = $1
-      LEFT JOIN (
-        SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
-      ) r ON p.id = r.post_id
-      LEFT JOIN comments c ON p.id = c.post_id
-      GROUP BY p.id, b.name, b.username, b.photo_url, b.verified
-      ORDER BY p.created_at DESC
-      LIMIT $2 OFFSET $3
-    `, [req.user.id, Number(limit), Number(offset)])
-    return rows
+    // Если авторизован — посты подписок, иначе — все посты
+    if (req.user?.id) {
+      const { rows } = await db.query(`
+        SELECT p.*,
+          b.name as bot_name, b.username as bot_username, b.id as bot_id,
+          b.photo_url as bot_photo, b.verified as bot_verified,
+          COALESCE(
+            json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
+            FILTER (WHERE r.emoji IS NOT NULL), '[]'
+          ) as reactions,
+          COUNT(DISTINCT c.id) as comments_count,
+          COALESCE(
+            json_agg(DISTINCT mr.emoji) FILTER (WHERE mr.emoji IS NOT NULL), '[]'
+          ) as my_reactions
+        FROM posts p
+        JOIN bots b ON p.bot_id = b.id
+        JOIN subscriptions s ON b.id = s.bot_id AND s.user_id = $1
+        LEFT JOIN (
+          SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
+        ) r ON p.id = r.post_id
+        LEFT JOIN comments c ON p.id = c.post_id
+        LEFT JOIN reactions mr ON p.id = mr.post_id AND mr.user_id = $1
+        GROUP BY p.id, b.name, b.username, b.id, b.photo_url, b.verified
+        ORDER BY p.created_at DESC
+        LIMIT $2 OFFSET $3
+      `, [req.user.id, Number(limit), Number(offset)])
+      return rows
+    } else {
+      const { rows } = await db.query(`
+        SELECT p.*,
+          b.name as bot_name, b.username as bot_username, b.id as bot_id,
+          b.photo_url as bot_photo, b.verified as bot_verified,
+          COALESCE(
+            json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
+            FILTER (WHERE r.emoji IS NOT NULL), '[]'
+          ) as reactions,
+          COUNT(DISTINCT c.id) as comments_count,
+          '[]'::json as my_reactions
+        FROM posts p
+        JOIN bots b ON p.bot_id = b.id
+        LEFT JOIN (
+          SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
+        ) r ON p.id = r.post_id
+        LEFT JOIN comments c ON p.id = c.post_id
+        WHERE b.verified = true
+        GROUP BY p.id, b.name, b.username, b.id, b.photo_url, b.verified
+        ORDER BY p.created_at DESC
+        LIMIT $1 OFFSET $2
+      `, [Number(limit), Number(offset)])
+      return rows
+    }
   } catch (e) {
+    console.error('Feed error:', e.message)
     return []
   }
 })
@@ -431,24 +644,20 @@ app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req, reply) 
   try {
     const userId = req.user.id
     const botId = parseInt(req.params.botId)
-    console.log('Subscribe:', userId, '->', botId)
 
     const { rows } = await db.query(
       'SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2',
       [userId, botId]
     )
-    console.log('Existing sub:', rows[0] ? 'YES' : 'NO')
 
     if (rows[0]) {
       await db.query('DELETE FROM subscriptions WHERE id=$1', [rows[0].id])
-      console.log('Unsubscribed')
       return { subscribed: false }
     } else {
       await db.query(
         'INSERT INTO subscriptions (user_id, bot_id) VALUES ($1, $2)',
         [userId, botId]
       )
-      console.log('Subscribed!')
       return { subscribed: true }
     }
   } catch (e) {
