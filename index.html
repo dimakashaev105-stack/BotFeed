@@ -807,6 +807,86 @@ html, body {
   line-height: 1; padding: 4px;
   flex-shrink: 0;
 }
+/* ── Кнопки в постах ── */
+.post-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.post-btn {
+  flex: 1;
+  min-width: calc(50% - 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--acc-dim);
+  color: var(--acc);
+  border: 1px solid rgba(46,166,255,0.25);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, transform .1s, box-shadow .15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.post-btn:active {
+  transform: scale(0.96);
+  background: rgba(46,166,255,0.22);
+}
+.post-btn svg {
+  width: 13px; height: 13px;
+  stroke: var(--acc); fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  flex-shrink: 0;
+}
+/* Одна кнопка — на всю ширину */
+.post-buttons .post-btn:only-child {
+  min-width: 100%;
+}
+
+/* ── Редактор кнопок при создании поста ── */
+.btn-editor-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.btn-editor-row input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+}
+.btn-editor-row input:focus { border-color: rgba(46,166,255,.4); }
+.btn-editor-row input::placeholder { color: var(--muted); }
+.btn-del {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px; cursor: pointer; flex-shrink: 0;
+  color: var(--red); font-size: 18px; line-height: 1;
+  transition: background .12s;
+}
+.btn-del:active { background: rgba(240,64,64,0.12); }
+.add-btn-row {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--acc); font-size: 13px; font-weight: 600;
+  cursor: pointer; padding: 6px 0;
+  transition: opacity .15s;
+}
+.add-btn-row:active { opacity: .6; }
+
 /* ── Post type badge in feed ── */
 .post-type-badge {
   display: inline-flex;
@@ -1239,6 +1319,16 @@ html, body {
             <div class="post-type-btn" data-type="promo" onclick="selectPostType(this)">🎁 Акция</div>
           </div>
           <textarea id="newPostText" placeholder="Расскажи об обновлении, новой фиче или совете..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:120px;outline:none;line-height:1.5;"></textarea>
+
+          <!-- Кнопки поста -->
+          <div style="margin-top:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Кнопки в посте <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.6;">(необязательно, макс. 4)</span></div>
+            <div id="btnEditorList"></div>
+            <div class="add-btn-row" onclick="addPostButton()" id="addBtnRow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Добавить кнопку
+            </div>
+          </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
             <div style="font-size:12px;color:var(--muted);" id="postCharCount">0 / 1000</div>
             <button onclick="publishPost()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Опубликовать</button>
@@ -2137,6 +2227,7 @@ function postHTML(p) {
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
   const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
   const typeBadge = postTypeBadge(p.post_type);
+  const buttons = renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]));
   return `<div class="post" data-id="${p.id}" onclick="openPostDetail(${p.id}, event)">
     <div class="post-head">
       <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
@@ -2149,6 +2240,7 @@ function postHTML(p) {
     ${img}
     ${typeBadge}
     <div class="post-text">${esc(p.text)}</div>
+    ${buttons}
     <div class="post-divider"></div>
     <div class="post-foot">
       ${reacts}
@@ -2872,15 +2964,79 @@ function selectPostType(el) {
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
 }
 
+// ════════════════════════════════
+// КНОПКИ В ПОСТАХ
+// ════════════════════════════════
+let postButtons = []; // [{label, url}]
+
+function addPostButton() {
+  if (postButtons.length >= 4) { toast('⚠️', 'Максимум 4 кнопки'); return; }
+  postButtons.push({ label: '', url: '' });
+  renderBtnEditor();
+}
+
+function removePostButton(i) {
+  postButtons.splice(i, 1);
+  renderBtnEditor();
+}
+
+function renderBtnEditor() {
+  const list = document.getElementById('btnEditorList');
+  const addRow = document.getElementById('addBtnRow');
+  if (!list) return;
+  list.innerHTML = postButtons.map((b, i) => `
+    <div class="btn-editor-row">
+      <input type="text" placeholder="Название кнопки" maxlength="32"
+        value="${esc(b.label)}"
+        oninput="postButtons[${i}].label = this.value"
+        style="max-width:140px;">
+      <input type="url" placeholder="https://..."
+        value="${esc(b.url)}"
+        oninput="postButtons[${i}].url = this.value">
+      <div class="btn-del" onclick="removePostButton(${i})">×</div>
+    </div>`).join('');
+  if (addRow) addRow.style.display = postButtons.length >= 4 ? 'none' : 'flex';
+}
+
+function resetBtnEditor() {
+  postButtons = [];
+  renderBtnEditor();
+  const addRow = document.getElementById('addBtnRow');
+  if (addRow) addRow.style.display = 'flex';
+}
+
+function renderPostButtons(buttons) {
+  if (!buttons?.length) return '';
+  return `<div class="post-buttons">${buttons.map(b => `
+    <a class="post-btn" href="${esc(b.url)}" target="_blank" rel="noopener"
+       onclick="event.stopPropagation()">
+      <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      ${esc(b.label||b.url)}
+    </a>`).join('')}</div>`;
+}
+
 async function publishPost() {
   const text = document.getElementById('newPostText').value.trim();
   if (!text) { toast('⚠️', 'Напиши текст поста'); return; }
   if (text.length > 1000) { toast('⚠️', 'Пост слишком длинный'); return; }
 
-  const res = await api('POST', `/bots/${currentBotId}/posts`, { text, post_type: currentPostType });
+  // Валидация кнопок
+  const validButtons = postButtons.filter(b => b.label.trim() && b.url.trim());
+  for (const b of validButtons) {
+    if (!b.url.startsWith('http://') && !b.url.startsWith('https://')) {
+      toast('⚠️', `Кнопка "${b.label}": добавь https://`); return;
+    }
+  }
+
+  const res = await api('POST', `/bots/${currentBotId}/posts`, {
+    text,
+    post_type: currentPostType,
+    buttons: validButtons.length ? validButtons : undefined
+  });
   if (res?.id) {
     document.getElementById('newPostText').value = '';
     document.getElementById('postCharCount').textContent = '0 / 1000';
+    resetBtnEditor();
     toast('🚀', 'Пост опубликован!');
     loadMyPostsList();
     analyticsPostsData.unshift(res);
