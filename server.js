@@ -240,13 +240,15 @@ app.post('/api/auth/email/send', async (req, reply) => {
     })
 
     const rData = await r.json()
-    if (rData.error) {
-      console.error('Resend error:', rData.error)
-      return reply.code(500).send({ error: 'Ошибка отправки письма: ' + rData.error.message })
+    console.log('Resend response status:', r.status, 'body:', JSON.stringify(rData))
+    if (!r.ok || rData.error) {
+      console.error('Resend error:', rData)
+      return reply.code(500).send({ error: 'Ошибка отправки письма: ' + (rData.error?.message || rData.message || JSON.stringify(rData)) })
     }
 
     // Письмо отправлено — сохраняем код (БД + fallback в память)
     emailCodes.set(key, { code, expires })
+    console.log('Code saved for:', key, '| code:', code)
     try {
       await db.query(
         `INSERT INTO email_otp (email, code, expires) VALUES ($1, $2, $3)
@@ -271,7 +273,10 @@ app.post('/api/auth/email/verify', async (req, reply) => {
     const { email, code } = req.body
     if (!email || !code) return reply.code(400).send({ error: 'Нет email или кода' })
 
-    const key   = email.toLowerCase()
+    const key         = email.toLowerCase().trim()
+    const codeClean   = String(code).replace(/\D/g, '').trim()
+
+    console.log('Verify attempt — email:', key, '| code received:', JSON.stringify(code), '| cleaned:', codeClean)
 
     // Ищем код: сначала в БД, потом в памяти (fallback)
     let entry = null
@@ -295,7 +300,8 @@ app.post('/api/auth/email/verify', async (req, reply) => {
       emailCodes.delete(key)
       return reply.code(400).send({ error: 'Код истёк. Запроси новый.' })
     }
-    if (entry.code !== String(code).replace(/\D/g, '').trim()) return reply.code(400).send({ error: 'Неверный код' })
+    console.log('Stored code:', entry.code, '| Received code:', codeClean, '| Match:', entry.code === codeClean)
+    if (entry.code !== codeClean) return reply.code(400).send({ error: 'Неверный код' })
 
     // Код верный — удаляем отовсюду
     await db.query('DELETE FROM email_otp WHERE email = $1', [key]).catch(() => {})
