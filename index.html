@@ -1331,7 +1331,7 @@ async function subBot(botId, el) {
   if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
   el.classList.add('popping');
   el.addEventListener('animationend', () => el.classList.remove('popping'), { once: true });
-  const res = await api('POST', `/bots/${botId}/subscribe`);
+  const res = await api('POST', `/bots/${botId}/subscribe`, {});
   if (res) {
     const on = res.subscribed;
     // Обновляем глобальный Set подписок
