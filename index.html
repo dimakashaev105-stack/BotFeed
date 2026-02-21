@@ -1334,8 +1334,14 @@ async function subBot(botId, el) {
   const res = await api('POST', `/bots/${botId}/subscribe`);
   if (res) {
     const on = res.subscribed;
-    el.classList.toggle('subbed', on);
-    el.textContent = on ? '✓ Подписан' : 'Подписаться';
+    // Обновляем глобальный Set подписок
+    if (on) mySubIds.add(Number(botId));
+    else mySubIds.delete(Number(botId));
+    // Обновляем ВСЕ кнопки этого бота на странице
+    document.querySelectorAll(`[onclick*="subBot(${botId},"]`).forEach(btn => {
+      btn.classList.toggle('subbed', on);
+      btn.textContent = on ? '✓ Подписан' : 'Подписаться';
+    });
     toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
   }
@@ -1788,8 +1794,16 @@ function toast(ico, msg) {
 // ════════════════════════════════
 // СТАРТ
 // ════════════════════════════════
-loadFeed();
-showProfile();
+// Загружаем подписки при старте
+async function initApp() {
+  loadFeed();
+  showProfile();
+  if (TOKEN) {
+    const subs = await api('GET', '/my/subscriptions');
+    mySubIds = new Set((subs||[]).map(s => Number(s.id)));
+  }
+}
+initApp();
 </script>
 </body>
 </html>
