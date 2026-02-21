@@ -427,20 +427,33 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
 // ════════════════════════════════
 // ПОДПИСКИ
 // ════════════════════════════════
-app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req) => {
-  const { rows } = await db.query(
-    'SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2',
-    [req.user.id, req.params.botId]
-  )
-  if (rows[0]) {
-    await db.query('DELETE FROM subscriptions WHERE id=$1', [rows[0].id])
-    return { subscribed: false }
-  } else {
-    await db.query(
-      'INSERT INTO subscriptions (user_id, bot_id) VALUES ($1, $2)',
-      [req.user.id, req.params.botId]
+app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req, reply) => {
+  try {
+    const userId = req.user.id
+    const botId = parseInt(req.params.botId)
+    console.log('Subscribe:', userId, '->', botId)
+
+    const { rows } = await db.query(
+      'SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2',
+      [userId, botId]
     )
-    return { subscribed: true }
+    console.log('Existing sub:', rows[0] ? 'YES' : 'NO')
+
+    if (rows[0]) {
+      await db.query('DELETE FROM subscriptions WHERE id=$1', [rows[0].id])
+      console.log('Unsubscribed')
+      return { subscribed: false }
+    } else {
+      await db.query(
+        'INSERT INTO subscriptions (user_id, bot_id) VALUES ($1, $2)',
+        [userId, botId]
+      )
+      console.log('Subscribed!')
+      return { subscribed: true }
+    }
+  } catch (e) {
+    console.error('Subscribe error:', e.message)
+    return reply.code(500).send({ error: e.message })
   }
 })
 
