@@ -484,17 +484,17 @@ html, body {
 
 /* Карточка поста */
 .post {
-  background: #2a3649;
-  border-radius: 16px;
+  background: #222e3e;
+  border-radius: 18px;
   padding: 14px;
-  border: 1px solid rgba(255,255,255,0.13);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
   cursor: pointer;
-  margin-bottom: 16px;
-  transition: transform .15s, box-shadow .15s;
+  margin-bottom: 14px;
+  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), box-shadow .15s, background .12s;
 }
 .post:last-child { margin-bottom: 0; }
-.post:active { transform: scale(0.985); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.post:active { transform: scale(0.982); box-shadow: 0 1px 4px rgba(0,0,0,0.2); background: #1e2a38; }
 
 .post-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .p-ava { width:42px; height:42px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; }
@@ -505,6 +505,21 @@ html, body {
 .p-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; background:var(--acc); color:#fff; border-radius:50%; font-size:9px; font-weight:800; flex-shrink:0; }
 
 .post-img { height:180px; border-radius:10px; background:var(--hover); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:48px; overflow:hidden; }
+
+/* Новый медиа-блок для постов */
+.post-media {
+  position: relative;
+  height: 190px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: var(--hover);
+}
+.post-media-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.35) 100%);
+}
 .post-text { font-size:14px; line-height:1.65; margin-bottom:12px; color:var(--text); }
 
 /* Разделитель перед реакциями */
@@ -571,8 +586,20 @@ html, body {
 .br-count { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); font-weight:600; }
 .gdot { width:6px; height:6px; border-radius:50%; background:var(--green); }
 .tag { padding:3px 8px; background:var(--card); border-radius:6px; font-size:11px; color:var(--sub); font-weight:600; }
-.sub-btn { padding:6px 12px; background:var(--acc-dim); color:var(--acc); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
-.sub-btn.subbed { background:rgba(77,205,106,0.12); color:var(--green); }
+.sub-btn { 
+  padding:6px 14px; 
+  background:var(--acc-dim); 
+  color:var(--acc); 
+  border-radius:10px; 
+  font-size:12px; 
+  font-weight:700; 
+  cursor:pointer; 
+  white-space:nowrap; 
+  border: 1px solid rgba(46,166,255,0.2);
+  transition: all .2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.sub-btn:active { transform: scale(0.93); }
+.sub-btn.subbed { background:rgba(77,205,106,0.12); color:var(--green); border-color:rgba(77,205,106,0.2); }
 
 /* ══════════════════════════════════════
    SEARCH
@@ -645,16 +672,50 @@ html, body {
    BOT PAGE
 ══════════════════════════════════════ */
 @keyframes heroIn {
-  from { opacity: 0; transform: scale(1.05); }
+  from { opacity: 0; transform: scale(1.04); }
   to   { opacity: 1; transform: scale(1); }
 }
-#botPageHero { animation: heroIn .4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+#botPageHero { animation: heroIn .5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes heroAvaIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
 
 @keyframes botInfoIn {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-#s-botpage .topbar ~ div { animation: botInfoIn .35s cubic-bezier(0.22, 1, 0.36, 1) .1s both; }
+
+/* Красивый topbar на странице бота — прозрачный, сливается с hero */
+#s-botpage .topbar {
+  background: transparent !important;
+  border-bottom: none !important;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+}
+#s-botpage .topbar .tb-btn svg { stroke: rgba(255,255,255,0.85); }
+#s-botpage .topbar .topbar-title { color: transparent; }
+
+/* Stats блок */
+.bot-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.bot-stat-item {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 8px;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: transform .15s;
+}
+.bot-stat-item:active { transform: scale(0.96); }
+.bot-stat-n { font-size: 20px; font-weight: 800; color: var(--text); }
+.bot-stat-l { font-size: 11px; color: var(--sub); margin-top: 3px; font-weight: 500; }
 
 /* ══════════════════════════════════════
    HOME TABS — Подписки / Рекомендации
@@ -664,11 +725,16 @@ html, body {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.home-tabs-row {
+  display: flex;
   align-items: center;
   justify-content: center;
   height: 52px;
   padding: 0 48px;
-  flex-shrink: 0;
+  position: relative;
 }
 .home-tabs {
   display: flex;
@@ -697,6 +763,36 @@ html, body {
 }
 .home-tab.active { color: var(--text); }
 .home-tab.active::after { left: 8px; right: 8px; }
+
+/* Фильтр-чипы под табами */
+.feed-filters {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.feed-filters::-webkit-scrollbar { display: none; }
+.feed-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--card);
+  color: var(--sub);
+  border: 1px solid var(--border);
+  transition: all .18s cubic-bezier(0.34,1.56,0.64,1);
+  user-select: none;
+}
+.feed-chip:active { transform: scale(0.92); }
+.feed-chip.on {
+  background: var(--acc-dim);
+  border-color: rgba(46,166,255,.3);
+  color: var(--acc);
+}
 
 @keyframes feedSlideInRight {
   from { opacity: 0; transform: translateX(20px); }
@@ -923,11 +1019,22 @@ html, body {
     <!-- HOME -->
     <div class="screen active" id="s-home">
       <div class="home-topbar">
-        <div class="home-tabs">
-          <div class="home-tab active" id="tab-subs" onclick="switchFeedTab('subs')">Подписки</div>
-          <div class="home-tab" id="tab-rec" onclick="switchFeedTab('rec')">Рекомендации</div>
+        <div class="home-tabs-row">
+          <div class="home-tabs">
+            <div class="home-tab active" id="tab-subs" onclick="switchFeedTab('subs')">Подписки</div>
+            <div class="home-tab" id="tab-rec" onclick="switchFeedTab('rec')">Рекомендации</div>
+          </div>
+          <div class="tb-btn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);" onclick="loadFeed()">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </div>
         </div>
-        <div class="tb-btn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="feed-filters" id="feedFilters">
+          <div class="feed-chip on" data-filter="all" onclick="setFeedFilter(this,'all')">✨ Все</div>
+          <div class="feed-chip" data-filter="news" onclick="setFeedFilter(this,'news')">📢 Новости</div>
+          <div class="feed-chip" data-filter="update" onclick="setFeedFilter(this,'update')">🚀 Обновления</div>
+          <div class="feed-chip" data-filter="tip" onclick="setFeedFilter(this,'tip')">💡 Советы</div>
+          <div class="feed-chip" data-filter="promo" onclick="setFeedFilter(this,'promo')">🎁 Акции</div>
+        </div>
       </div>
 
       <div class="feed" id="feed-subs">
@@ -1384,57 +1491,67 @@ html, body {
         <div class="tb-btn" onclick="shareBotPage()" id="botShareBtn"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
       </div>
 
-      <!-- Hero -->
-      <div id="botPageHero" style="position:relative;height:180px;background:linear-gradient(135deg,#1e3a5f,#0d2137);overflow:hidden;flex-shrink:0;">
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;opacity:0.15;" id="botPageBg">🤖</div>
-        <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,var(--bg),transparent);"></div>
-        <div style="position:absolute;bottom:-28px;left:20px;width:64px;height:64px;border-radius:20px;background:var(--card);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:32px;" id="botPageAva">🤖</div>
+      <!-- Hero — full blurred background + avatar bottom-left -->
+      <div id="botPageHero" style="position:relative;height:220px;overflow:hidden;flex-shrink:0;background:#0d1a27;">
+        <!-- Blurred full-cover bg -->
+        <div id="botPageBg" style="position:absolute;inset:-20px;background:linear-gradient(135deg,#1a3a5c,#0a1e30);"></div>
+        <!-- Dark gradient at bottom -->
+        <div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,var(--bg) 0%,rgba(15,25,35,0.6) 60%,transparent 100%);z-index:2;pointer-events:none;"></div>
+        <!-- Avatar bottom-left, overlapping the gradient -->
+        <div style="position:absolute;bottom:-30px;left:18px;z-index:3;">
+          <div id="botPageAva" style="width:76px;height:76px;border-radius:22px;background:var(--card);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5);">🤖</div>
+        </div>
       </div>
 
-      <div style="padding:40px 16px 0;">
+      <div style="padding:46px 16px 0;">
         <!-- Info -->
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:7px;" id="botPageName">—</div>
-            <div style="font-size:13px;color:var(--sub);margin-top:3px;" id="botPageUsername">@—</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-left:12px;flex-shrink:0;">
-            <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;" onclick="subBotPage()">Подписаться</div>
-            <div id="botPageBellBtn" onclick="toggleBotNotify()" style="display:none;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:opacity .2s;">🔔</div>
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:21px;font-weight:800;display:flex;align-items:center;gap:7px;flex-wrap:wrap;" id="botPageName">—</div>
+              <div style="font-size:13px;color:var(--sub);margin-top:3px;" id="botPageUsername">@—</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;" onclick="subBotPage()">Подписаться</div>
+              <div id="botPageBellBtn" onclick="toggleBotNotify()" style="display:none;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:opacity .2s;">🔔</div>
+            </div>
           </div>
         </div>
 
         <!-- Description -->
-        <div style="font-size:14px;line-height:1.6;color:var(--sub);margin-bottom:16px;" id="botPageDesc">—</div>
+        <div style="font-size:14px;line-height:1.65;color:var(--sub);margin-bottom:14px;" id="botPageDesc">—</div>
 
         <!-- Tags -->
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="botPageTags"></div>
 
         <!-- Stats -->
-        <div style="display:flex;gap:8px;margin-bottom:20px;">
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
-            <div style="font-size:17px;font-weight:800;" id="botPageMembers">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Участников</div>
+        <div class="bot-stat-grid">
+          <div class="bot-stat-item">
+            <div class="bot-stat-n" id="botPageMembers">0</div>
+            <div class="bot-stat-l">Участников</div>
           </div>
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
-            <div style="font-size:17px;font-weight:800;" id="botPagePosts">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Постов</div>
+          <div class="bot-stat-item">
+            <div class="bot-stat-n" id="botPagePosts">0</div>
+            <div class="bot-stat-l">Постов</div>
           </div>
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
-            <div style="font-size:17px;font-weight:800;" id="botPageSubs">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Подписчиков</div>
+          <div class="bot-stat-item">
+            <div class="bot-stat-n" id="botPageSubs">0</div>
+            <div class="bot-stat-l">Подписчиков</div>
           </div>
         </div>
 
         <!-- Open in Telegram -->
-        <a id="botPageTgLink" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:var(--acc);color:#fff;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:20px;">
-          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:white;stroke:none;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg>
+        <a id="botPageTgLink" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:9px;padding:14px;background:linear-gradient(135deg,#2ea6ff,#1a84d4);color:#fff;border-radius:14px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:24px;box-shadow:0 6px 20px rgba(46,166,255,0.3);letter-spacing:0.2px;">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:white;stroke:none;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg>
           Открыть в Telegram
         </a>
 
         <!-- Posts divider -->
-        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;">Посты</div>
-        <div id="botPagePostsList" style="padding-bottom:80px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;">Посты</div>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+        <div id="botPagePostsList" style="padding-bottom:90px;"></div>
       </div>
     </div>
     <!-- POST DETAIL -->
@@ -1975,8 +2092,23 @@ async function openBotPage(botId, event) {
   // Аватарка из Telegram
   const cleanUsername = b.username.replace('@','');
   const avatarUrl = `https://t.me/i/userpic/320/${cleanUsername}.jpg`;
-  document.getElementById('botPageBg').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;filter:blur(20px);transform:scale(1.2);" onerror="this.outerHTML='🤖'">`;
-  document.getElementById('botPageAva').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:17px;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='🤖'">`;
+  
+  const heroBg = document.getElementById('botPageBg');
+  const heroAva = document.getElementById('botPageAva');
+  
+  const bgImg = new Image();
+  bgImg.onload = () => {
+    heroBg.style.cssText = 'position:absolute;inset:-20px;background:none;';
+    heroBg.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;filter:blur(28px) brightness(0.5) saturate(1.5);transform:scale(1.15);display:block;">`;
+  };
+  bgImg.onerror = () => {
+    const colors = ['#1e3a5f,#0d2137','#1a3d2b,#0d2018','#3d1a3a,#200d1e','#3d2a1a,#1e1408'];
+    const ci = (b.name||'').charCodeAt(0) % colors.length;
+    heroBg.style.cssText = `position:absolute;inset:-20px;background:linear-gradient(135deg,${colors[ci]});`;
+  };
+  bgImg.src = avatarUrl;
+  
+  heroAva.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:19px;object-fit:cover;" onerror="this.style.display='none';this.parentElement.innerHTML='🤖'">`;
   
   document.getElementById('botPageTgLink').href = 'https://t.me/' + b.username;
 
@@ -2012,25 +2144,39 @@ async function openBotPage(botId, event) {
 }
 
 function botPostHTML(p, b) {
-  const avaHtml = botAvatarHTML(b.username, 40, 12);
-  return `<div class="post" style="border-radius:14px;background:var(--card);margin-bottom:10px;border:none;" onclick="openPostDetail(${p.id}, event, b)">
+  const avaHtml = botAvatarHTML(b.username, 38, 12);
+  const imgHtml = p.image_url ? `<div class="post-media" style="background:url('${esc(p.image_url)}') center/cover;height:160px;margin-bottom:10px;"><div class="post-media-overlay"></div></div>` : '';
+  const typeBadge = postTypeBadge(p.post_type);
+  const reacts = (p.reactions||[]).map(r =>
+    `<div class="react" onclick="event.stopPropagation();reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
+  ).join('') || `<div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
+  
+  const views = p.views_count ? `<span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    ${p.views_count >= 1000 ? (p.views_count/1000).toFixed(1)+'k' : p.views_count}</span>` : '';
+
+  return `<div class="post" onclick="openPostDetail(${p.id}, event)">
     <div class="post-head">
       <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="p-meta">
-        <div class="p-name">${esc(b.name)}</div>
+        <div class="p-name" style="font-size:13px;">${esc(b.name)}</div>
         <div class="p-cat">${timeAgo(p.created_at)}</div>
       </div>
-      <div style="font-size:12px;color:var(--acc);cursor:pointer;" onclick="event.stopPropagation();sharePost(${p.id})">Поделиться</div>
-    </div>
-    <div class="post-text">${esc(p.text)}</div>
-    <div class="post-foot">
-      <div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>
-      <div class="react" onclick="event.stopPropagation();reactPost(${p.id},'👍',this)">👍 <span>0</span></div>
-      <div class="react-sep"></div>
-      <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>0</span></div>
-      <div class="share" onclick="event.stopPropagation();sharePost(${p.id})">
-        <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        ${views}
+        <div class="share" onclick="event.stopPropagation();sharePost(${p.id})">
+          <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </div>
       </div>
+    </div>
+    ${imgHtml}
+    ${typeBadge}
+    <div class="post-text">${esc(p.text)}</div>
+    <div class="post-divider"></div>
+    <div class="post-foot">
+      ${reacts}
+      <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
+      <div class="react-sep"></div>
     </div>
   </div>`;
 }
@@ -2111,18 +2257,65 @@ function closeBotPage() {
 // ════════════════════════════════
 // ЛЕНТА
 // ════════════════════════════════
+// Фильтр ленты
+let currentFeedFilter = 'all';
+
+function setFeedFilter(el, filter) {
+  currentFeedFilter = filter;
+  document.querySelectorAll('.feed-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+  
+  // Показываем/скрываем посты
+  const activeEl = activeFeedTab === 'subs'
+    ? document.getElementById('feed-subs')
+    : document.getElementById('feed-rec');
+  
+  let visible = 0;
+  activeEl.querySelectorAll('.post[data-id]').forEach(post => {
+    const type = post.dataset.type || '';
+    const match = filter === 'all' || type === filter;
+    post.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  
+  // Если ничего не найдено
+  let noRes = activeEl.querySelector('.filter-no-results');
+  if (!visible) {
+    if (!noRes) {
+      noRes = document.createElement('div');
+      noRes.className = 'filter-no-results';
+      noRes.style.cssText = 'text-align:center;padding:40px 24px;color:var(--sub);';
+      noRes.innerHTML = '<div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Ничего не найдено</div><div style="font-size:13px;">Нет постов с таким типом</div>';
+      activeEl.appendChild(noRes);
+    }
+    noRes.style.display = '';
+  } else if (noRes) {
+    noRes.style.display = 'none';
+  }
+}
+
 function skeletonPost() {
+  // Случайно — иногда с «изображением» для разнообразия
+  const withImg = Math.random() > 0.5;
   return `<div class="post" style="pointer-events:none;">
     <div style="display:flex;gap:10px;margin-bottom:12px;">
-      <div class="shimmer" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;"></div>
+      <div class="shimmer" style="width:42px;height:42px;border-radius:13px;flex-shrink:0;"></div>
       <div style="flex:1;">
-        <div class="shimmer" style="height:13px;width:55%;border-radius:6px;margin-bottom:7px;"></div>
-        <div class="shimmer" style="height:11px;width:35%;border-radius:6px;"></div>
+        <div class="shimmer" style="height:13px;width:52%;border-radius:6px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:11px;width:32%;border-radius:6px;"></div>
       </div>
+      <div class="shimmer" style="width:36px;height:20px;border-radius:10px;flex-shrink:0;"></div>
     </div>
-    <div class="shimmer" style="height:12px;width:90%;border-radius:6px;margin-bottom:6px;"></div>
-    <div class="shimmer" style="height:12px;width:75%;border-radius:6px;margin-bottom:6px;"></div>
-    <div class="shimmer" style="height:40px;width:100%;border-radius:8px;margin-top:4px;"></div>
+    ${withImg ? '<div class="shimmer" style="height:160px;border-radius:12px;margin-bottom:10px;"></div>' : ''}
+    <div class="shimmer" style="height:13px;width:88%;border-radius:6px;margin-bottom:7px;"></div>
+    <div class="shimmer" style="height:13px;width:70%;border-radius:6px;margin-bottom:7px;"></div>
+    <div class="shimmer" style="height:13px;width:55%;border-radius:6px;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;">
+      <div class="shimmer" style="height:30px;width:56px;border-radius:20px;"></div>
+      <div class="shimmer" style="height:30px;width:56px;border-radius:20px;"></div>
+      <div class="shimmer" style="height:30px;width:56px;border-radius:20px;"></div>
+    </div>
   </div>`;
 }
 
@@ -2262,21 +2455,43 @@ function postHTML(p) {
   const reacts = (p.reactions || []).map(r =>
     `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="event.stopPropagation();reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
   ).join('') || `<div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
-  const img = p.image_url ? `<div class="post-img" style="background:url('${esc(p.image_url)}') center/cover;height:200px;border-radius:10px;margin-bottom:10px;"></div>` : '';
+
+  // Изображение — реальное если есть, иначе превью из текста
+  let imgHtml = '';
+  if (p.image_url) {
+    imgHtml = `<div class="post-media" style="background:url('${esc(p.image_url)}') center/cover;">
+      <div class="post-media-overlay"></div>
+    </div>`;
+  }
+
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
   const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
   const typeBadge = postTypeBadge(p.post_type);
   const buttons = renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]));
-  return `<div class="post" data-id="${p.id}" onclick="openPostDetail(${p.id}, event)">
+  
+  // Скрываем фильтр (client-side) если не совпадает
+  const filterMatch = !currentFeedFilter || currentFeedFilter === 'all' || p.post_type === currentFeedFilter;
+  const hidden = filterMatch ? '' : 'style="display:none;"';
+
+  // Просмотры
+  const views = p.views_count ? `<div style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--muted);margin-left:auto;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    ${p.views_count >= 1000 ? (p.views_count/1000).toFixed(1)+'k' : p.views_count}
+  </div>` : '';
+
+  return `<div class="post" data-id="${p.id}" data-type="${p.post_type||''}" ${hidden} onclick="openPostDetail(${p.id}, event)">
     <div class="post-head">
       <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="p-meta">
         <div class="p-name">${esc(p.bot_name||'Бот')} ${badge}</div>
         <div class="p-cat">@${esc(p.bot_username||'')}</div>
       </div>
-      <div class="p-time">${timeAgo(p.created_at)}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        ${views}
+        <div class="p-time">${timeAgo(p.created_at)}</div>
+      </div>
     </div>
-    ${img}
+    ${imgHtml}
     ${typeBadge}
     <div class="post-text">${esc(p.text)}</div>
     ${buttons}
@@ -2285,11 +2500,17 @@ function postHTML(p) {
       ${reacts}
       <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
       <div class="react-sep"></div>
-      <div class="share" onclick="event.stopPropagation();toast('🔗','Ссылка скопирована')">
+      <div class="share" onclick="event.stopPropagation();sharePost(${p.id})">
         <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       </div>
     </div>
   </div>`;
+}
+
+function sharePost(postId) {
+  const url = window.location.origin + '?post=' + postId;
+  if (navigator.share) navigator.share({ title: 'BotFeed', url });
+  else navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка скопирована!'));
 }
 
 function timeAgo(ts) {
@@ -3587,6 +3808,22 @@ function postTypeBadge(type) {
 // ════════════════════════════════
 // СТАРТ
 // ════════════════════════════════
+// ════════════════════════════════
+// BOT PAGE SCROLL — topbar становится непрозрачным при скролле
+// ════════════════════════════════
+document.getElementById('s-botpage').addEventListener('scroll', function() {
+  const topbar = this.querySelector('.topbar');
+  if (!topbar) return;
+  const scrolled = this.scrollTop > 160;
+  topbar.style.background = scrolled ? 'var(--bg)' : 'transparent';
+  topbar.style.borderBottom = scrolled ? '1px solid var(--border)' : 'none';
+  topbar.style.transition = 'background .25s, border-color .25s';
+  const title = topbar.querySelector('.topbar-title');
+  if (title) title.style.color = scrolled ? 'var(--text)' : 'transparent';
+  const svgs = topbar.querySelectorAll('.tb-btn svg');
+  svgs.forEach(s => s.style.stroke = scrolled ? 'var(--sub)' : 'rgba(255,255,255,0.85)');
+}, { passive: true });
+
 async function initApp() {
   loadFeed();
   showProfile();
@@ -3624,4 +3861,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-</html>
+                </html>
