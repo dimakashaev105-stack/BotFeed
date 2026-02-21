@@ -34,6 +34,7 @@ db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT
   .catch(e => console.log('Views migration note:', e.message))
 
 db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notify BOOLEAN DEFAULT true`)
+  .then(() => db.query(`UPDATE subscriptions SET notify = true WHERE notify IS NULL`))
   .catch(e => console.log('Notify migration note:', e.message))
 
 // OTP таблицы
@@ -672,7 +673,8 @@ app.post('/api/bots/:botId/notify', { preHandler: auth }, async (req, reply) => 
   try {
     const { rows } = await db.query('SELECT id, notify FROM subscriptions WHERE user_id=$1 AND bot_id=$2', [req.user.id, parseInt(req.params.botId)])
     if (!rows[0]) return reply.code(404).send({ error: 'Нет подписки' })
-    const newNotify = !rows[0].notify
+    const current = rows[0].notify !== false  // NULL и true считаем как "включено"
+    const newNotify = !current
     await db.query('UPDATE subscriptions SET notify=$1 WHERE id=$2', [newNotify, rows[0].id])
     return { notify: newNotify }
   } catch (e) { return reply.code(500).send({ error: e.message }) }
