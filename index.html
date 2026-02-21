@@ -1,3171 +1,1068 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BotFeed</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-:root {
-  --bg:      #17212b;
-  --surface: #1c2733;
-  --card:    #242f3d;
-  --hover:   #2b3a4e;
-  --border:  rgba(255,255,255,0.06);
-  --acc:     #2ea6ff;
-  --acc-dim: rgba(46,166,255,0.12);
-  --text:    #e8edf2;
-  --sub:     #8a9bb0;
-  --muted:   #4a5568;
-  --green:   #4dcd6a;
-  --red:     #f04040;
-}
-
-html, body {
-  height: 100%; overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-}
-
-#app {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-.screens { flex: 1; overflow: hidden; position: relative; min-height: 0; }
-.screen {
-  position: absolute; inset: 0;
-  overflow-y: auto; overflow-x: hidden;
-  scrollbar-width: none;
-  display: none;
-}
-.screen::-webkit-scrollbar { display: none; }
-.screen.active { display: block; }
-.screen.anim-right { animation: slideInRight .22s cubic-bezier(0.25,0.46,0.45,0.94) both; }
-.screen.anim-left  { animation: slideInLeft  .22s cubic-bezier(0.25,0.46,0.45,0.94) both; }
-
-/* NAV */
-.nav {
-  flex-shrink: 0;
-  height: 56px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  position: relative;
-}
-
-/* Sliding indicator under active nav item */
-.nav-indicator {
-  position: absolute;
-  top: 0;
-  height: 2px;
-  background: var(--acc);
-  border-radius: 0 0 3px 3px;
-  width: 25%;
-  left: 0;
-  transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.nav-item {
-  flex: 1;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 4px; cursor: pointer;
-  transition: opacity .15s;
-  position: relative;
-}
-.nav-item:active { opacity: .6; }
-.nav-ico { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-.nav-ico svg { width:22px; height:22px; stroke: var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition: stroke .2s, transform .3s cubic-bezier(0.34,1.56,0.64,1); }
-.nav-item.active .nav-ico svg { stroke: var(--acc); transform: scale(1.18) translateY(-1px); }
-.nav-lbl { font-size: 10px; font-weight: 600; color: var(--muted); transition: color .2s, transform .2s; }
-.nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.05); }
-
-/* ══════════════════════════════════════
-   SCREEN TRANSITIONS — cinematic slide
-══════════════════════════════════════ */
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(28px) scale(0.98); }
-  to   { opacity: 1; transform: translateX(0)    scale(1); }
-}
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-28px) scale(0.98); }
-  to   { opacity: 1; transform: translateX(0)     scale(1); }
-}
-.screen.anim-right { animation: slideInRight .28s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.screen.anim-left  { animation: slideInLeft  .28s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* ══════════════════════════════════════
-   NAV — spring indicator + icon bounce
-══════════════════════════════════════ */
-.nav-indicator {
-  position: absolute;
-  top: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--acc), transparent);
-  width: 25%; left: 0;
-  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: blur(0.5px);
-}
-.nav-ico svg {
-  transition: stroke .2s, transform .35s cubic-bezier(0.34, 1.56, 0.64, 1), filter .2s;
-}
-.nav-item.active .nav-ico svg {
-  stroke: var(--acc);
-  transform: scale(1.22) translateY(-2px);
-  filter: drop-shadow(0 0 6px rgba(46,166,255,0.5));
-}
-.nav-lbl { transition: color .2s, transform .25s cubic-bezier(0.34,1.56,0.64,1); }
-.nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.08); }
-.nav-item:active .nav-ico svg { transform: scale(0.9); }
-
-/* ══════════════════════════════════════
-   FEED — staggered card entrance
-══════════════════════════════════════ */
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
-}
-/* Анимация только при первой загрузке — потом выключается */
-.post { animation: cardIn .4s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.post:nth-child(1)  { animation-delay: .04s; }
-.post:nth-child(2)  { animation-delay: .1s; }
-.post:nth-child(3)  { animation-delay: .16s; }
-.post:nth-child(4)  { animation-delay: .22s; }
-.post:nth-child(5)  { animation-delay: .27s; }
-.post:nth-child(n+6){ animation-delay: .31s; }
-/* После проигрывания — останавливаем чтобы не повторялась при re-display */
-.post.no-anim { animation: none !important; }
-
-.bot-row { animation: cardIn .35s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.bot-row:nth-child(1)  { animation-delay: .03s; }
-.bot-row:nth-child(2)  { animation-delay: .08s; }
-.bot-row:nth-child(3)  { animation-delay: .13s; }
-.bot-row:nth-child(4)  { animation-delay: .17s; }
-.bot-row:nth-child(5)  { animation-delay: .21s; }
-.bot-row:nth-child(n+6){ animation-delay: .24s; }
-
-/* ══════════════════════════════════════
-   REACT — satisfying spring pop
-══════════════════════════════════════ */
-@keyframes reactPop {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.45) rotate(-5deg); }
-  55%  { transform: scale(0.88) rotate(3deg); }
-  75%  { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-.react.popping {
-  animation: reactPop .45s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.react {
-  transition: background .15s, color .15s, border-color .15s, transform .1s;
-}
-.react:active { transform: scale(0.9); }
-
-/* ══════════════════════════════════════
-   SUBSCRIBE — elastic confirmation
-══════════════════════════════════════ */
-@keyframes subConfirm {
-  0%   { transform: scale(1); }
-  25%  { transform: scale(0.85); }
-  60%  { transform: scale(1.18); }
-  80%  { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-.sub-btn { transition: all .2s; }
-.sub-btn.popping { animation: subConfirm .5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-
-/* ══════════════════════════════════════
-   TOAST — gravity drop with bounce
-══════════════════════════════════════ */
-.toast {
-  position: fixed; top: 12px;
-  left: 50%; transform: translateX(-50%) translateY(-90px);
-  background: rgba(36, 47, 61, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(46,166,255,0.2);
-  border-radius: 12px;
-  padding: 10px 18px;
-  display: flex; align-items: center; gap: 9px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-  z-index: 9999; white-space: nowrap;
-  transition: none;
-  max-width: calc(100% - 32px);
-}
-@keyframes toastIn {
-  0%   { transform: translateX(-50%) translateY(-90px) scale(0.8); opacity: 0; }
-  60%  { transform: translateX(-50%) translateY(6px)   scale(1.02); opacity: 1; }
-  80%  { transform: translateX(-50%) translateY(-3px)  scale(0.99); }
-  100% { transform: translateX(-50%) translateY(0)     scale(1); opacity: 1; }
-}
-@keyframes toastOut {
-  0%   { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateX(-50%) translateY(-90px) scale(0.85); opacity: 0; }
-}
-.toast.show  { animation: toastIn  .45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-.toast.hide  { animation: toastOut .3s  cubic-bezier(0.55, 0, 1, 0.45)  forwards; }
-.t-ico { font-size: 16px; }
-.t-msg { font-size: 13px; font-weight: 600; }
-
-/* ══════════════════════════════════════
-   SHEET — smooth spring up
-══════════════════════════════════════ */
-@keyframes sheetUp {
-  from { transform: translateY(100%) scale(0.97); opacity: 0.5; }
-  to   { transform: translateY(0)    scale(1);    opacity: 1; }
-}
-@keyframes sheetDown {
-  from { transform: translateY(0);    opacity: 1; }
-  to   { transform: translateY(100%); opacity: 0; }
-}
-.overlay { transition: background .25s; }
-.overlay.open .sheet {
-  animation: sheetUp .38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* ══════════════════════════════════════
-   FEATURED CARDS — 3D tilt on active
-══════════════════════════════════════ */
-.feat-card {
-  transition: transform .25s cubic-bezier(0.34, 1.56, 0.64, 1),
-              background .15s,
-              box-shadow .25s;
-}
-.feat-card:active {
-  transform: scale(0.94) translateY(2px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-/* ══════════════════════════════════════
-   BOT ROW — press feedback
-══════════════════════════════════════ */
-.bot-row { transition: background .12s, transform .15s; }
-.bot-row:active { transform: scale(0.98); background: var(--hover); }
-
-/* ══════════════════════════════════════
-   POST — subtle press
-══════════════════════════════════════ */
-.post { transition: background .12s; }
-.post:active { background: var(--hover); }
-
-/* ══════════════════════════════════════
-   PROFILE AVATAR — glow pulse on load
-══════════════════════════════════════ */
-@keyframes avatarIn {
-  0%   { transform: scale(0.5);  opacity: 0; filter: blur(8px); }
-  60%  { transform: scale(1.08); opacity: 1; filter: blur(0); }
-  80%  { transform: scale(0.96); }
-  100% { transform: scale(1); }
-}
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 0 0   rgba(46,166,255,0.3); }
-  50%       { box-shadow: 0 0 0 12px rgba(46,166,255,0); }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes authFadeUp {
-  from { opacity:0; transform:translateY(20px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-#prof-guest > * {
-  animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) both;
-}
-#prof-guest > *:nth-child(1) { animation-delay:.05s; }
-#prof-guest > *:nth-child(2) { animation-delay:.12s; }
-.prof-ava {
-  animation: avatarIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both,
-             glowPulse 2s ease-in-out 0.8s 2;
-}
-
-/* ══════════════════════════════════════
-   NAV ITEM — ripple on tap
-══════════════════════════════════════ */
-.nav-item { position: relative; overflow: hidden; }
-@keyframes ripple {
-  from { transform: scale(0); opacity: 0.4; }
-  to   { transform: scale(2.5); opacity: 0; }
-}
-.nav-ripple {
-  position: absolute;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--acc);
-  pointer-events: none;
-  transform: scale(0);
-  animation: ripple .5s ease-out forwards;
-  margin: auto; inset: 0;
-}
-
-/* ══════════════════════════════════════
-   STEP INDICATORS — see full definition below
-══════════════════════════════════════ */
-
-/* ══════════════════════════════════════
-   SHEET STEPS — smooth slide in/out
-══════════════════════════════════════ */
-@keyframes stepIn {
-  from { opacity: 0; transform: translateX(24px) scale(0.98); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
-}
-@keyframes stepOut {
-  from { opacity: 1; transform: translateX(0) scale(1); }
-  to   { opacity: 0; transform: translateX(-24px) scale(0.98); }
-}
-#st1, #st2, #st3 {
-  animation: stepIn .32s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* ══════════════════════════════════════
-   STEP INDICATOR — progress bar fill
-══════════════════════════════════════ */
-.step-s {
-  height: 3px; flex: 1;
-  background: var(--card);
-  border-radius: 3px;
-  transition: background .4s cubic-bezier(0.22, 1, 0.36, 1),
-              transform .4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: left;
-  position: relative;
-  overflow: hidden;
-}
-.step-s::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  transform: translateX(-100%);
-}
-.step-s.cur {
-  background: var(--acc);
-  box-shadow: 0 0 10px rgba(46,166,255,0.5);
-}
-.step-s.cur::after {
-  animation: stepShimmer 1s ease-in-out infinite;
-}
-.step-s.done { background: rgba(46,166,255,0.45); }
-
-@keyframes stepShimmer {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
-}
-
-/* ══════════════════════════════════════
-   CATEGORY TAGS — spring select
-══════════════════════════════════════ */
-@keyframes tagPick {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(0.88); }
-  70%  { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-.t-opt.picked { animation: tagPick .3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.t-opt {
-  transition: background .15s, border-color .15s, color .15s, transform .12s;
-}
-.t-opt:active { transform: scale(0.92); }
-
-/* ══════════════════════════════════════
-   LOADING SHIMMER for placeholders
-══════════════════════════════════════ */
-@keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position:  200% center; }
-}
-.shimmer {
-  background: linear-gradient(90deg,
-    var(--card) 25%,
-    rgba(255,255,255,0.04) 50%,
-    var(--card) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 8px;
-}
-
-/* ══════════════════════════════════════
-   VERIFIED BADGE — sparkle
-══════════════════════════════════════ */
-@keyframes badgePop {
-  0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
-  70%  { transform: scale(1.3) rotate(10deg); }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
-}
-.p-badge { animation: badgePop .5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-
-/* ══════════════════════════════════════
-   DELETE CONFIRM — slide down
-══════════════════════════════════════ */
-@keyframes confirmSlide {
-  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
-}
-#deleteBotConfirm[style*="block"] {
-  animation: confirmSlide .25s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* ══════════════════════════════════════
-   INPUT FOCUS — glow ring
-══════════════════════════════════════ */
-.f-inp {
-  transition: border-color .2s, box-shadow .2s, transform .15s;
-}
-.f-inp:focus {
-  border-color: rgba(46,166,255,.5);
-  box-shadow: 0 0 0 3px rgba(46,166,255,.08);
-  transform: translateY(-1px);
-}
-
-/* SHEET */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity .2s; }
-.overlay.open { opacity: 1; pointer-events: all; }
-.sheet { width: 100%; max-width: 480px; margin: 0 auto; background: var(--surface); border-radius: 16px 16px 0 0; border-top: 1px solid var(--border); padding: 0 16px calc(env(safe-area-inset-bottom,16px) + 16px); transform: translateY(100%); transition: transform .26s cubic-bezier(.32,.72,0,1); max-height: 88dvh; overflow-y: auto; scrollbar-width: none; }
-.sheet::-webkit-scrollbar { display: none; }
-.overlay.open .sheet { transform: none; }
-.sheet-handle { width: 32px; height: 3px; background: var(--muted); border-radius: 2px; margin: 10px auto 18px; }
-.sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.sheet-sub { font-size: 13px; color: var(--sub); margin-bottom: 20px; line-height: 1.5; }
-.steps { display: flex; gap: 5px; margin-bottom: 22px; }
-.f-lbl { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-.f-inp { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 13px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; margin-bottom: 14px; transition: border-color .15s; }
-.f-inp:focus { border-color: rgba(46,166,255,.4); }
-.f-inp::placeholder { color: var(--muted); }
-.f-hint { font-size: 12px; color: var(--sub); margin-bottom: 16px; line-height: 1.5; }
-.tags-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 22px; }
-.t-opt { padding: 7px 13px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--sub); cursor: pointer; transition: all .15s; }
-.t-opt:active { transform: scale(.95); }
-.t-opt.picked { background: var(--acc-dim); border-color: rgba(46,166,255,.25); color: var(--acc); }
-.sh-btn { width: 100%; padding: 13px; background: var(--acc); color: white; border: none; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .15s; }
-.sh-btn:active { opacity: .8; }
-
-/* ══════════════════════════════════════
-   TOPBAR
-══════════════════════════════════════ */
-.topbar { display:flex; align-items:center; padding:12px 14px 8px; gap:10px; position:sticky; top:0; z-index:10; background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0; }
-.topbar-logo { font-size:18px; font-weight:800; color:var(--acc); flex:1; letter-spacing:-0.3px; }
-.topbar-title { font-size:17px; font-weight:700; flex:1; }
-.tb-btn { width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; flex-shrink:0; }
-.tb-btn svg { width:20px; height:20px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.tb-btn:active { background:var(--card); }
-
-/* ══════════════════════════════════════
-   FEED & POSTS — стильные карточки
-══════════════════════════════════════ */
-.feed { padding:8px 12px 80px; display:flex; flex-direction:column; gap:8px; }
-
-/* Карточка поста */
-.post {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-  cursor: pointer;
-  transition: transform .15s, box-shadow .15s;
-}
-.post:active { transform: scale(0.985); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-
-.post-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.p-ava { width:42px; height:42px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; }
-.p-meta { flex:1; min-width:0; }
-.p-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.p-cat { font-size:12px; color:var(--sub); margin-top:1px; }
-.p-time { font-size:11px; color:var(--muted); flex-shrink:0; background:var(--hover); padding:3px 8px; border-radius:20px; }
-.p-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; background:var(--acc); color:#fff; border-radius:50%; font-size:9px; font-weight:800; flex-shrink:0; }
-
-.post-img { height:180px; border-radius:10px; background:var(--hover); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:48px; overflow:hidden; }
-.post-text { font-size:14px; line-height:1.65; margin-bottom:12px; color:var(--text); }
-
-/* Разделитель перед реакциями */
-.post-divider { height:1px; background:var(--border); margin:0 -2px 10px; }
-
-.post-foot { display:flex; align-items:center; gap:5px; }
-.react {
-  display:flex; align-items:center; gap:4px;
-  padding:5px 10px; border-radius:20px;
-  background:var(--hover); border:1px solid transparent;
-  font-size:13px; cursor:pointer; user-select:none;
-  transition: background .12s, border-color .12s, transform .1s;
-}
-.react:active { transform: scale(0.92); }
-.react span { font-size:12px; font-weight:600; color:var(--sub); }
-.react.on { background:rgba(46,166,255,0.12); border-color:rgba(46,166,255,0.3); }
-.react.on span { color:var(--acc); }
-.react-sep { flex:1; }
-.share { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; transition:.12s; }
-.share svg { width:17px; height:17px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.share:active { background:var(--hover); }
-
-/* Auth tabs */
-.auth-tab {
-  flex:1; text-align:center; padding:8px; border-radius:10px;
-  font-size:14px; font-weight:600; color:var(--sub);
-  cursor:pointer; transition:all .2s;
-}
-.auth-tab.active { background:var(--acc); color:#fff; }
-
-/* ══════════════════════════════════════
-   CATALOG
-══════════════════════════════════════ */
-.cat-banner { margin:12px 14px; padding:18px; background:linear-gradient(135deg,#1e3a5f,#0d2137); border-radius:16px; border:1px solid rgba(46,166,255,0.15); }
-.cat-banner-title { font-size:16px; font-weight:800; margin-bottom:4px; }
-.cat-banner-sub { font-size:12px; color:var(--sub); margin-bottom:14px; }
-.banner-stats { display:flex; gap:16px; }
-.bstat-n { font-size:18px; font-weight:800; color:var(--acc); }
-.bstat-l { font-size:11px; color:var(--sub); margin-top:2px; }
-.sec-head { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 6px; }
-.sec-title { font-size:15px; font-weight:700; }
-.sec-more { font-size:12px; color:var(--acc); cursor:pointer; }
-.feat-scroll { display:flex; gap:10px; padding:4px 14px 12px; overflow-x:auto; scrollbar-width:none; }
-.feat-scroll::-webkit-scrollbar { display:none; }
-.feat-card { flex-shrink:0; width:160px; background:var(--card); border-radius:14px; padding:14px; border:1px solid var(--border); cursor:pointer; }
-.feat-ava { width:44px; height:44px; border-radius:12px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:10px; }
-.feat-name { font-size:13px; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.feat-desc { font-size:11px; color:var(--sub); line-height:1.4; margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.feat-foot { display:flex; align-items:center; justify-content:space-between; }
-.feat-m { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); font-weight:600; }
-.divider { height:1px; background:var(--border); margin:4px 0; }
-
-/* ══════════════════════════════════════
-   BOT ROWS
-══════════════════════════════════════ */
-.bot-rows { padding:0 0 80px; }
-.bot-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--border); cursor:pointer; }
-.br-ava { width:48px; height:48px; border-radius:13px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; overflow:hidden; }
-.br-info { flex:1; min-width:0; }
-.br-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.br-desc { font-size:12px; color:var(--sub); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.br-tags { display:flex; gap:4px; margin-top:5px; flex-wrap:wrap; }
-.br-right { display:flex; flex-direction:column; align-items:flex-end; gap:7px; flex-shrink:0; }
-.br-count { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); font-weight:600; }
-.gdot { width:6px; height:6px; border-radius:50%; background:var(--green); }
-.tag { padding:3px 8px; background:var(--card); border-radius:6px; font-size:11px; color:var(--sub); font-weight:600; }
-.sub-btn { padding:6px 12px; background:var(--acc-dim); color:var(--acc); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
-.sub-btn.subbed { background:rgba(77,205,106,0.12); color:var(--green); }
-
-/* ══════════════════════════════════════
-   SEARCH
-══════════════════════════════════════ */
-.search-top { padding:10px 14px; }
-.search-box { display:flex; align-items:center; gap:8px; background:var(--card); border-radius:12px; padding:10px 12px; border:1px solid var(--border); margin-bottom:10px; }
-.search-box svg { width:17px; height:17px; stroke:var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
-.search-box input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Inter',sans-serif; font-size:14px; min-width:0; }
-.search-box input::placeholder { color:var(--muted); }
-.search-clear { font-size:18px; color:var(--muted); cursor:pointer; display:none; line-height:1; }
-.search-clear.show { display:block; }
-.cats-bar { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; }
-.cats-bar::-webkit-scrollbar { display:none; }
-.cat-chip { padding:6px 12px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:12px; font-weight:600; color:var(--sub); white-space:nowrap; cursor:pointer; flex-shrink:0; transition:all .15s; }
-.cat-chip.on { background:var(--acc-dim); border-color:rgba(46,166,255,.25); color:var(--acc); }
-.s-lbl { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:0.6px; padding:12px 14px 6px; }
-.trending-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 14px; }
-.trend-item { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:12px; padding:12px; cursor:pointer; }
-.tr-ico { font-size:22px; flex-shrink:0; }
-.tr-name { font-size:13px; font-weight:700; }
-.tr-cnt { font-size:11px; color:var(--sub); margin-top:2px; }
-.no-results { text-align:center; padding:48px 24px; color:var(--sub); }
-.no-results-ico { font-size:40px; margin-bottom:12px; }
-.no-results-txt { font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px; }
-
-/* ══════════════════════════════════════
-   PROFILE
-══════════════════════════════════════ */
-.prof-head { padding:20px 14px 0; }
-.prof-top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
-.prof-ava { width:64px; height:64px; border-radius:20px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; overflow:hidden; }
-.prof-info { flex:1; min-width:0; }
-.prof-name { font-size:18px; font-weight:800; display:flex; align-items:center; gap:6px; }
-.prof-badge { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:var(--acc); color:#fff; border-radius:50%; font-size:10px; font-weight:800; }
-.prof-user { font-size:13px; color:var(--sub); margin-top:3px; }
-.prof-actions { margin-bottom:16px; }
-.prof-btn { display:inline-flex; align-items:center; justify-content:center; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; }
-.prof-btn-sec { background:var(--card); color:var(--text); border:1px solid var(--border); }
-.prof-stats { display:flex; gap:0; margin-bottom:16px; background:var(--card); border-radius:14px; overflow:hidden; }
-.ps { flex:1; padding:14px; text-align:center; position:relative; }
-.ps + .ps::before { content:''; position:absolute; left:0; top:25%; height:50%; width:1px; background:var(--border); }
-.ps-n { font-size:18px; font-weight:800; }
-.ps-l { font-size:11px; color:var(--sub); margin-top:3px; }
-.p-tabs { display:flex; border-bottom:1px solid var(--border); margin:0 14px; }
-.p-tab { flex:1; text-align:center; padding:10px; font-size:13px; font-weight:600; color:var(--sub); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
-.p-tab.on { color:var(--acc); border-bottom-color:var(--acc); }
-#tb-bots, #tb-settings { padding:8px 14px 80px; }
-.my-bot { display:flex; align-items:center; gap:12px; padding:12px; background:var(--card); border-radius:12px; margin-bottom:8px; cursor:pointer; transition:background .12s; }
-.my-bot:active { background:var(--hover); }
-.mb-ava { width:44px; height:44px; border-radius:12px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
-.mb-info { flex:1; min-width:0; }
-.mb-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; }
-.mb-meta { font-size:12px; color:var(--sub); margin-top:3px; }
-.mb-chev { font-size:20px; color:var(--muted); }
-.add-row { display:flex; align-items:center; gap:12px; padding:12px; border:1px dashed var(--border); border-radius:12px; cursor:pointer; margin-top:4px; }
-.add-ico { width:44px; height:44px; border-radius:12px; background:var(--acc-dim); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--acc); flex-shrink:0; }
-.add-lbl { font-size:14px; font-weight:700; }
-.add-sub { font-size:12px; color:var(--sub); margin-top:2px; }
-.set-group { background:var(--card); border-radius:14px; margin-bottom:10px; overflow:hidden; }
-.set-row { display:flex; align-items:center; gap:12px; padding:14px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; }
-.set-row:last-child { border-bottom:none; }
-.set-row:active { background:var(--hover); }
-.set-ico { font-size:18px; flex-shrink:0; }
-.set-lbl { flex:1; font-size:14px; }
-.set-chev { font-size:18px; color:var(--muted); }
-.set-row.danger .set-lbl { color:var(--red); }
-
-
-/* ══════════════════════════════════════
-   BOT PAGE
-══════════════════════════════════════ */
-@keyframes heroIn {
-  from { opacity: 0; transform: scale(1.05); }
-  to   { opacity: 1; transform: scale(1); }
-}
-#botPageHero { animation: heroIn .4s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-@keyframes botInfoIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-#s-botpage .topbar ~ div { animation: botInfoIn .35s cubic-bezier(0.22, 1, 0.36, 1) .1s both; }
-
-/* ══════════════════════════════════════
-   HOME TABS — Подписки / Рекомендации
-══════════════════════════════════════ */
-.home-topbar {
-  position: sticky; top: 0; z-index: 20;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 52px;
-  padding: 0 48px;
-  flex-shrink: 0;
-}
-.home-tabs {
-  display: flex;
-  gap: 0;
-  position: relative;
-}
-.home-tab {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--sub);
-  padding: 6px 20px;
-  cursor: pointer;
-  position: relative;
-  transition: color .2s;
-  user-select: none;
-}
-.home-tab::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; left: 50%; right: 50%;
-  height: 2px;
-  background: var(--acc);
-  border-radius: 2px 2px 0 0;
-  transition: left .3s cubic-bezier(0.34,1.56,0.64,1),
-              right .3s cubic-bezier(0.34,1.56,0.64,1);
-}
-.home-tab.active { color: var(--text); }
-.home-tab.active::after { left: 8px; right: 8px; }
-
-@keyframes feedSlideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes feedSlideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.feed-anim-right { animation: feedSlideInRight .25s cubic-bezier(0.22,1,0.36,1) both; }
-.feed-anim-left  { animation: feedSlideInLeft  .25s cubic-bezier(0.22,1,0.36,1) both; }
-
-/* ── Analytics ── */
-.chart-period {
-  font-size:11px; font-weight:700; padding:4px 10px;
-  border-radius:8px; color:var(--sub); cursor:pointer;
-  transition: all .15s;
-}
-.chart-period.active { background:var(--acc); color:#fff; }
-.top-post-row {
-  display:flex; align-items:center; gap:10px;
-  padding:8px 0; border-bottom:1px solid var(--border);
-}
-.top-post-row:last-child { border-bottom:none; }
-.tip-row { display:flex; gap:10px; align-items:flex-start; }
-.tip-ico { font-size:18px; flex-shrink:0; margin-top:1px; }
-.tip-txt { font-size:13px; color:var(--sub); line-height:1.5; }
-.tip-txt b { color:var(--text); }
-
-/* ── Post type buttons ── */
-.post-type-btn {
-  flex-shrink:0; padding:6px 12px; border-radius:20px;
-  font-size:12px; font-weight:600; cursor:pointer;
-  background:var(--bg); color:var(--sub);
-  border:1.5px solid var(--border);
-  transition:all .15s;
-  white-space:nowrap;
-}
-.post-type-btn.active {
-  background:var(--acc-dim); color:var(--acc);
-  border-color:var(--acc);
-}
-
-/* ── Post type badge in feed ── */
-.post-type-badge {
-  display:inline-flex; align-items:center; gap:4px;
-  font-size:11px; font-weight:700; padding:3px 8px;
-  border-radius:6px; margin-bottom:8px;
-}
-.ptb-news   { background:rgba(46,166,255,0.12); color:#2ea6ff; }
-.ptb-update { background:rgba(77,205,106,0.12); color:#4dcd6a; }
-.ptb-tip    { background:rgba(245,166,35,0.12);  color:#f5a623; }
-.ptb-promo  { background:rgba(255,76,109,0.12);  color:#ff4c6d; }
-</style>
-</head>
-<body>
-<div id="app">
-
-  <div class="toast" id="toast"><span class="t-ico" id="tIco">✓</span><span class="t-msg" id="tMsg">Готово</span></div>
-
-  <div class="screens">
-
-    <!-- HOME -->
-    <div class="screen active" id="s-home">
-      <div class="home-topbar">
-        <div class="home-tabs">
-          <div class="home-tab active" id="tab-subs" onclick="switchFeedTab('subs')">Подписки</div>
-          <div class="home-tab" id="tab-rec" onclick="switchFeedTab('rec')">Рекомендации</div>
-        </div>
-        <div class="tb-btn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-      </div>
-
-      <div class="feed" id="feed-subs">
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">🤖</div>
-            <div class="p-meta">
-              <div class="p-name">ChatAI Bot <div class="p-badge">✓</div></div>
-              <div class="p-cat">ИИ · Утилиты</div>
-            </div>
-            <div class="p-time">2 ч</div>
-          </div>
-          <div class="post-text">🚀 Вышло обновление v2.4 — теперь бот умеет анализировать изображения. Просто пришли фото и задай вопрос. Работает на базе GPT-4o Vision.</div>
-          <div class="post-foot">
-            <div class="react on" onclick="tap(this)">🔥 <span>127</span></div>
-            <div class="react" onclick="tap(this)">👍 <span>94</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>31</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">🎵</div>
-            <div class="p-meta">
-              <div class="p-name">MusicFlow</div>
-              <div class="p-cat">Музыка · Развлечения</div>
-            </div>
-            <div class="p-time">5 ч</div>
-          </div>
-          <div class="post-img">🎧</div>
-          <div class="post-text">Добавили поддержку Apple Music и Deezer. Теперь скачивай из 5 платформ в одном боте.</div>
-          <div class="post-foot">
-            <div class="react" onclick="tap(this)">🔥 <span>88</span></div>
-            <div class="react" onclick="tap(this)">❤️ <span>203</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>17</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">📈</div>
-            <div class="p-meta">
-              <div class="p-name">CryptoTracker <div class="p-badge">✓</div></div>
-              <div class="p-cat">Финансы · Крипто</div>
-            </div>
-            <div class="p-time">вчера</div>
-          </div>
-          <div class="post-text">📊 За неделю обработано 4.2M запросов и создано 12K алертов. BTC снова выше 95K — наши пользователи в плюсе.</div>
-          <div class="post-foot">
-            <div class="react" onclick="tap(this)">🔥 <span>64</span></div>
-            <div class="react" onclick="tap(this)">👍 <span>51</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>9</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">🧠</div>
-            <div class="p-meta">
-              <div class="p-name">BrainBot</div>
-              <div class="p-cat">ИИ · Идеи</div>
-            </div>
-            <div class="p-time">2 дня</div>
-          </div>
-          <div class="post-text">Попробуй новый режим «Мозговой штурм» — описываешь задачу, бот генерирует 20 идей за 10 секунд. Уже помогло 3 000 пользователям.</div>
-          <div class="post-foot">
-            <div class="react" onclick="tap(this)">🔥 <span>42</span></div>
-            <div class="react" onclick="tap(this)">👍 <span>38</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>14</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Рекомендации -->
-      <div class="feed" id="feed-rec" style="display:none;"></div>
-    </div>
-
-    <!-- CATALOG -->
-    <div class="screen" id="s-catalog">
-      <div class="topbar">
-        <div class="topbar-title">Каталог</div>
-        <div class="tb-btn"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
-      </div>
-      <div class="cat-banner">
-        <div class="cat-banner-title">Каталог ботов</div>
-        <div class="cat-banner-sub">Находи, подписывайся, следи за обновлениями</div>
-        <div class="banner-stats">
-          <div class="bstat"><div class="bstat-n" id="catStatBots">—</div><div class="bstat-l">Ботов</div></div>
-          <div class="bstat"><div class="bstat-n" id="catStatMembers">—</div><div class="bstat-l">Участников</div></div>
-          <div class="bstat"><div class="bstat-n" id="catStatPosts">—</div><div class="bstat-l">Постов</div></div>
-        </div>
-      </div>
-      <div class="sec-head"><div class="sec-title">Топ боты</div></div>
-      <div class="feat-scroll" id="featuredList">
-        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
-        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
-        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
-      </div>
-      <div class="divider"></div>
-      <div class="sec-head"><div class="sec-title">Все боты</div></div>
-      <div class="bot-rows" id="catalogList">
-        <div style="text-align:center;padding:32px;color:var(--sub)">Загрузка...</div>
-      </div>
-    </div>
-
-    <!-- SEARCH -->
-    <div class="screen" id="s-search">
-      <div class="topbar"><div class="topbar-title">Поиск</div></div>
-
-      <div class="search-top">
-        <div class="search-box">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="searchInput" type="text" placeholder="Бот, категория, тег..." oninput="doSearch()">
-          <span class="search-clear" id="searchClear" onclick="clearSearch()">×</span>
-        </div>
-        <div class="cats-bar" id="catsBar">
-          <div class="cat-chip on" data-cat="all" onclick="setCat(this)">Все</div>
-          <div class="cat-chip" data-cat="ai" onclick="setCat(this)">🤖 ИИ</div>
-          <div class="cat-chip" data-cat="games" onclick="setCat(this)">🎮 Игры</div>
-          <div class="cat-chip" data-cat="music" onclick="setCat(this)">🎵 Музыка</div>
-          <div class="cat-chip" data-cat="finance" onclick="setCat(this)">📈 Финансы</div>
-          <div class="cat-chip" data-cat="news" onclick="setCat(this)">📰 Новости</div>
-          <div class="cat-chip" data-cat="utils" onclick="setCat(this)">🛠 Утилиты</div>
-          <div class="cat-chip" data-cat="translate" onclick="setCat(this)">🌐 Перевод</div>
-          <div class="cat-chip" data-cat="edu" onclick="setCat(this)">📚 Обучение</div>
-        </div>
-      </div>
-
-      <!-- Default (shown when no query) -->
-      <div id="searchDefault">
-        <div class="s-lbl">Категории</div>
-        <div class="trending-grid" id="searchCatGrid">
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-        </div>
-        <div class="s-lbl" style="padding-top:14px;">Популярные боты</div>
-        <div class="bot-rows" id="popularBotsList">
-          <div class="shimmer" style="height:72px;border-radius:14px;margin-bottom:8px;"></div>
-          <div class="shimmer" style="height:72px;border-radius:14px;margin-bottom:8px;"></div>
-          <div class="shimmer" style="height:72px;border-radius:14px;"></div>
-        </div>
-      </div>
-
-      <!-- Results (shown when query or cat selected) -->
-      <div id="searchResults" style="display:none;">
-        <div class="s-lbl" id="resultsLabel">Результаты</div>
-        <div class="bot-rows" id="resultsList"></div>
-      </div>
-    </div>
-
-    <!-- PROFILE -->
-    <div class="screen" id="s-profile">
-      <div class="topbar">
-        <div class="topbar-title">Профиль</div>
-        <div class="tb-btn" id="shareBtn" onclick="toast('↗️','Скопировано')"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
-      </div>
-
-      <!-- Не авторизован -->
-      <div id="prof-guest" style="display:none;">
-
-        <!-- Hero секция -->
-        <div style="position:relative;overflow:hidden;padding:40px 24px 28px;text-align:center;">
-          <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(46,166,255,0.15),transparent 70%);pointer-events:none;"></div>
-          <div style="position:absolute;bottom:-20px;left:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(77,205,106,0.1),transparent 70%);pointer-events:none;"></div>
-
-          <div style="width:72px;height:72px;margin:0 auto 16px;border-radius:22px;background:linear-gradient(135deg,#2ea6ff,#0d7fd4);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(46,166,255,0.35);position:relative;">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              <circle cx="9" cy="10" r="1" fill="#fff" stroke="none"/>
-              <circle cx="12" cy="10" r="1" fill="#fff" stroke="none"/>
-              <circle cx="15" cy="10" r="1" fill="#fff" stroke="none"/>
-            </svg>
-          </div>
-
-          <div style="font-size:30px;font-weight:900;color:var(--text);letter-spacing:-1.5px;margin-bottom:6px;line-height:1;">
-            Bot<span style="color:var(--acc);">Feed</span>
-          </div>
-          <div style="font-size:13px;color:var(--sub);line-height:1.5;max-width:220px;margin:0 auto;">
-            Каталог и лента Telegram-ботов
-          </div>
-
-          <div style="display:flex;justify-content:center;gap:20px;margin-top:20px;">
-            <div style="text-align:center;">
-              <div style="font-size:18px;font-weight:800;color:var(--acc);">500+</div>
-              <div style="font-size:11px;color:var(--muted);">ботов</div>
-            </div>
-            <div style="width:1px;background:var(--border);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:18px;font-weight:800;color:var(--green);">1K+</div>
-              <div style="font-size:11px;color:var(--muted);">пользователей</div>
-            </div>
-            <div style="width:1px;background:var(--border);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:18px;font-weight:800;color:#f5a623;">∞</div>
-              <div style="font-size:11px;color:var(--muted);">постов</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Карточка входа -->
-        <div style="margin:0 14px 32px;background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;">
-
-          <div style="padding:18px 18px 4px;text-align:center;">
-            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;">Войди через Telegram</div>
-            <div style="font-size:12px;color:var(--muted);">Бот пришлёт код — никаких паролей</div>
-          </div>
-
-          <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px;">
-
-            <!-- Шаг 1: кнопка открыть бота -->
-            <div id="tgStep1">
-              <button onclick="startTgAuth()" id="tgStartBtn" style="
-                width:100%;background:#2481cc;color:#fff;border:none;border-radius:14px;
-                padding:16px;font-size:16px;font-weight:700;cursor:pointer;
-                font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;
-                box-shadow:0 4px 16px rgba(36,129,204,0.35);box-sizing:border-box;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
-                Получить код в Telegram
-              </button>
-              <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5;">
-                Нажми кнопку → откроется бот → он пришлёт 6-значный код
-              </div>
-            </div>
-
-            <!-- Шаг 2: ввод кода (появляется после нажатия) -->
-            <div id="tgStep2" style="display:none;">
-              <div style="background:rgba(46,166,255,0.08);border:1px solid rgba(46,166,255,0.2);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center;">
-                <div style="font-size:13px;color:var(--acc);font-weight:600;margin-bottom:4px;">✅ Бот открыт!</div>
-                <div style="font-size:12px;color:var(--sub);">Введи код который прислал <b>@BotFeeds_bot</b></div>
-              </div>
-              <input id="tgCodeInput" type="text" inputmode="numeric" maxlength="7" placeholder="· · · · · ·"
-                autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
-                style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;
-                padding:16px;font-size:32px;font-weight:700;color:var(--text);letter-spacing:12px;
-                font-family:'Inter',sans-serif;outline:none;text-align:center;
-                box-sizing:border-box;display:block;"
-                oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===6)verifyTgCode()"
-                onkeydown="if(event.key==='Enter')verifyTgCode()"
-                onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--border)'"
-                onpaste="setTimeout(()=>{this.value=this.value.replace(/\D/g,'');if(this.value.length===6)verifyTgCode()},50)">
-              <button onclick="verifyTgCode()" id="tgVerifyBtn" style="
-                width:100%;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:12px;
-                padding:14px;font-size:15px;font-weight:600;cursor:pointer;
-                font-family:'Inter',sans-serif;display:block;box-sizing:border-box;">
-                Войти ✓
-              </button>
-              <div style="text-align:center;margin-top:10px;display:flex;justify-content:center;gap:16px;">
-                <span onclick="startTgAuth()" style="font-size:12px;color:var(--acc);cursor:pointer;">↺ Получить новый код</span>
-                <span onclick="resetTgAuth()" style="font-size:12px;color:var(--muted);cursor:pointer;">← Назад</span>
-              </div>
-            </div>
-
-          </div>
-
-          <div style="padding:0 18px 16px;text-align:center;">
-            <div style="font-size:11px;color:var(--muted);line-height:1.6;">
-              🔒 Безопасно. Мы не храним пароли.
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Авторизован -->
-      <div id="prof-auth">
-        <div class="prof-head">
-          <div class="prof-top">
-            <div class="prof-ava" id="profAva">👤</div>
-            <div class="prof-info">
-              <div class="prof-name" id="profName">— <div class="prof-badge" id="profBadge" style="display:none">✓</div></div>
-              <div class="prof-user" id="profUser"></div>
-            </div>
-          </div>
-          <div class="prof-actions">
-            <div class="prof-btn prof-btn-sec" onclick="openSheet()">+ Добавить бота</div>
-          </div>
-          <div class="prof-stats">
-            <div class="ps"><div class="ps-n" id="statBots">0</div><div class="ps-l">Ботов</div></div>
-            <div class="ps"><div class="ps-n" id="statMembers">0</div><div class="ps-l">Участников</div></div>
-            <div class="ps"><div class="ps-n" id="statSubs">0</div><div class="ps-l">Подписок</div></div>
-          </div>
-        </div>
-        <div class="p-tabs">
-          <div class="p-tab on" onclick="profTab(this,'tb-bots')">Мои боты</div>
-          <div class="p-tab" onclick="profTab(this,'tb-settings')">Настройки</div>
-        </div>
-        <div id="tb-bots">
-          <div id="myBotsList"></div>
-          <div class="add-row" onclick="openSheet()"><div class="add-ico">＋</div><div><div class="add-lbl">Добавить бота</div><div class="add-sub">Страничка в каталоге за 2 минуты</div></div></div>
-        </div>
-        <div id="tb-settings" style="display:none; padding-top:8px;">
-          <div class="set-group">
-            <div class="set-row" onclick="toast('🔔','Скоро')"><div class="set-ico">🔔</div><div class="set-lbl">Уведомления</div><div class="set-chev">›</div></div>
-            <div class="set-row" onclick="toast('🔑','Скоро')"><div class="set-ico">🔑</div><div class="set-lbl">API ключи</div><div class="set-chev">›</div></div>
-            <div class="set-row" onclick="toast('📊','Скоро')"><div class="set-ico">📊</div><div class="set-lbl">Аналитика</div><div class="set-chev">›</div></div>
-          </div>
-          <div class="set-group">
-            <div class="set-row" onclick="toast('📋','Скоро')"><div class="set-ico">📋</div><div class="set-lbl">Документация</div><div class="set-chev">›</div></div>
-            <div class="set-row" onclick="toast('💬','Скоро')"><div class="set-ico">💬</div><div class="set-lbl">Поддержка</div><div class="set-chev">›</div></div>
-          </div>
-          <div class="set-group">
-            <div class="set-row danger" onclick="logout()"><div class="set-ico">🚪</div><div class="set-lbl">Выйти</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BOT MANAGEMENT -->
-    <div class="screen" id="s-botmanage">
-      <div class="topbar">
-        <div class="tb-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-        <div class="topbar-title" id="manageTitle">Мой бот</div>
-      </div>
-
-      <!-- Вкладки управления -->
-      <div class="p-tabs" style="position:sticky;top:52px;z-index:10;background:var(--bg);">
-        <div class="p-tab on" onclick="mngTab(this,'mng-analytics')">📊 Аналитика</div>
-        <div class="p-tab" onclick="mngTab(this,'mng-posts')">📝 Посты</div>
-        <div class="p-tab" onclick="mngTab(this,'mng-settings')">⚙️ Настройки</div>
-      </div>
-
-      <!-- ── АНАЛИТИКА ── -->
-      <div id="mng-analytics" style="padding:16px;">
-
-        <!-- Карточки метрик -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-          <div style="background:var(--card);border-radius:14px;padding:16px;">
-            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Участников</div>
-            <div style="font-size:28px;font-weight:800;color:var(--text);" id="mngMembers">—</div>
-            <div style="font-size:11px;color:var(--green);margin-top:4px;" id="mngMembersGrowth"></div>
-          </div>
-          <div style="background:var(--card);border-radius:14px;padding:16px;">
-            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Подписчиков</div>
-            <div style="font-size:28px;font-weight:800;color:var(--acc);" id="mngSubs">—</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:4px;">на BotFeed</div>
-          </div>
-          <div style="background:var(--card);border-radius:14px;padding:16px;">
-            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Постов</div>
-            <div style="font-size:28px;font-weight:800;color:var(--text);" id="mngPosts">—</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:4px;" id="mngPostsLast"></div>
-          </div>
-          <div style="background:var(--card);border-radius:14px;padding:16px;">
-            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Реакций</div>
-            <div style="font-size:28px;font-weight:800;color:#f5a623;" id="mngReacts">—</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:4px;">всего за всё время</div>
-          </div>
-        </div>
-
-        <!-- График подписчиков -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-            <div style="font-size:14px;font-weight:700;">Рост подписчиков</div>
-            <div style="display:flex;gap:4px;">
-              <div class="chart-period active" onclick="setChartPeriod(this,7)">7д</div>
-              <div class="chart-period" onclick="setChartPeriod(this,30)">30д</div>
-            </div>
-          </div>
-          <div style="overflow:hidden;border-radius:8px;margin:0 -4px;">
-            <canvas id="subsChart" height="120" style="width:100%;display:block;max-width:100%;"></canvas>
-          </div>
-          <div id="subsChartEmpty" style="display:none;text-align:center;padding:32px 0;color:var(--sub);font-size:13px;">График появится когда опубликуешь посты</div>
-        </div>
-
-        <!-- Топ посты -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🏆 Лучшие посты</div>
-          <div id="topPostsList"></div>
-        </div>
-
-        <!-- Советы -->
-        <div style="background:linear-gradient(135deg,rgba(46,166,255,0.12),rgba(46,166,255,0.04));border:1px solid rgba(46,166,255,0.2);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;">💡 Советы для роста</div>
-          <div id="growthTips" style="display:flex;flex-direction:column;gap:8px;"></div>
-        </div>
-      </div>
-
-      <!-- ── ПОСТЫ ── -->
-      <div id="mng-posts" style="display:none;padding:16px;">
-        <!-- Новый пост -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">Новый пост</div>
-          <!-- Тип поста -->
-          <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
-            <div class="post-type-btn active" data-type="news" onclick="selectPostType(this)">📢 Новость</div>
-            <div class="post-type-btn" data-type="update" onclick="selectPostType(this)">🚀 Обновление</div>
-            <div class="post-type-btn" data-type="tip" onclick="selectPostType(this)">💡 Совет</div>
-            <div class="post-type-btn" data-type="promo" onclick="selectPostType(this)">🎁 Акция</div>
-          </div>
-          <textarea id="newPostText" placeholder="Расскажи об обновлении, новой фиче или совете..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:120px;outline:none;line-height:1.5;"></textarea>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-            <div style="font-size:12px;color:var(--muted);" id="postCharCount">0 / 1000</div>
-            <button onclick="publishPost()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Опубликовать</button>
-          </div>
-        </div>
-        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Все посты</div>
-        <div id="myPostsList"></div>
-      </div>
-
-      <!-- ── НАСТРОЙКИ ── -->
-      <div id="mng-settings" style="display:none;padding:16px;">
-        <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:16px;">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">О боте</div>
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
-            <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">Username</div>
-            <div style="font-size:14px;font-weight:600;" id="mngUsername">—</div>
-          </div>
-          <div style="padding:14px 16px;">
-            <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">Статус верификации</div>
-            <div style="font-size:14px;font-weight:600;" id="mngVerifyStatus">—</div>
-          </div>
-        </div>
-
-        <div style="margin-bottom:16px;padding-top:4px;border-top:1px solid var(--border);">
-          <button id="deleteBotBtn" onclick="showDeleteConfirm()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">
-            🗑 Удалить бота навсегда
-          </button>
-          <div id="deleteBotConfirm" style="display:none;margin-top:10px;background:rgba(240,64,64,0.08);border:1px solid rgba(240,64,64,0.3);border-radius:10px;padding:14px;">
-            <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px;">⚠️ Это необратимо!</div>
-            <div style="font-size:12px;color:var(--sub);margin-bottom:12px;">Все посты, подписчики и данные бота будут удалены навсегда.</div>
-            <div style="display:flex;gap:8px;">
-              <button onclick="hideDeleteConfirm()" style="flex:1;padding:10px;background:var(--card);color:var(--text);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Отмена</button>
-              <button id="deleteBotFinalBtn" onclick="deleteBot()" style="flex:1;padding:10px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Удалить</button>
-            </div>
-          </div>
-          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Лимит: 1 бот на аккаунт</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BOT PAGE -->
-    <div class="screen" id="s-botpage">
-      <div class="topbar" style="position:sticky;top:0;z-index:20;background:var(--bg);">
-        <div class="tb-btn" onclick="closeBotPage()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-        <div class="topbar-title" id="botPageTitle">Бот</div>
-        <div class="tb-btn" onclick="shareBotPage()" id="botShareBtn"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-      </div>
-
-      <!-- Hero -->
-      <div id="botPageHero" style="position:relative;height:180px;background:linear-gradient(135deg,#1e3a5f,#0d2137);overflow:hidden;flex-shrink:0;">
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;opacity:0.15;" id="botPageBg">🤖</div>
-        <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,var(--bg),transparent);"></div>
-        <div style="position:absolute;bottom:-28px;left:20px;width:64px;height:64px;border-radius:20px;background:var(--card);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:32px;" id="botPageAva">🤖</div>
-      </div>
-
-      <div style="padding:40px 16px 0;">
-        <!-- Info -->
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:7px;" id="botPageName">—</div>
-            <div style="font-size:13px;color:var(--sub);margin-top:3px;" id="botPageUsername">@—</div>
-          </div>
-          <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;" onclick="subBotPage()">Подписаться</div>
-        </div>
-
-        <!-- Description -->
-        <div style="font-size:14px;line-height:1.6;color:var(--sub);margin-bottom:16px;" id="botPageDesc">—</div>
-
-        <!-- Tags -->
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="botPageTags"></div>
-
-        <!-- Stats -->
-        <div style="display:flex;gap:8px;margin-bottom:20px;">
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
-            <div style="font-size:17px;font-weight:800;" id="botPageMembers">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Участников</div>
-          </div>
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
-            <div style="font-size:17px;font-weight:800;" id="botPagePosts">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Постов</div>
-          </div>
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
-            <div style="font-size:17px;font-weight:800;" id="botPageSubs">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Подписчиков</div>
-          </div>
-        </div>
-
-        <!-- Open in Telegram -->
-        <a id="botPageTgLink" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:var(--acc);color:#fff;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:20px;">
-          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:white;stroke:none;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg>
-          Открыть в Telegram
-        </a>
-
-        <!-- Posts divider -->
-        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;">Посты</div>
-        <div id="botPagePostsList" style="padding-bottom:80px;"></div>
-      </div>
-    </div>
-    <!-- POST DETAIL -->
-    <div class="screen" id="s-postdetail">
-      <div class="topbar" style="position:sticky;top:0;z-index:20;background:var(--bg);">
-        <div class="tb-btn" onclick="closePostDetail()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-        <div class="topbar-title">Пост</div>
-        <div class="tb-btn" id="postDetailShareBtn" onclick="sharePostDetail()"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-      </div>
-      <div style="padding:16px 16px 0;" id="postDetailContent"></div>
-      <div style="padding:0 16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;padding-top:4px;">Комментарии</div>
-        <div id="postDetailComments" style="padding-bottom:90px;"></div>
-      </div>
-      <!-- Инпут комментария -->
-      <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:30;">
-        <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
-        <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
-      </div>
-    </div>
-
-  </div><!-- end .screens -->
-  <div class="nav">
-    <div class="nav-indicator" id="navIndicator"></div>
-    <div class="nav-item active" onclick="go('home',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-      <div class="nav-lbl">Главная</div>
-    </div>
-    <div class="nav-item" onclick="go('catalog',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
-      <div class="nav-lbl">Каталог</div>
-    </div>
-    <div class="nav-item" onclick="go('search',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-      <div class="nav-lbl">Поиск</div>
-    </div>
-    <div class="nav-item" onclick="go('profile',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-      <div class="nav-lbl">Профиль</div>
-    </div>
-  </div>
-
-  <!-- COMMENTS OVERLAY -->
-  <div class="overlay" id="commentsOverlay" onclick="closeComments(event)">
-    <div class="sheet">
-      <div class="sheet-handle"></div>
-      <input type="hidden" id="commentsPostId">
-      <div class="sheet-title">Комментарии</div>
-      <div id="commentsList" style="max-height:50vh;overflow-y:auto;margin-bottom:14px;"></div>
-      <div style="display:flex;gap:8px;">
-        <input class="f-inp" id="commentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;">
-        <button class="sh-btn" style="width:auto;padding:12px 16px;" onclick="sendComment()">→</button>
-      </div>
-    </div>
-  </div>
-  <div class="overlay" id="overlay" onclick="closeOverlay(event)">
-    <div class="sheet">
-      <div class="sheet-handle"></div>
-      <div class="sheet-title">Добавить бота</div>
-      <div class="sheet-sub">Заполни три шага — страничка появится в каталоге сразу после проверки.</div>
-      <div class="steps"><div class="step-s cur"></div><div class="step-s"></div><div class="step-s"></div></div>
-      <div id="st1">
-        <div class="f-lbl">Username бота</div>
-        <input class="f-inp" id="botUsername" placeholder="@my_bot" type="text">
-        <div class="f-hint" style="margin-top:-10px;margin-bottom:12px;">Только латиница, цифры и _</div>
-        <div class="f-lbl">Название (отображается в каталоге)</div>
-        <input class="f-inp" id="botName" placeholder="Например: ChatAI Bot" type="text">
-        <div class="f-lbl">Краткое описание</div>
-        <input class="f-inp" id="botDesc" placeholder="Что умеет твой бот?" type="text">
-        <button class="sh-btn" onclick="submitBotStep1()">Далее →</button>
-      </div>
-      <div id="st2" style="display:none">
-        <div class="f-lbl">Категории</div>
-        <div class="tags-grid">
-          <div class="t-opt" onclick="pickTag(this)">🤖 ИИ</div>
-          <div class="t-opt" onclick="pickTag(this)">🎮 Игры</div>
-          <div class="t-opt" onclick="pickTag(this)">🎵 Музыка</div>
-          <div class="t-opt" onclick="pickTag(this)">📈 Финансы</div>
-          <div class="t-opt" onclick="pickTag(this)">📰 Новости</div>
-          <div class="t-opt" onclick="pickTag(this)">🛠 Утилиты</div>
-          <div class="t-opt" onclick="pickTag(this)">🌐 Перевод</div>
-          <div class="t-opt" onclick="pickTag(this)">📚 Обучение</div>
-        </div>
-        <button class="sh-btn" onclick="submitBotStep2()">Далее →</button>
-      </div>
-      <div id="st3" style="display:none">
-        <div class="sheet-title" style="margin-bottom:6px;">Подтверди владение</div>
-        <div class="sheet-sub" style="margin-bottom:16px;">Нужно доказать что ты владелец бота, а не просто знаешь его username</div>
-
-        <!-- Токен -->
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:16px;">
-          <div style="font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">Твой токен верификации</div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div id="verifyTokenDisplay" style="flex:1;font-size:13px;font-weight:700;color:var(--acc);font-family:monospace;word-break:break-all;line-height:1.4;">—</div>
-            <button onclick="copyVerifyToken()" style="flex-shrink:0;padding:6px 10px;background:var(--acc-dim);color:var(--acc);border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;" id="copyTokenBtn">Копировать</button>
-          </div>
-        </div>
-
-        <!-- Инструкции -->
-        <div style="margin-bottom:16px;">
-          <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">Как добавить токен в описание:</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
-              <div style="font-size:13px;line-height:1.5;">Открой <b style="color:var(--text);">@BotFather</b> в Telegram</div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
-              <div style="font-size:13px;line-height:1.5;">Отправь команду <b style="color:var(--text);font-family:monospace;">/setdescription</b></div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
-              <div style="font-size:13px;line-height:1.5;">Выбери своего бота из списка</div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">4</div>
-              <div style="font-size:13px;line-height:1.5;">Вставь скопированный токен как описание</div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <div style="width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">5</div>
-              <div style="font-size:13px;line-height:1.5;">Вернись сюда и нажми «Проверить» ↓</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="verifyHint" style="font-size:12px;color:var(--sub);margin-bottom:14px;padding:10px;background:var(--card);border-radius:8px;display:none;"></div>
-
-        <a href="https://t.me/BotFather" target="_blank" style="display:block;text-align:center;padding:11px;background:var(--card);color:var(--acc);border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">
-          Открыть @BotFather →
-        </a>
-        <button class="sh-btn" id="verifyCheckBtn" onclick="submitBot()">✓ Проверить</button>
-        <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">После проверки можно убрать токен из описания</div>
-      </div>
-    </div>
-  </div>
-
-</div>
-<script>
-if (window.Telegram?.WebApp) {
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
-  Telegram.WebApp.setHeaderColor('#17212b');
-  Telegram.WebApp.setBackgroundColor('#17212b');
-}
-
-// ════════════════════════════════
-// КОНФИГ
-// ════════════════════════════════
-const API = 'https://botfeed-9v15.onrender.com/api';
-let TOKEN = localStorage.getItem('bf_token') || null;
-let ME = null;
-try { ME = JSON.parse(localStorage.getItem('bf_me')); } catch {}
-
-// ════════════════════════════════
-// УТИЛИТЫ
-// ════════════════════════════════
-// ════════════════════════════════
-// АВАТАР БОТА ИЗ TELEGRAM
-// ════════════════════════════════
-function botAvatarHTML(username, size = 40, radius = 12) {
-  if (!username) return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${size*0.55}px;">🤖</div>`;
-  const clean = username.replace('@','');
-  return `<img src="https://t.me/i/userpic/320/${clean}.jpg" 
-    style="width:${size}px;height:${size}px;border-radius:${radius}px;object-fit:cover;display:block;"
-    onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.55)}px;\\'>🤖</div>'"
-  >`;
-}
-
-function esc(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-// Тоггл реакций для статичных демо-постов
-function tap(el) {
-  const on = el.classList.toggle('on');
-  const sp = el.querySelector('span');
-  if (sp) sp.textContent = parseInt(sp.textContent) + (on ? 1 : -1);
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-}
-
-// ════════════════════════════════
-// API ЗАПРОСЫ
-// ════════════════════════════════
-async function api(method, path, body, _retry = 0) {
-  try {
-    const needsBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase());
-    const r = await fetch(API + path, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {})
-      },
-      body: needsBody ? JSON.stringify(body || {}) : undefined
-    });
-    if (!r.ok && r.status >= 500 && _retry < 2) {
-      await new Promise(res => setTimeout(res, 2000 * (_retry + 1)));
-      return api(method, path, body, _retry + 1);
-    }
-    if (r.status === 401 || r.status === 404) {
-      return { error: r.status === 401 ? 'Unauthorized' : 'Not Found', status: r.status };
-    }
-    return await r.json();
-  } catch (e) {
-    console.error('API error:', e);
-    // Сервер засыпает на Render — делаем retry с задержкой
-    if (_retry < 3) {
-      const delay = [3000, 5000, 8000][_retry] || 8000;
-      console.log(`Retry ${_retry + 1} after ${delay}ms...`);
-      await new Promise(res => setTimeout(res, delay));
-      return api(method, path, body, _retry + 1);
-    }
-    return null;
-  }
-}
-
-// ════════════════════════════════
-// АВТОРИЗАЦИЯ
-// ════════════════════════════════
-
-// Эту функцию вызывает Telegram виджет
-function onTelegramAuth(user) {
-  loginTelegram(user);
-}
-
-async function loginTelegram(data) {
-  toast('⏳', 'Входим...');
-  try {
-    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/telegram', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    const res = await r.json();
-    if (res?.token) {
-      TOKEN = res.token;
-      ME = res.user;
-      localStorage.setItem('bf_token', TOKEN);
-      localStorage.setItem('bf_me', JSON.stringify(ME));
-      showProfile();
-      loadFeed();
-      toast('👋', `Привет, ${ME.first_name}!`);
-    } else {
-      toast('❌', res?.error || 'Ошибка входа');
-    }
-  } catch(e) {
-    toast('❌', 'Нет связи с сервером');
-  }
-}
-
-// ════════════════════════════════
-// AUTH — Google (OAuth redirect)
-// ════════════════════════════════
-
-// ════════════════════════════════
-// AUTH — Telegram OTP
-// ════════════════════════════════
-let tgSessionId = null
-
-async function startTgAuth() {
-  const btn = document.getElementById('tgStartBtn')
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Открываем бота...' }
-
-  try {
-    const res = await fetch('https://botfeed-9v15.onrender.com/api/auth/tg/start', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }
-    })
-    const data = await res.json()
-    if (!data.ok) throw new Error(data.error || 'Ошибка')
-
-    tgSessionId = data.sessionId
-
-    // Открываем бота
-    window.open(data.botUrl, '_blank')
-
-    // Показываем шаг 2
-    document.getElementById('tgStep1').style.display = 'none'
-    document.getElementById('tgStep2').style.display = 'block'
-    setTimeout(() => {
-      document.getElementById('tgCodeInput')?.focus()
-    }, 300)
-
-  } catch(e) {
-    toast('❌', 'Ошибка: ' + e.message)
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg> Получить код в Telegram' }
-  }
-}
-
-async function verifyTgCode() {
-  if (!tgSessionId) { toast('⚠️', 'Начни заново'); return }
-  const code = document.getElementById('tgCodeInput')?.value?.replace(/\D/g, '')
-  if (!code || code.length < 6) { toast('⚠️', 'Введи 6-значный код'); return }
-
-  const btn = document.getElementById('tgVerifyBtn')
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Проверяем...' }
-
-  try {
-    const res = await fetch('https://botfeed-9v15.onrender.com/api/auth/tg/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: tgSessionId, code })
-    })
-    const data = await res.json()
-
-    if (data?.token) {
-      TOKEN = data.token; ME = data.user
-      localStorage.setItem('bf_token', TOKEN)
-      localStorage.setItem('bf_me', JSON.stringify(ME))
-      showProfile(); loadFeed(); showScreen('profile')
-      toast('🎉', `Привет, ${ME.first_name}!`)
-      tgSessionId = null
-    } else {
-      toast('❌', data.error || 'Неверный код')
-      if (btn) { btn.disabled = false; btn.textContent = 'Войти ✓' }
-    }
-  } catch(e) {
-    toast('❌', 'Нет связи с сервером')
-    if (btn) { btn.disabled = false; btn.textContent = 'Войти ✓' }
-  }
-}
-
-function resetTgAuth() {
-  tgSessionId = null
-  document.getElementById('tgStep1').style.display = 'block'
-  document.getElementById('tgStep2').style.display = 'none'
-  const btn = document.getElementById('tgStartBtn')
-  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg> Получить код в Telegram' }
-  if (document.getElementById('tgCodeInput')) document.getElementById('tgCodeInput').value = ''
-}
-
-
-
-async function sendEmailCode() {
-  const email = document.getElementById('emailInput').value.trim();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    toast('⚠️', 'Введи корректный email'); return;
-  }
-  const btn = document.getElementById('sendCodeBtn');
-  btn.disabled = true; btn.textContent = '⏳ Отправка...';
-
-  try {
-    const r   = await fetch('https://botfeed-9v15.onrender.com/api/auth/email/send', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email })
-    });
-    const res = await r.json();
-    if (res.ok) {
-      document.getElementById('emailStep1').style.display = 'none';
-      document.getElementById('emailStep2').style.display = 'block';
-      document.getElementById('emailHint').textContent    = 'Код отправлен на ' + email;
-      document.getElementById('codeInput').focus();
-      toast('📧', 'Код отправлен на ' + email);
-    } else {
-      toast('❌', res.error || 'Ошибка отправки');
-      btn.disabled = false; btn.textContent = 'Получить код';
-    }
-  } catch(e) {
-    toast('❌', 'Нет связи с сервером');
-    btn.disabled = false; btn.textContent = 'Получить код';
-  }
-}
-
-async function verifyEmailCode() {
-  const email = document.getElementById('emailInput').value.trim().toLowerCase();
-  const raw   = document.getElementById('codeInput').value;
-  const code  = raw.replace(/\D/g, '').trim(); // убираем всё кроме цифр
-  if (!code || code.length < 6) { toast('⚠️', 'Введи 6-значный код'); return; }
-
-  toast('⏳', 'Проверяем код...');
-  try {
-    const r   = await fetch('https://botfeed-9v15.onrender.com/api/auth/email/verify', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, code })
-    });
-    const res = await r.json();
-    if (res?.token) {
-      TOKEN = res.token; ME = res.user;
-      localStorage.setItem('bf_token', TOKEN);
-      localStorage.setItem('bf_me',    JSON.stringify(ME));
-      showProfile(); loadFeed(); showScreen('profile');
-      toast('🎉', `Привет, ${ME.first_name}!`);
-    } else {
-      toast('❌', res.error || 'Неверный код');
-    }
-  } catch(e) {
-    toast('❌', 'Нет связи с сервером');
-  }
-}
-
-function backToEmail() {
-  document.getElementById('emailStep2').style.display = 'none';
-  document.getElementById('emailStep1').style.display = 'block';
-  const btn = document.getElementById('sendCodeBtn');
-  btn.disabled = false; btn.textContent = 'Получить код';
-  document.getElementById('codeInput').value = '';
-}
-
-function logout() {
-  TOKEN = null;
-  ME = null;
-  localStorage.removeItem('bf_token');
-  localStorage.removeItem('bf_me');
-  showProfile();
-  loadFeed();
-  toast('👋', 'Вышел из аккаунта');
-}
-
-// ════════════════════════════════
-// ПРОФИЛЬ
-// ════════════════════════════════
-function showProfile() {
-  const guest = document.getElementById('prof-guest');
-  const auth  = document.getElementById('prof-auth');
-  if (!ME) {
-    guest.style.display = 'block';
-    auth.style.display  = 'none';
-    return;
-  }
-  guest.style.display = 'none';
-  auth.style.display  = 'block';
-
-  const ava = document.getElementById('profAva');
-  ava.innerHTML = ME.photo_url
-    ? `<img src="${ME.photo_url}" style="width:100%;height:100%;border-radius:20px;object-fit:cover;">`
-    : '👤';
-  document.getElementById('profName').childNodes[0].textContent = (ME.first_name || '') + ' ';
-  document.getElementById('profUser').textContent = ME.username ? `@${ME.username}` : '';
-  loadMyBots();
-  loadMySubs();
-}
-
-async function loadMyBots() {
-  const res = await api('GET', '/my/bots');
-  const list = document.getElementById('myBotsList');
-  const statBots = document.getElementById('statBots');
-  const statMembers = document.getElementById('statMembers');
-  if (!res?.length) {
-    list.innerHTML = '';
-    statBots.textContent = '0';
-    statMembers.textContent = '0';
-    return;
-  }
-  statBots.textContent = res.length;
-  let total = 0;
-  list.innerHTML = res.map(b => {
-    total += Number(b.members || 0);
-    const badge = b.verified ? '<div class="p-badge">✓</div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
-    const avaHtml = botAvatarHTML(b.username, 44, 14);
-    return `<div class="my-bot" data-bot-id="${b.id}" data-bot-name="${esc(b.name)}" data-members="${b.members||0}" data-posts="${b.posts_count||0}" data-subs="${b.subscribers||0}">
-      <div class="mb-ava" style="overflow:hidden;">${avaHtml}</div>
-      <div class="mb-info">
-        <div class="mb-name">${esc(b.name)} ${badge}</div>
-        <div class="mb-meta">${b.members||0} участников · ${b.posts_count||0} постов</div>
-      </div>
-      <div class="mb-chev">›</div>
-    </div>`;
-  }).join('');
-  statMembers.textContent = total > 1000 ? Math.floor(total/1000)+'K' : total;
-  // Вешаем обработчики через JS (безопасно)
-  list.querySelectorAll('.my-bot').forEach(el => {
-    el.addEventListener('click', () => {
-      openBotManage(el.dataset.botId, el.dataset.botName, el.dataset.members, el.dataset.posts, el.dataset.subs);
-    });
-  });
-}
-
-async function loadMySubs() {
-  const res = await api('GET', '/my/subscriptions');
-  document.getElementById('statSubs').textContent = res?.length || 0;
-}
-
-
-// ════════════════════════════════
-// СТРАНИЦА БОТА
-// ════════════════════════════════
-let currentBotPageId = null;
-let currentBotPageData = null;
-let prevScreenBeforeBot = 'home';
-
-async function openBotPage(botId, event) {
-  // Не открываем если кликнули на кнопку подписки
-  if (event?.target?.classList.contains('sub-btn')) return;
-
-  prevScreenBeforeBot = currentScreen;
-  currentBotPageId = botId;
-
-  // Показываем экран
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
-  const page = document.getElementById('s-botpage');
-  page.classList.add('active','anim-right');
-  page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
-  currentScreen = 'botpage';
-
-  // Сброс
-  document.getElementById('botPageName').textContent = '—';
-  document.getElementById('botPageUsername').textContent = '@—';
-  document.getElementById('botPageDesc').textContent = 'Загрузка...';
-  document.getElementById('botPageTags').innerHTML = '';
-  document.getElementById('botPagePostsList').innerHTML = Array(2).fill(0).map(skeletonPost).join('');
-
-  // Загружаем данные параллельно
-  const [bots, posts] = await Promise.all([
-    api('GET', '/bots'),
-    api('GET', `/bots/${botId}/posts`)
-  ]);
-
-  const b = (bots||[]).find(x => x.id == botId);
-  if (!b) return;
-
-  currentBotPageData = b;
-
-  // Заполняем UI
-  document.getElementById('botPageTitle').textContent = b.name;
-  document.getElementById('botPageName').innerHTML = esc(b.name) + (b.verified ? ' <div class="p-badge" style="display:inline-flex;">✓</div>' : '');
-  document.getElementById('botPageUsername').textContent = '@' + esc(b.username);
-  document.getElementById('botPageDesc').textContent = b.description || '';
-  document.getElementById('botPageMembers').textContent = b.members || 0;
-  document.getElementById('botPageSubs').textContent = b.subscribers || 0;
-  document.getElementById('botPagePosts').textContent = (posts||[]).length;
-  
-  // Аватарка из Telegram
-  const cleanUsername = b.username.replace('@','');
-  const avatarUrl = `https://t.me/i/userpic/320/${cleanUsername}.jpg`;
-  document.getElementById('botPageBg').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;filter:blur(20px);transform:scale(1.2);" onerror="this.outerHTML='🤖'">`;
-  document.getElementById('botPageAva').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:17px;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='🤖'">`;
-  
-  document.getElementById('botPageTgLink').href = 'https://t.me/' + b.username;
-
-  // Теги
-  const tagsEl = document.getElementById('botPageTags');
-  tagsEl.innerHTML = (b.categories||[]).map(t => `<div class="tag" style="padding:5px 10px;font-size:12px;">${esc(t)}</div>`).join('');
-
-  // Кнопка подписки
-  const subBtn = document.getElementById('botPageSubBtn');
-  const isSub = mySubIds.has(Number(botId));
-  subBtn.className = isSub ? 'sub-btn subbed' : 'sub-btn';
-  subBtn.style.cssText = 'padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;';
-  subBtn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
-
-  // Посты
-  const postsEl = document.getElementById('botPagePostsList');
-  if (!posts?.length) {
-    postsEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--sub);">Постов пока нет</div>';
-  } else {
-    postsEl.innerHTML = posts.map(p => botPostHTML(p, b)).join('');
-  }
-}
-
-function botPostHTML(p, b) {
-  const avaHtml = botAvatarHTML(b.username, 40, 12);
-  return `<div class="post" style="border-radius:14px;background:var(--card);margin-bottom:10px;border:none;" onclick="openPostDetail(${p.id}, event, b)">
-    <div class="post-head">
-      <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
-      <div class="p-meta">
-        <div class="p-name">${esc(b.name)}</div>
-        <div class="p-cat">${timeAgo(p.created_at)}</div>
-      </div>
-      <div style="font-size:12px;color:var(--acc);cursor:pointer;" onclick="event.stopPropagation();sharePost(${p.id})">Поделиться</div>
-    </div>
-    <div class="post-text">${esc(p.text)}</div>
-    <div class="post-foot">
-      <div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>
-      <div class="react" onclick="event.stopPropagation();reactPost(${p.id},'👍',this)">👍 <span>0</span></div>
-      <div class="react-sep"></div>
-      <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>0</span></div>
-      <div class="share" onclick="event.stopPropagation();sharePost(${p.id})">
-        <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      </div>
-    </div>
-  </div>`;
-}
-
-function sharePost(postId) {
-  const url = window.location.origin + '?post=' + postId;
-  if (navigator.share) {
-    navigator.share({ title: 'BotFeed', url });
-  } else {
-    navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка скопирована!'));
-  }
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-}
-
-function shareBotPage() {
-  if (!currentBotPageData) return;
-  const url = window.location.origin + '?bot=' + currentBotPageData.username;
-  if (navigator.share) {
-    navigator.share({ title: currentBotPageData.name, url });
-  } else {
-    navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка на бота скопирована!'));
-  }
-}
-
-async function subBotPage() {
-  if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
-  const btn = document.getElementById('botPageSubBtn');
-  const res = await api('POST', `/bots/${currentBotPageId}/subscribe`, {});
-  if (res) {
-    const on = res.subscribed;
-    if (on) mySubIds.add(Number(currentBotPageId));
-    else mySubIds.delete(Number(currentBotPageId));
-    btn.className = on ? 'sub-btn subbed' : 'sub-btn';
-    btn.style.cssText = 'padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;';
-    btn.textContent = on ? '✓ Подписан' : 'Подписаться';
-    // Обновляем кнопки в каталоге тоже
-    document.querySelectorAll(`[onclick*="subBot(${currentBotPageId},"]`).forEach(b => {
-      b.classList.toggle('subbed', on);
-      b.textContent = on ? '✓ Подписан' : 'Подписаться';
-    });
-    toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
-  }
-}
-
-function closeBotPage() {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
-  const prev = document.getElementById('s-' + prevScreenBeforeBot) || document.getElementById('s-home');
-  prev.classList.add('active','anim-left');
-  prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
-  currentScreen = prevScreenBeforeBot;
-  // Обновляем nav
-  const navMap = { home:0, catalog:1, search:2, profile:3 };
-  const idx = navMap[prevScreenBeforeBot] ?? 0;
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = (idx * 25) + '%';
-}
-
-// ════════════════════════════════
-// ЛЕНТА
-// ════════════════════════════════
-function skeletonPost() {
-  return `<div style="padding:14px;border-bottom:1px solid var(--border);">
-    <div style="display:flex;gap:10px;margin-bottom:12px;">
-      <div class="shimmer" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div class="shimmer" style="height:13px;width:55%;border-radius:6px;margin-bottom:7px;"></div>
-        <div class="shimmer" style="height:11px;width:35%;border-radius:6px;"></div>
-      </div>
-    </div>
-    <div class="shimmer" style="height:12px;width:90%;border-radius:6px;margin-bottom:6px;"></div>
-    <div class="shimmer" style="height:12px;width:75%;border-radius:6px;margin-bottom:6px;"></div>
-    <div class="shimmer" style="height:12px;width:60%;border-radius:6px;"></div>
-  </div>`;
-}
-
-function skeletonBotRow() {
-  return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);">
-    <div class="shimmer" style="width:48px;height:48px;border-radius:13px;flex-shrink:0;"></div>
-    <div style="flex:1;">
-      <div class="shimmer" style="height:13px;width:50%;border-radius:6px;margin-bottom:7px;"></div>
-      <div class="shimmer" style="height:11px;width:80%;border-radius:6px;"></div>
-    </div>
-    <div class="shimmer" style="width:72px;height:28px;border-radius:7px;"></div>
-  </div>`;
-}
-
-// ════════════════════════════════
-// ЛЕНТА — табы Подписки / Рекомендации
-// ════════════════════════════════
-let activeFeedTab = 'subs'; // 'subs' | 'rec'
-let recPostsCache = null;   // кэш рекомендаций
-
-async function switchFeedTab(tab) {
-  if (tab === activeFeedTab) return;
-  const prev = activeFeedTab;
-  activeFeedTab = tab;
-
-  // Обновляем табы
-  document.getElementById('tab-subs').classList.toggle('active', tab === 'subs');
-  document.getElementById('tab-rec').classList.toggle('active', tab === 'rec');
-
-  const subsEl = document.getElementById('feed-subs');
-  const recEl  = document.getElementById('feed-rec');
-
-  const dir = tab === 'rec' ? 'right' : 'left';
-
-  if (tab === 'rec') {
-    subsEl.style.display = 'none';
-    recEl.style.display = 'block';
-    recEl.classList.remove('feed-anim-right','feed-anim-left');
-    void recEl.offsetWidth;
-    recEl.classList.add('feed-anim-right');
-    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-    if (!recPostsCache) {
-      await loadRecommended();
-    }
-  } else {
-    recEl.style.display = 'none';
-    subsEl.style.display = 'block';
-    subsEl.classList.remove('feed-anim-right','feed-anim-left');
-    void subsEl.offsetWidth;
-    subsEl.classList.add('feed-anim-left');
-    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-  }
-}
-
-async function loadFeed() {
-  // Сбрасываем таб на Подписки
-  activeFeedTab = 'subs';
-  recPostsCache = null;
-  document.getElementById('tab-subs')?.classList.add('active');
-  document.getElementById('tab-rec')?.classList.remove('active');
-  document.getElementById('feed-subs').style.display = 'block';
-  document.getElementById('feed-rec').style.display = 'none';
-
-  const feedEl = document.getElementById('feed-subs');
-  feedEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
-
-  const data = await api('GET', TOKEN ? '/feed' : '/feed/discover');
-
-  if (data === null) {
-    feedEl.innerHTML = `
-      <div style="text-align:center;padding:48px 24px;color:var(--sub);">
-        <div style="font-size:40px;margin-bottom:12px;">📡</div>
-        <div style="font-weight:700;color:var(--text);margin-bottom:8px;">Нет соединения</div>
-        <div style="font-size:13px;margin-bottom:16px;">Сервер не ответил. Нажми обновить.</div>
-        <div onclick="loadFeed()" style="display:inline-block;padding:10px 24px;background:var(--acc);color:#fff;border-radius:20px;cursor:pointer;font-weight:600;">Обновить</div>
-      </div>`;
-    return;
-  }
-
-  if (!data?.length) {
-    feedEl.innerHTML = `
-      <div style="text-align:center;padding:48px 24px;color:var(--sub);">
-        <div style="font-size:40px;margin-bottom:12px;">📭</div>
-        <div style="font-weight:700;color:var(--text);margin-bottom:8px;">Тут пусто</div>
-        <div style="font-size:13px;line-height:1.6;margin-bottom:20px;">Подпишись на ботов чтобы видеть их посты</div>
-        <div onclick="go('catalog', document.querySelector('.nav-item:nth-child(2)'))" 
-             style="display:inline-block;padding:10px 22px;background:var(--acc);color:#fff;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">
-          Смотреть каталог →
-        </div>
-      </div>`;
-    // Автоматически показываем рекомендации
-    setTimeout(() => {
-      if (activeFeedTab === 'subs') switchFeedTab('rec');
-    }, 600);
-    return;
-  }
-  feedEl.innerHTML = data.map(postHTML).join('');
-
-  // Замораживаем анимацию после проигрывания чтобы не повторялась
-  setTimeout(() => {
-    feedEl.querySelectorAll('.post').forEach(p => p.classList.add('no-anim'));
-  }, 800);
-
-  // Фоново грузим рекомендации
-  loadRecommended();
-}
-
-async function loadRecommended() {
-  const recEl = document.getElementById('feed-rec');
-  if (!recEl) return;
-
-  if (!recPostsCache) {
-    recEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
-    // Берём все посты и перемешиваем (как TikTok)
-    const data = await api('GET', '/feed/discover?limit=50');
-    if (!data?.length) {
-      recEl.innerHTML = '<div style="text-align:center;padding:48px;color:var(--sub);">Нет постов для рекомендаций</div>';
-      return;
-    }
-    // Перемешиваем Fisher-Yates
-    const shuffled = [...data];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    recPostsCache = shuffled;
-  }
-
-  recEl.innerHTML = recPostsCache.map(postHTML).join('');
-  // Замораживаем анимацию после проигрывания
-  setTimeout(() => {
-    recEl.querySelectorAll('.post').forEach(p => p.classList.add('no-anim'));
-  }, 800);
-}
-
-function postHTML(p) {
-  const reacts = (p.reactions || []).map(r =>
-    `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="event.stopPropagation();reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
-  ).join('') || `<div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
-  const img = p.image_url ? `<div class="post-img" style="background:url('${esc(p.image_url)}') center/cover;height:200px;border-radius:10px;margin-bottom:10px;"></div>` : '';
-  const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
-  const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
-  const typeBadge = postTypeBadge(p.post_type);
-  return `<div class="post" data-id="${p.id}" onclick="openPostDetail(${p.id}, event)">
-    <div class="post-head">
-      <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
-      <div class="p-meta">
-        <div class="p-name">${esc(p.bot_name||'Бот')} ${badge}</div>
-        <div class="p-cat">@${esc(p.bot_username||'')}</div>
-      </div>
-      <div class="p-time">${timeAgo(p.created_at)}</div>
-    </div>
-    ${img}
-    ${typeBadge}
-    <div class="post-text">${esc(p.text)}</div>
-    <div class="post-divider"></div>
-    <div class="post-foot">
-      ${reacts}
-      <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
-      <div class="react-sep"></div>
-      <div class="share" onclick="event.stopPropagation();toast('🔗','Ссылка скопирована')">
-        <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      </div>
-    </div>
-  </div>`;
-}
-
-function timeAgo(ts) {
-  const d = Math.floor((Date.now() - new Date(ts)) / 1000);
-  if (d < 60) return 'только что';
-  if (d < 3600) return Math.floor(d/60) + ' мин';
-  if (d < 86400) return Math.floor(d/3600) + ' ч';
-  return Math.floor(d/86400) + ' д';
-}
-
-// ════════════════════════════════
-// РЕАКЦИИ
-// ════════════════════════════════
-async function reactPost(postId, emoji, el) {
-  if (!TOKEN) { toast('👤', 'Войди чтобы ставить реакции'); return; }
-  // Optimistic animation
-  el.classList.add('popping');
-  el.addEventListener('animationend', () => el.classList.remove('popping'), { once: true });
-
-  const res = await api('POST', `/posts/${postId}/react`, { emoji });
-  if (res?.action) {
-    const on = res.action === 'added';
-    el.classList.toggle('on', on);
-    const sp = el.querySelector('span');
-    sp.textContent = parseInt(sp.textContent) + (on ? 1 : -1);
-    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-  }
-}
-
-// ════════════════════════════════
-// КОММЕНТАРИИ
-// ════════════════════════════════
-async function openComments(postId) {
-  document.getElementById('commentsPostId').value = postId;
-  document.getElementById('commentsOverlay').classList.add('open');
-  document.getElementById('commentsList').innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Загрузка...</div>';
-  const data = await api('GET', `/posts/${postId}/comments`);
-  document.getElementById('commentsList').innerHTML = (data?.length
-    ? data.map(c => `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
-        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${esc(c.first_name)}</div>
-        <div style="font-size:14px;">${esc(c.text)}</div>
-      </div>`).join('')
-    : '<div style="color:var(--sub);text-align:center;padding:24px;">Комментариев пока нет</div>'
-  );
-}
-
-async function sendComment() {
-  if (!TOKEN) { toast('👤', 'Войди чтобы комментировать'); return; }
-  const postId = document.getElementById('commentsPostId').value;
-  const inp = document.getElementById('commentInput');
-  const text = inp.value.trim();
-  if (!text) return;
-  const res = await api('POST', `/posts/${postId}/comments`, { text });
-  if (res?.id) {
-    inp.value = '';
-    openComments(postId);
-    toast('💬', 'Комментарий отправлен');
-  }
-}
-
-function closeComments(e) {
-  if (e.target === document.getElementById('commentsOverlay'))
-    document.getElementById('commentsOverlay').classList.remove('open');
-}
-
-// ════════════════════════════════
-// КАТАЛОГ
-// ════════════════════════════════
-let mySubIds = new Set();
-
-async function loadCatalog() {
-  const el = document.getElementById('catalogList');
-  if (!el) return;
-  el.innerHTML = Array(4).fill(0).map(skeletonBotRow).join('');
-
-  const [data, subs] = await Promise.all([
-    api('GET', '/bots?limit=50'),
-    TOKEN ? api('GET', '/my/subscriptions') : Promise.resolve([])
-  ]);
-  mySubIds = new Set((subs||[]).map(s => Number(s.id)));
-
-  // Ошибка сети / сервер не ответил
-  if (data === null) {
-    el.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--sub);">
-      <div style="font-size:40px;margin-bottom:12px;">📡</div>
-      <div style="font-weight:600;color:var(--text);margin-bottom:8px;">Не удалось загрузить</div>
-      <div style="margin-bottom:16px;">Сервер не отвечает. Попробуйте ещё раз.</div>
-      <div onclick="loadCatalog()" style="display:inline-block;padding:10px 24px;background:var(--acc);color:#fff;border-radius:20px;cursor:pointer;font-weight:600;">Обновить</div>
-    </div>`;
-    return;
-  }
-
-  if (!data?.length) {
-    el.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">🤖</div><div style="font-weight:600;color:var(--text);">Ботов пока нет</div></div>';
-    // Обнуляем статистику
-    document.getElementById('catStatBots').textContent = '0';
-    document.getElementById('catStatMembers').textContent = '0';
-    document.getElementById('catStatPosts').textContent = '0';
-    document.getElementById('featuredList').innerHTML = '';
-    return;
-  }
-
-  // Статистика из реальных данных
-  const totalBots = data.length;
-  const totalMembers = data.reduce((s, b) => s + Number(b.members||0), 0);
-  const totalPosts = data.reduce((s, b) => s + Number(b.posts_count||0), 0);
-  document.getElementById('catStatBots').textContent = totalBots;
-  document.getElementById('catStatMembers').textContent = totalMembers > 1000 ? Math.floor(totalMembers/1000)+'K' : totalMembers;
-  document.getElementById('catStatPosts').textContent = totalPosts > 1000 ? Math.floor(totalPosts/1000)+'K' : totalPosts;
-
-  // Топ боты (featured) — сортируем по участникам
-  const top = [...data].sort((a,b) => Number(b.members||0) - Number(a.members||0)).slice(0, 5);
-  document.getElementById('featuredList').innerHTML = top.map(b => {
-    const isSub = mySubIds.has(Number(b.id));
-    const avaHtml = botAvatarHTML(b.username, 48, 14);
-    return `<div class="feat-card" onclick="openBotPage(${b.id}, event)">
-      <div class="feat-ava" style="overflow:hidden;">${avaHtml}</div>
-      <div class="feat-name">${esc(b.name)}${b.verified ? ' <div class="p-badge" style="display:inline-flex;font-size:9px;">✓</div>' : ''}</div>
-      <div class="feat-desc">${esc(b.description||'')}</div>
-      <div class="feat-foot">
-        <div class="feat-m"><div class="gdot"></div>${Number(b.members||0) > 1000 ? Math.floor(Number(b.members)/1000)+'K' : b.members||0}</div>
-        <div class="${isSub?'sub-btn subbed':'sub-btn'}" onclick="event.stopPropagation();subBot(${b.id},this)">${isSub?'✓ Подписан':'Подписаться'}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Список всех ботов
-  el.innerHTML = data.map(b => botRowHTML(b)).join('');
-}
-
-// ════════════════════════════════
-// ПОИСК — реальные данные по умолчанию
-// ════════════════════════════════
-const CAT_META = {
-  ai:       { ico: '🤖', name: 'ИИ боты',  key: 'ai' },
-  games:    { ico: '🎮', name: 'Игры',     key: 'games' },
-  music:    { ico: '🎵', name: 'Музыка',   key: 'music' },
-  finance:  { ico: '📈', name: 'Финансы',  key: 'finance' },
-  news:     { ico: '📰', name: 'Новости',  key: 'news' },
-  utils:    { ico: '🛠', name: 'Утилиты', key: 'utils' },
-  translate:{ ico: '🌐', name: 'Перевод',  key: 'translate' },
-  edu:      { ico: '📚', name: 'Обучение', key: 'edu' },
-};
-
-async function loadSearchDefault() {
-  const catGrid = document.getElementById('searchCatGrid');
-  const popularEl = document.getElementById('popularBotsList');
-  if (!catGrid || !popularEl) return;
-
-  const data = await api('GET', '/bots?limit=100');
-  if (!data?.length) {
-    catGrid.innerHTML = Object.values(CAT_META).map(c =>
-      `<div class="trend-item" onclick="tapCat('${c.key}','${c.ico} ${c.name}')">
-        <div class="tr-ico">${c.ico}</div>
-        <div><div class="tr-name">${c.name}</div><div class="tr-cnt">0 ботов</div></div>
-      </div>`
-    ).join('');
-    popularEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub);">Ботов пока нет</div>';
-    return;
-  }
-
-  // Считаем реальное кол-во ботов по категориям
-  const counts = {};
-  data.forEach(b => (b.categories||[]).forEach(c => {
-    const key = c.replace(/[🤖🎮🎵📈📰🛠🌐📚\s]/g,'').toLowerCase();
-    // Нормализуем ключ
-    const mapped = Object.keys(CAT_META).find(k =>
-      c.toLowerCase().includes(k) ||
-      (k==='ai' && c.toLowerCase().includes('и')) ||
-      (k==='utils' && c.toLowerCase().includes('утил'))
+import 'dotenv/config'
+import Fastify from 'fastify'
+import cors from '@fastify/cors'
+import jwt from '@fastify/jwt'
+import pg from 'pg'
+import crypto from 'crypto'
+
+const { Pool } = pg
+const app = Fastify({ logger: true })
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+})
+
+db.query('SELECT 1').then(() => console.log('✅ БД подключена')).catch(e => console.error('❌ БД:', e.message))
+
+// Авто-миграция: добавляем google_id и email если нет
+db.query(`
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+  CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx ON users(google_id) WHERE google_id IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
+`).then(() => console.log('✅ Миграция OK')).catch(e => console.log('Migration note:', e.message))
+
+// Таблица для Telegram OTP кодов
+try {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS email_otp (
+      email TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      expires BIGINT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     );
-    if (mapped) counts[mapped] = (counts[mapped]||0) + 1;
-  }));
-
-  // Сортируем категории по количеству
-  const sorted = Object.values(CAT_META)
-    .map(c => ({ ...c, cnt: counts[c.key]||0 }))
-    .sort((a,b) => b.cnt - a.cnt);
-
-  catGrid.innerHTML = sorted.map(c =>
-    `<div class="trend-item" onclick="tapCat('${c.key}','${c.ico} ${c.name}')">
-      <div class="tr-ico">${c.ico}</div>
-      <div>
-        <div class="tr-name">${c.name}</div>
-        <div class="tr-cnt">${c.cnt} бот${c.cnt===1?'':c.cnt>=2&&c.cnt<=4?'а':'ов'}</div>
-      </div>
-    </div>`
-  ).join('');
-
-  // Топ-5 популярных ботов
-  const top = [...data].sort((a,b) => Number(b.members||0) - Number(a.members||0)).slice(0, 5);
-  popularEl.innerHTML = top.map(b => botRowHTML(b)).join('');
+    CREATE TABLE IF NOT EXISTS tg_otp (
+      session_id TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      telegram_id BIGINT,
+      first_name TEXT,
+      username TEXT,
+      photo_url TEXT,
+      expires BIGINT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `)
+  console.log('✅ OTP tables OK')
+} catch(e) {
+  console.log('OTP table note:', e.message)
 }
 
-function botRowHTML(b) {
-  const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
-  const tags = (b.categories||[]).map(t => `<div class="tag">${esc(t)}</div>`).join('');
-  const isSub = mySubIds.has(Number(b.id));
-  const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
-  const subText = isSub ? '✓ Подписан' : 'Подписаться';
-  const avaHtml = botAvatarHTML(b.username, 44, 14);
-  return `<div class="bot-row" onclick="openBotPage(${b.id}, event)">
-    <div class="br-ava" style="overflow:hidden;">${avaHtml}</div>
-    <div class="br-info">
-      <div class="br-name">${esc(b.name)} ${badge}</div>
-      <div class="br-desc">${esc(b.description||'')}</div>
-      <div class="br-tags">${tags}</div>
-    </div>
-    <div class="br-right">
-      <div class="br-count"><div class="gdot"></div>${b.members||0}</div>
-      <div class="${subClass}" onclick="event.stopPropagation();subBot(${b.id},this)">${subText}</div>
-    </div>
-  </div>`;
-}
+// In-memory fallback
+const emailCodes = new Map()
+const tgOtpMap   = new Map()
 
-async function subBot(botId, el) {
-  if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
-  el.classList.add('popping');
-  el.addEventListener('animationend', () => el.classList.remove('popping'), { once: true });
-  const res = await api('POST', `/bots/${botId}/subscribe`, {});
-  if (res) {
-    const on = res.subscribed;
-    // Обновляем глобальный Set подписок
-    if (on) mySubIds.add(Number(botId));
-    else mySubIds.delete(Number(botId));
-    // Обновляем ВСЕ кнопки этого бота на странице
-    document.querySelectorAll(`[onclick*="subBot(${botId},"]`).forEach(btn => {
-      btn.classList.toggle('subbed', on);
-      btn.textContent = on ? '✓ Подписан' : 'Подписаться';
-    });
-    toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
+// ════════════════════════════════
+// TELEGRAM BOT (уведомления админу)
+// ════════════════════════════════
+const TG_TOKEN   = process.env.TELEGRAM_BOT_TOKEN  // токен @BotFeeds_bot
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID    // твой Telegram ID (число)
+
+async function tgSend(chatId, text, replyMarkup) {
+  if (!TG_TOKEN || !chatId) return
+  try {
+    const body = { chat_id: String(chatId), text, parse_mode: 'HTML' }
+    if (replyMarkup) body.reply_markup = replyMarkup
+    const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    const json = await res.json()
+    if (!json.ok) console.error('TG error:', json.description)
+  } catch (e) {
+    console.error('TG send error:', e.message)
   }
+}
+
+async function tgEditMessage(chatId, messageId, text) {
+  if (!TG_TOKEN) return
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: String(chatId), message_id: messageId, text, parse_mode: 'HTML' })
+    })
+  } catch (e) {
+    console.error('TG edit error:', e.message)
+  }
+}
+
+async function tgAnswerCallback(callbackId, text) {
+  if (!TG_TOKEN) return
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackId, text })
+    })
+  } catch (e) {}
 }
 
 // ════════════════════════════════
-// ПОИСК
+// CORS — открытый для всех
 // ════════════════════════════════
-let activeCat = 'all';
-let searchQ = '';
+await app.register(cors, {
+  origin: true,
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+})
 
-async function doSearch() {
-  searchQ = document.getElementById('searchInput').value;
-  document.getElementById('searchClear').classList.toggle('show', searchQ.length > 0);
-  if (!searchQ && activeCat === 'all') { renderSearchState(false); return; }
-  renderSearchState(true, null); // показать загрузку
-  const params = new URLSearchParams();
-  if (searchQ) params.set('q', searchQ);
-  if (activeCat !== 'all') params.set('category', activeCat);
-  const data = await api('GET', '/bots?' + params);
-  renderSearchState(true, data || []);
+await app.register(jwt, {
+  secret: process.env.JWT_SECRET || 'botfeed_secret_key_32_chars_min!'
+})
+
+// ── Middleware ──
+async function auth(req, reply) {
+  try { await req.jwtVerify() }
+  catch { reply.code(401).send({ error: 'Нужна авторизация' }) }
 }
-
-function renderSearchState(hasQuery, data) {
-  document.getElementById('searchDefault').style.display = hasQuery ? 'none' : 'block';
-  document.getElementById('searchResults').style.display = hasQuery ? 'block' : 'none';
-  if (!hasQuery || data === null) return;
-  document.getElementById('resultsLabel').textContent =
-    data.length ? `Найдено: ${data.length} ${data.length===1?'бот':data.length<5?'бота':'ботов'}` : 'Ничего не найдено';
-  document.getElementById('resultsList').innerHTML = data.length
-    ? data.map(botRowHTML).join('')
-    : `<div class="no-results"><div class="no-results-ico">🔍</div><div class="no-results-txt">Ботов не найдено</div><div>Попробуй другой запрос</div></div>`;
-}
-
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  searchQ = '';
-  document.getElementById('searchClear').classList.remove('show');
-  renderSearchState(false);
-}
-
-function setCat(el) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('on'));
-  el.classList.add('on');
-  activeCat = el.dataset.cat;
-  doSearch();
-}
-
-function tapCat(cat) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === cat));
-  activeCat = cat;
-  doSearch();
+async function optAuth(req) {
+  try { await req.jwtVerify() } catch { req.user = null }
 }
 
 // ════════════════════════════════
-// ДОБАВИТЬ БОТА
+// TELEGRAM WEBHOOK (кнопки одобрить/отклонить)
 // ════════════════════════════════
-let step = 1;
-let newBotId = null;
+app.post('/api/tg/webhook', async (req, reply) => {
+  try {
+    const update = req.body
+    const cb  = update.callback_query
+    const msg = update.message
 
-function openSheet() {
-  if (!TOKEN) { toast('👤', 'Сначала войди через Telegram'); return; }
-  step = 1; newBotId = null; verifyToken = '';
-  // Сбрасываем поля
-  ['botUsername', 'botName', 'botDesc', 'verifyTokenDisplay'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value !== undefined ? el.value = '' : el.textContent = '—';
-  });
-  document.querySelectorAll('.t-opt.picked').forEach(el => el.classList.remove('picked'));
-  const hint = document.getElementById('verifyHint');
-  if (hint) { hint.style.display = 'none'; hint.textContent = ''; }
-  updateSheet();
-  document.getElementById('overlay').classList.add('open');
-}
+    // ── Обработка /start LOGIN_<sessionId> ──
+    if (msg?.text?.startsWith('/start LOGIN_')) {
+      const sessionId = msg.text.replace('/start LOGIN_', '').trim()
+      const chatId    = msg.chat.id
+      const from      = msg.from
 
-function closeOverlay(e) {
-  if (e.target === document.getElementById('overlay'))
-    document.getElementById('overlay').classList.remove('open');
-}
-
-function nextSt() { step++; updateSheet(); }
-
-function updateSheet() {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('st'+i);
-    if (i === step) {
-      el.style.display = 'block';
-      // Re-trigger animation
-      el.style.animation = 'none';
-      void el.offsetWidth;
-      el.style.animation = '';
-    } else {
-      el.style.display = 'none';
-    }
-  }
-  document.querySelectorAll('.step-s').forEach((s, i) => {
-    s.classList.remove('done','cur');
-    if (i < step-1) s.classList.add('done');
-    else if (i === step-1) s.classList.add('cur');
-  });
-}
-
-function pickTag(el) {
-  const wasOn = el.classList.contains('picked');
-  el.classList.toggle('picked');
-  // Re-trigger CSS animation
-  if (!wasOn) {
-    el.style.animation = 'none';
-    void el.offsetWidth;
-    el.style.animation = '';
-  }
-  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-}
-
-async function submitBotStep1() {
-  const username = document.getElementById('botUsername').value.trim();
-  const name = document.getElementById('botName').value.trim();
-  const description = document.getElementById('botDesc').value.trim();
-
-  if (!username) { toast('⚠️', 'Введи username бота'); return; }
-  if (!name) { toast('⚠️', 'Введи название бота'); return; }
-  if (!description) { toast('⚠️', 'Введи описание'); return; }
-
-  const cleanUsername = username.replace('@', '').toLowerCase();
-
-  const btn = document.querySelector('#st1 .sh-btn');
-  if (btn) { btn.textContent = '⏳ Создаём...'; btn.disabled = true; }
-
-  const res = await api('POST', '/bots', {
-    username: cleanUsername,
-    name,
-    description,
-    categories: []
-  });
-
-  if (btn) { btn.textContent = 'Далее →'; btn.disabled = false; }
-
-  if (res?.id) {
-    newBotId = res.id;
-    nextSt();
-  } else {
-    toast('❌', res?.error || 'Ошибка, попробуй снова');
-  }
-}
-
-let verifyToken = '';
-
-async function submitBotStep2() {
-  if (!newBotId) { toast('❌', 'Сначала заполни шаг 1'); return; }
-  const cats = [...document.querySelectorAll('.t-opt.picked')].map(el => el.textContent.trim());
-
-  const btn = document.querySelector('#st2 .sh-btn');
-  if (btn) { btn.textContent = '⏳ Сохраняем...'; btn.disabled = true; }
-
-  // Сохраняем категории
-  if (cats.length > 0) {
-    await api('PUT', `/bots/${newBotId}`, { categories: cats });
-  }
-
-  // Получаем токен верификации
-  const res = await api('POST', `/bots/${newBotId}/verify/request`);
-  if (btn) { btn.textContent = 'Далее →'; btn.disabled = false; }
-
-  if (!res?.ok) {
-    toast('❌', res?.error || 'Ошибка получения токена');
-    return;
-  }
-
-  verifyToken = res.code;
-  nextSt();
-
-  // Показываем токен в UI
-  const tokenDisplay = document.getElementById('verifyTokenDisplay');
-  if (tokenDisplay) tokenDisplay.textContent = verifyToken;
-
-  // Скрываем hint по умолчанию
-  const hint = document.getElementById('verifyHint');
-  if (hint) hint.style.display = 'none';
-}
-
-function copyVerifyToken() {
-  if (!verifyToken) return;
-  navigator.clipboard?.writeText(verifyToken).then(() => {
-    const btn = document.getElementById('copyTokenBtn');
-    if (btn) { btn.textContent = '✓ Скопировано'; setTimeout(() => btn.textContent = 'Копировать', 2000); }
-    toast('📋', 'Токен скопирован');
-  }).catch(() => {
-    // Fallback для браузеров без clipboard API
-    const el = document.createElement('textarea');
-    el.value = verifyToken;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-    toast('📋', 'Токен скопирован');
-  });
-}
-
-async function submitBot() {
-  if (!newBotId) return;
-  const btn = document.getElementById('verifyCheckBtn');
-  if (btn) { btn.textContent = '⏳ Проверяем...'; btn.disabled = true; }
-
-  const res = await api('POST', `/bots/${newBotId}/verify/confirm`, {});
-
-  if (btn) { btn.textContent = '✓ Проверить'; btn.disabled = false; }
-
-  if (res?.ok) {
-    document.getElementById('overlay').classList.remove('open');
-    if (res?.verified) {
-      toast('🚀', 'Бот верифицирован!');
-    } else {
-      toast('⏳', 'Заявка отправлена — ожидай решения в Telegram!');
-    }
-    loadCatalog();
-    loadMyBots();
-  } else {
-    // Показываем детальную ошибку
-    const hint = document.getElementById('verifyHint');
-    if (hint) {
-      hint.style.display = 'block';
-      hint.style.color = 'var(--red)';
-      hint.textContent = res?.error || 'Ошибка проверки';
-      // Если токен не найден — показываем что нашли
-      if (res?.description_found) {
-        hint.textContent += ` (найдено: "${res.description_found}")`;
+      // Ищем сессию
+      let session = tgOtpMap.get(sessionId)
+      if (!session) {
+        try {
+          const { rows } = await db.query('SELECT * FROM tg_otp WHERE session_id=$1', [sessionId])
+          if (rows[0]) session = rows[0]
+        } catch {}
       }
+
+      if (!session || Date.now() > Number(session.expires)) {
+        await tgSend(chatId, '❌ Сессия устарела. Вернись на сайт и нажми кнопку снова.')
+        return { ok: true }
+      }
+
+      // Получаем фото профиля пользователя
+      let photo_url = null
+      try {
+        const photosRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUserProfilePhotos?user_id=${chatId}&limit=1`)
+        const photosData = await photosRes.json()
+        const fileId     = photosData?.result?.photos?.[0]?.[2]?.file_id || photosData?.result?.photos?.[0]?.[0]?.file_id
+        if (fileId) {
+          const fileRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`)
+          const fileData = await fileRes.json()
+          if (fileData?.result?.file_path) {
+            photo_url = `https://api.telegram.org/file/bot${TG_TOKEN}/${fileData.result.file_path}`
+          }
+        }
+      } catch {}
+
+      // Сохраняем данные пользователя и отправляем код
+      const code = String(Math.floor(100000 + Math.random() * 900000))
+      const updated = {
+        ...session,
+        code,
+        telegram_id: chatId,
+        first_name:  from.first_name || '',
+        username:    from.username   || null,
+        photo_url,
+        expires:     Date.now() + 10 * 60 * 1000
+      }
+      tgOtpMap.set(sessionId, updated)
+      try {
+        await db.query(`
+          INSERT INTO tg_otp (session_id, code, telegram_id, first_name, username, photo_url, expires)
+          VALUES ($1,$2,$3,$4,$5,$6,$7)
+          ON CONFLICT (session_id) DO UPDATE SET
+            code=$2, telegram_id=$3, first_name=$4, username=$5, photo_url=$6, expires=$7
+        `, [sessionId, code, chatId, updated.first_name, updated.username, null, updated.expires])
+      } catch {}
+
+      await tgSend(chatId,
+        `👋 <b>Привет, ${updated.first_name}!</b>\n\n` +
+        `Твой код для входа в <b>BotFeed</b>:\n\n` +
+        `<code>${code}</code>\n\n` +
+        `⏱ Код действителен 10 минут.\n` +
+        `Вернись на сайт и введи этот код.`
+      )
+      return { ok: true }
     }
-    toast('❌', 'Токен не найден в описании');
-  }
-}
 
-// ════════════════════════════════
-// УПРАВЛЕНИЕ БОТОМ
-// ════════════════════════════════
-let currentBotId = null;
+    // ── Обработка callback кнопок (одобрить/отклонить бота) ──
+    if (!cb) return { ok: true }
 
-// ── Вкладки управления ботом ──
-function mngTab(el, id) {
-  document.querySelectorAll('#s-botmanage .p-tab').forEach(t => t.classList.remove('on'));
-  el.classList.add('on');
-  ['mng-analytics','mng-posts','mng-settings'].forEach(i => {
-    const e2 = document.getElementById(i);
-    if (e2) e2.style.display = 'none';
-  });
-  const target = document.getElementById(id);
-  if (target) target.style.display = 'block';
-  if (id === 'mng-posts') loadMyPostsList();
-}
+    const data = cb.data || ''
+    const [action, botId] = data.split(':')
+    const msgId  = cb.message?.message_id
+    const chatId = cb.message?.chat?.id
 
-let chartPeriodDays = 7;
-let analyticsPostsData = [];
-
-function setChartPeriod(el, days) {
-  document.querySelectorAll('.chart-period').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  chartPeriodDays = days;
-  renderSubsChart(analyticsPostsData);
-}
-
-function renderSubsChart(posts) {
-  const canvas = document.getElementById('subsChart');
-  const empty  = document.getElementById('subsChartEmpty');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const days = chartPeriodDays;
-  const labels = [], values = [];
-  const now = Date.now();
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now - i * 86400000);
-    labels.push(d.toLocaleDateString('ru', { day:'numeric', month:'short' }));
-    const dayStart = new Date(d.setHours(0,0,0,0)).getTime();
-    const dayEnd = dayStart + 86400000;
-    const cnt = posts.filter(p => {
-      const t = new Date(p.created_at).getTime();
-      return t >= dayStart && t < dayEnd;
-    }).length;
-    values.push(cnt);
-  }
-
-  const hasData = values.some(v => v > 0);
-  canvas.style.display = hasData ? 'block' : 'none';
-  empty.style.display  = hasData ? 'none'  : 'block';
-  if (!hasData) return;
-
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width  = rect.width * dpr;
-  canvas.height = 120 * dpr;
-  canvas.style.width  = rect.width + 'px';
-  canvas.style.height = '120px';
-  ctx.scale(dpr, dpr);
-  const W = rect.width, H = 120;
-  const pad = { l:4, r:4, t:10, b:28 };
-  const chartW = W - pad.l - pad.r;
-  const chartH = H - pad.t - pad.b;
-  const step = chartW / (labels.length - 1 || 1);
-  const max = Math.max(...values) || 1;
-
-  const pts = values.map((v, i) => ({
-    x: pad.l + i * step,
-    y: pad.t + chartH - (v / max) * chartH
-  }));
-
-  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + chartH);
-  grad.addColorStop(0, 'rgba(46,166,255,0.3)');
-  grad.addColorStop(1, 'rgba(46,166,255,0)');
-
-  // Fill
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) {
-    const cx = (pts[i-1].x + pts[i].x) / 2;
-    ctx.bezierCurveTo(cx, pts[i-1].y, cx, pts[i].y, pts[i].x, pts[i].y);
-  }
-  ctx.lineTo(pts[pts.length-1].x, H - pad.b);
-  ctx.lineTo(pts[0].x, H - pad.b);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Line
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) {
-    const cx = (pts[i-1].x + pts[i].x) / 2;
-    ctx.bezierCurveTo(cx, pts[i-1].y, cx, pts[i].y, pts[i].x, pts[i].y);
-  }
-  ctx.strokeStyle = '#2ea6ff';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Dots
-  pts.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#2ea6ff';
-    ctx.fill();
-  });
-
-  // Labels
-  ctx.fillStyle = 'rgba(138,155,176,0.9)';
-  ctx.font = '10px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  [0, Math.floor(labels.length/2), labels.length-1].forEach(i => {
-    if (i < labels.length) ctx.fillText(labels[i], pts[i].x, H - 6);
-  });
-}
-
-function renderGrowthTips(b, posts) {
-  const el = document.getElementById('growthTips');
-  if (!el) return;
-  const tips = [];
-  if (!b.verified)                tips.push({ ico:'✅', text:'<b>Верифицируй бота</b> — верифицированные боты попадают в каталог и получают больше доверия' });
-  if (!posts.length)              tips.push({ ico:'📝', text:'<b>Опубликуй первый пост</b> — расскажи что умеет бот, это привлечёт первых подписчиков' });
-  if (posts.length > 0 && posts.length < 5) tips.push({ ico:'🚀', text:'<b>Публикуй регулярно</b> — 3+ поста в неделю дают кратный рост аудитории' });
-  if (!(b.description||'').trim()) tips.push({ ico:'✏️', text:'<b>Добавь описание</b> — боты с описанием чаще находят в поиске' });
-  if (!(b.categories||[]).length)  tips.push({ ico:'🏷', text:'<b>Выбери категории</b> — так бот появится в нужных разделах' });
-  if (tips.length === 0)           tips.push({ ico:'🎉', text:'<b>Всё отлично!</b> Продолжай публиковать контент для роста аудитории' });
-  el.innerHTML = tips.map(t => `<div class="tip-row"><div class="tip-ico">${t.ico}</div><div class="tip-txt">${t.text}</div></div>`).join('');
-}
-
-async function openBotManage(botId, botName, members, posts, subs) {
-  currentBotId = botId;
-
-  // Сброс вкладок — открываем Аналитику
-  document.querySelectorAll('#s-botmanage .p-tab').forEach((t,i) => t.classList.toggle('on', i===0));
-  ['mng-analytics','mng-posts','mng-settings'].forEach((id,i) => {
-    const e = document.getElementById(id);
-    if (e) e.style.display = i===0 ? 'block' : 'none';
-  });
-
-  document.getElementById('manageTitle').textContent = botName;
-  document.getElementById('mngMembers').textContent = Number(members).toLocaleString('ru');
-  document.getElementById('mngPosts').textContent = posts;
-  document.getElementById('mngSubs').textContent = subs;
-  document.getElementById('mngReacts').textContent = '…';
-
-  // Сброс кнопки удаления
-  const btn = document.getElementById('deleteBotBtn');
-  const confirmEl = document.getElementById('deleteBotConfirm');
-  if (btn) { btn.style.display = 'block'; btn.textContent = '🗑 Удалить бота навсегда'; }
-  if (confirmEl) confirmEl.style.display = 'none';
-
-  // Показываем экран
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'anim-right', 'anim-left'));
-  const manageScreen = document.getElementById('s-botmanage');
-  manageScreen.classList.add('active', 'anim-right');
-  manageScreen.addEventListener('animationend', () => manageScreen.classList.remove('anim-right'), { once: true });
-  currentScreen = 'botmanage';
-
-  // Счётчик символов
-  const ta = document.getElementById('newPostText');
-  if (ta) { ta.value = ''; ta.oninput = () => { document.getElementById('postCharCount').textContent = ta.value.length + ' / 1000'; }; }
-
-  // Грузим аналитику
-  const postsData = await api('GET', `/bots/${botId}/posts?limit=100`);
-  analyticsPostsData = postsData || [];
-
-  let totalReacts = 0;
-  analyticsPostsData.forEach(p => (p.reactions||[]).forEach(r => totalReacts += Number(r.count||0)));
-  document.getElementById('mngReacts').textContent = totalReacts || 0;
-
-  const lastPostEl = document.getElementById('mngPostsLast');
-  if (lastPostEl && analyticsPostsData.length)
-    lastPostEl.textContent = 'последний ' + timeAgo(analyticsPostsData[0].created_at);
-
-  const growthEl = document.getElementById('mngMembersGrowth');
-  if (growthEl) {
-    growthEl.textContent = members > 0 ? '↑ есть аудитория' : 'пока нет';
-    growthEl.style.color = members > 0 ? 'var(--green)' : 'var(--sub)';
-  }
-
-  renderSubsChart(analyticsPostsData);
-
-  // Топ-3 поста
-  const topEl = document.getElementById('topPostsList');
-  if (topEl) {
-    const sorted = [...analyticsPostsData].sort((a,b) => {
-      const ra = (a.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
-      const rb = (b.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
-      return rb - ra;
-    }).slice(0,3);
-    if (!sorted.length) {
-      topEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px;">Опубликуй первый пост ☝️</div>';
-    } else {
-      topEl.innerHTML = sorted.map((p,i) => {
-        const reacts = (p.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
-        return `<div class="top-post-row">
-          <div style="font-size:20px;flex-shrink:0;">${['🥇','🥈','🥉'][i]}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.text||'')}</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">${timeAgo(p.created_at)}</div>
-          </div>
-          <div style="font-size:13px;font-weight:700;color:var(--acc);flex-shrink:0;">🔥 ${reacts}</div>
-        </div>`;
-      }).join('');
+    if (!botId || !['approve', 'reject'].includes(action)) {
+      await tgAnswerCallback(cb.id, '⚠️ Неизвестное действие')
+      return { ok: true }
     }
+
+    // Получаем данные бота и его владельца
+    const { rows } = await db.query(`
+      SELECT b.id, b.name, b.username, b.description, b.categories,
+             u.telegram_id, u.first_name
+      FROM bots b JOIN users u ON b.owner_id = u.id
+      WHERE b.id = $1
+    `, [botId])
+
+    const b = rows[0]
+    if (!b) {
+      await tgAnswerCallback(cb.id, '⚠️ Бот не найден')
+      return { ok: true }
+    }
+
+    if (action === 'approve') {
+      await db.query('UPDATE bots SET verified=true WHERE id=$1', [botId])
+
+      // Редактируем сообщение у себя
+      await tgEditMessage(chatId, msgId,
+        `✅ <b>ОДОБРЕНО</b>\n\n` +
+        `Бот: <b>${b.name}</b> (@${b.username})\n` +
+        `Владелец: ${b.first_name}\n` +
+        `Статус: верифицирован ✓`
+      )
+
+      // Уведомляем владельца
+      await tgSend(b.telegram_id,
+        `🎉 <b>Поздравляем! Бот верифицирован</b>\n\n` +
+        `Ваш бот <b>${b.name}</b> (@${b.username}) прошёл проверку и теперь отображается в каталоге BotFeed с галочкой верификации ✓\n\n` +
+        `Открыть BotFeed → https://t.me/BotFeeds_bot`
+      )
+
+      await tgAnswerCallback(cb.id, '✅ Бот одобрен!')
+
+    } else if (action === 'reject') {
+      await db.query('UPDATE bots SET verified=false WHERE id=$1', [botId])
+
+      // Редактируем сообщение у себя
+      await tgEditMessage(chatId, msgId,
+        `❌ <b>ОТКЛОНЕНО</b>\n\n` +
+        `Бот: <b>${b.name}</b> (@${b.username})\n` +
+        `Владелец: ${b.first_name}\n` +
+        `Статус: верификация отказана`
+      )
+
+      // Уведомляем владельца
+      await tgSend(b.telegram_id,
+        `❌ <b>Верификация отклонена</b>\n\n` +
+        `Бот <b>${b.name}</b> (@${b.username}) не прошёл проверку.\n\n` +
+        `Если вы считаете что это ошибка — напишите в поддержку.`
+      )
+
+      await tgAnswerCallback(cb.id, '❌ Отклонено')
+    }
+
+  } catch (e) {
+    console.error('Webhook error:', e.message)
   }
-
-  // Настройки — инфо о боте
-  const myBots = await api('GET', '/my/bots');
-  const myBot  = (myBots||[]).find(b => String(b.id) === String(botId));
-  if (myBot) {
-    const unEl = document.getElementById('mngUsername');
-    const vEl  = document.getElementById('mngVerifyStatus');
-    if (unEl) unEl.textContent = '@' + myBot.username;
-    if (vEl)  vEl.innerHTML = myBot.verified
-      ? '<span style="color:var(--green);">✓ Верифицирован</span>'
-      : '<span style="color:var(--red);">✗ Не верифицирован</span>';
-    renderGrowthTips(myBot, analyticsPostsData);
-  }
-}
-
-function goBack() {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'anim-right', 'anim-left'));
-  const profileScreen = document.getElementById('s-profile');
-  profileScreen.classList.add('active', 'anim-left');
-  profileScreen.addEventListener('animationend', () => profileScreen.classList.remove('anim-left'), { once: true });
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelector('.nav-item:last-child').classList.add('active');
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = '75%';
-  currentScreen = 'profile';
-}
-
-let currentPostType = 'news';
-
-function selectPostType(el) {
-  document.querySelectorAll('.post-type-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  currentPostType = el.dataset.type;
-  const placeholders = {
-    news:   'Расскажи о новостях своего бота...',
-    update: 'Что нового в этой версии? Какие фичи добавили?',
-    tip:    'Поделись полезным советом или лайфхаком...',
-    promo:  'Опиши акцию или специальное предложение...'
-  };
-  document.getElementById('newPostText').placeholder = placeholders[currentPostType] || '';
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-}
-
-async function publishPost() {
-  const text = document.getElementById('newPostText').value.trim();
-  if (!text) { toast('⚠️', 'Напиши текст поста'); return; }
-  if (text.length > 1000) { toast('⚠️', 'Пост слишком длинный'); return; }
-
-  const res = await api('POST', `/bots/${currentBotId}/posts`, { text, post_type: currentPostType });
-  if (res?.id) {
-    document.getElementById('newPostText').value = '';
-    document.getElementById('postCharCount').textContent = '0 / 1000';
-    toast('🚀', 'Пост опубликован!');
-    loadMyPostsList();
-    analyticsPostsData.unshift(res);
-    const mng = document.getElementById('mngPosts');
-    mng.textContent = parseInt(mng.textContent) + 1;
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-  } else {
-    toast('❌', res?.error || 'Ошибка публикации');
-  }
-}
-
-async function loadMyPostsList() {
-  const el = document.getElementById('myPostsList');
-  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Загрузка...</div>';
-  const data = await api('GET', `/bots/${currentBotId}/posts`);
-  if (!data?.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Постов пока нет — напиши первый!</div>';
-    return;
-  }
-  el.innerHTML = data.map(p => `
-    <div style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px;">
-      <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">${esc(p.text)}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:12px;color:var(--sub);">${timeAgo(p.created_at)}</div>
-        <div style="font-size:12px;color:var(--red);cursor:pointer;" onclick="deletePost(${p.id},this)">Удалить</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function deletePost(postId, el) {
-  const res = await api('DELETE', `/posts/${postId}`);
-  if (res?.ok) {
-    el.closest('div[style*="background:var(--card)"]').remove();
-    toast('🗑', 'Пост удалён');
-    const mng = document.getElementById('mngPosts');
-    mng.textContent = Math.max(0, parseInt(mng.textContent) - 1);
-  }
-}
-
-function showDeleteConfirm() {
-  document.getElementById('deleteBotBtn').style.display = 'none';
-  document.getElementById('deleteBotConfirm').style.display = 'block';
-}
-
-function hideDeleteConfirm() {
-  document.getElementById('deleteBotBtn').style.display = 'block';
-  document.getElementById('deleteBotConfirm').style.display = 'none';
-}
-
-async function deleteBot() {
-  if (!currentBotId) {
-    toast('❌', 'Бот не выбран');
-    return;
-  }
-  const btn = document.getElementById('deleteBotFinalBtn');
-  if (btn) { btn.textContent = 'Удаляем...'; btn.disabled = true; }
-
-  const res = await api('DELETE', `/bots/${currentBotId}`);
-  console.log('deleteBot result:', res);
-
-  if (res?.ok) {
-    toast('✓', 'Бот удалён');
-    const deletedId = currentBotId;
-    currentBotId = null;
-    goBack();
-    setTimeout(() => { loadMyBots(); }, 400);
-  } else {
-    if (btn) { btn.textContent = 'Удалить'; btn.disabled = false; }
-    toast('❌', res?.error || 'Ошибка удаления — обнови server.js на сервере');
-  }
-}
+  return { ok: true }
+})
 
 // ════════════════════════════════
-// ПРОСМОТР ПОСТА (detail view)
+// AUTH
 // ════════════════════════════════
-let currentPostDetailId = null;
-let prevScreenBeforePost = 'home';
 
-async function openPostDetail(postId, event) {
-  if (event) event.stopPropagation();
-  prevScreenBeforePost = currentScreen;
-  currentPostDetailId = postId;
+// ════════════════════════════════
+// AUTH — Email OTP (через Resend)
+// ════════════════════════════════
 
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
-  const page = document.getElementById('s-postdetail');
-  page.classList.add('active','anim-right');
-  page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
-  currentScreen = 'postdetail';
-  page.scrollTo(0, 0);
+// Отправка кода на email
+app.post('/api/auth/email/send', async (req, reply) => {
+  try {
+    const { email } = req.body
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return reply.code(400).send({ error: 'Некорректный email' })
+    }
 
-  // Skeleton
-  document.getElementById('postDetailContent').innerHTML = '<div class="shimmer" style="height:120px;margin-bottom:12px;border-radius:14px;"></div>';
-  document.getElementById('postDetailComments').innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Загрузка...</div>';
+    // Генерируем 6-значный код
+    const code    = String(Math.floor(100000 + Math.random() * 900000))
+    const expires = Date.now() + 10 * 60 * 1000 // 10 минут
+    const key     = email.toLowerCase()
 
-  // Параллельно грузим пост и комментарии
-  const [commentsData, feedData] = await Promise.all([
-    api('GET', `/posts/${postId}/comments`),
-    api('GET', '/feed?limit=50')
-  ]);
+    // Отправляем через Resend
+    const resendKey = process.env.RESEND_API_KEY
+    if (!resendKey) return reply.code(500).send({ error: 'RESEND_API_KEY не настроен' })
 
-  const p = (feedData || []).find(x => x.id == postId);
-  if (p) {
-    const avaHtml = botAvatarHTML(p.bot_username, 44, 14);
-    const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
-    const reacts = (p.reactions || []).map(r =>
-      `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
-    ).join('') || `<div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
-
-    document.getElementById('postDetailContent').innerHTML = `
-      <div style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;">
-        <div class="post-head" style="cursor:pointer;" onclick="openBotPage(${p.bot_id||0},event)">
-          <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
-          <div class="p-meta">
-            <div class="p-name">${esc(p.bot_name||'Бот')} ${badge}</div>
-            <div class="p-cat">@${esc(p.bot_username||'')}</div>
+    const r = await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: {
+        'Authorization': 'Bearer ' + resendKey,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({
+        from:    'BotFeed <onboarding@resend.dev>',
+        to:      [email],
+        subject: 'Код входа в BotFeed: ' + code,
+        html:    `
+          <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:32px;">
+            <h2 style="color:#2ea6ff;margin-bottom:8px;">BotFeed</h2>
+            <p style="color:#666;margin-bottom:24px;">Каталог Telegram-ботов</p>
+            <p style="font-size:16px;color:#333;">Твой код для входа:</p>
+            <div style="background:#f4f4f4;border-radius:12px;padding:24px;text-align:center;margin:16px 0;">
+              <span style="font-size:40px;font-weight:900;letter-spacing:8px;color:#1a1a1a;">${code}</span>
+            </div>
+            <p style="color:#999;font-size:13px;">Код действителен 10 минут. Если ты не запрашивал вход — просто игнорируй это письмо.</p>
           </div>
-          <div class="p-time">${timeAgo(p.created_at)}</div>
-        </div>
-        <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;">${esc(p.text)}</div>
-        <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
-          ${reacts}
-          <div class="react on">💬 <span>${commentsData?.length||0}</span></div>
-          <div class="react-sep"></div>
-          <div class="share" onclick="sharePostDetail()">
-            <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          </div>
-        </div>
-      </div>`;
-  } else {
-    document.getElementById('postDetailContent').innerHTML = '';
-  }
+        `
+      })
+    })
 
-  renderPostDetailComments(commentsData);
-}
+    const rData = await r.json()
+    console.log('Resend response status:', r.status, 'body:', JSON.stringify(rData))
+    if (!r.ok || rData.error) {
+      console.error('Resend error:', rData)
+      return reply.code(500).send({ error: 'Ошибка отправки письма: ' + (rData.error?.message || rData.message || JSON.stringify(rData)) })
+    }
 
-function renderPostDetailComments(data) {
-  const el = document.getElementById('postDetailComments');
-  if (!data?.length) {
-    el.innerHTML = '<div style="color:var(--sub);text-align:center;padding:32px 0;"><div style="font-size:36px;margin-bottom:10px;">💬</div><div>Будь первым — напиши комментарий!</div></div>';
-    return;
-  }
-  el.innerHTML = data.map(c => `
-    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="width:36px;height:36px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">👤</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-          <span style="font-weight:700;font-size:13px;">${esc(c.first_name||'Пользователь')}</span>
-          <span style="font-size:11px;color:var(--sub);">${timeAgo(c.created_at||Date.now())}</span>
-        </div>
-        <div style="font-size:14px;line-height:1.5;">${esc(c.text)}</div>
-      </div>
-    </div>`).join('');
-}
-
-async function sendPostDetailComment() {
-  if (!TOKEN) { toast('👤', 'Войди чтобы комментировать'); return; }
-  const inp = document.getElementById('postDetailCommentInput');
-  const text = inp.value.trim();
-  if (!text) return;
-  const res = await api('POST', `/posts/${currentPostDetailId}/comments`, { text });
-  if (res?.id) {
-    inp.value = '';
-    toast('💬', 'Комментарий отправлен');
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-    const data = await api('GET', `/posts/${currentPostDetailId}/comments`);
-    renderPostDetailComments(data);
-  }
-}
-
-function sharePostDetail() {
-  const url = window.location.origin + '?post=' + currentPostDetailId;
-  if (navigator.share) navigator.share({ title: 'BotFeed', url });
-  else navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка скопирована!'));
-}
-
-function closePostDetail() {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
-  const prev = document.getElementById('s-' + prevScreenBeforePost) || document.getElementById('s-home');
-  prev.classList.add('active','anim-left');
-  prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
-  currentScreen = prevScreenBeforePost;
-  const navMap = { home:0, catalog:1, search:2, profile:3 };
-  const idx = navMap[prevScreenBeforePost] ?? 0;
-  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = (idx * 25) + '%';
-}
-
-
-let currentScreen = 'home';
-
-function navRipple(el) {
-  // Remove existing ripples
-  el.querySelectorAll('.nav-ripple').forEach(r => r.remove());
-  const r = document.createElement('div');
-  r.className = 'nav-ripple';
-  el.appendChild(r);
-  r.addEventListener('animationend', () => r.remove());
-}
-
-function go(id, el) {
-  if (id === currentScreen) {
-    // Tap same tab — scroll to top
-    const screen = document.getElementById('s-' + id);
-    if (screen) screen.scrollTo({ top: 0, behavior: 'smooth' });
-    navRipple(el);
-    return;
-  }
-
-  navRipple(el);
-  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-
-  const NAV_TABS = ['home', 'catalog', 'search', 'profile'];
-  const prevIdx = NAV_TABS.indexOf(currentScreen);
-  const nextIdx = NAV_TABS.indexOf(id);
-  // Если переходим из sub-screen (botpage, postdetail, etc.) — анимация всегда влево
-  const dir = (prevIdx === -1 || nextIdx > prevIdx) ? 'right' : 'left';
-
-  // Hide current screen
-  const prev = document.querySelector('.screen.active');
-  if (prev) prev.classList.remove('active', 'anim-right', 'anim-left');
-
-  // Show new screen with animation
-  const next = document.getElementById('s-' + id);
-  next.classList.remove('anim-right', 'anim-left');
-  next.classList.add('active');
-  void next.offsetWidth;
-  next.classList.add(dir === 'right' ? 'anim-right' : 'anim-left');
-
-  // Nav
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  el.classList.add('active');
-
-  // Slide indicator — always based on 4-item nav
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = (nextIdx * 25) + '%';
-
-  currentScreen = id;
-  if (id === 'home')    loadFeed();
-  if (id === 'catalog') loadCatalog();
-  if (id === 'search')  loadSearchDefault();
-  if (id === 'profile') showProfile();
-}
-
-// Init nav indicator
-document.addEventListener('DOMContentLoaded', () => {
-  const ind = document.getElementById('navIndicator');
-  if (ind) ind.style.left = '0%';
-
-  // Будим Render сразу при открытии страницы (free tier засыпает)
-  const wakeServer = async () => {
+    // Письмо отправлено — сохраняем код (БД + fallback в память)
+    emailCodes.set(key, { code, expires })
+    console.log('Code saved for:', key, '| code:', code)
     try {
-      const r = await fetch('https://botfeed-9v15.onrender.com/health');
-      if (!r.ok) throw new Error('not ok');
-    } catch {
-      setTimeout(wakeServer, 4000);
-    }
-  };
-  wakeServer();
-});
-
-function profTab(el, id) {
-  document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('on'));
-  el.classList.add('on');
-  ['tb-bots','tb-settings'].forEach(i => document.getElementById(i).style.display = 'none');
-  document.getElementById(id).style.display = 'block';
-}
-
-function subToggle(el) {
-  const on = el.classList.toggle('subbed');
-  el.textContent = on ? '✓ Подписан' : 'Подписаться';
-  toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
-}
-
-// ════════════════════════════════
-// TOAST
-// ════════════════════════════════
-let toastT;
-function toast(ico, msg, duration) {
-  document.getElementById('tIco').textContent = ico;
-  document.getElementById('tMsg').textContent = msg;
-  const t = document.getElementById('toast');
-  t.classList.remove('show', 'hide');
-  void t.offsetWidth; // reflow
-  t.classList.add('show');
-  clearTimeout(toastT);
-  // Ошибки висят 6 сек, обычные — 2.4 сек
-  const d = duration || (ico === '❌' ? 6000 : 2400);
-  toastT = setTimeout(() => {
-    t.classList.remove('show');
-    t.classList.add('hide');
-    setTimeout(() => t.classList.remove('hide'), 300);
-  }, d);
-}
-
-// ════════════════════════════════
-// ТИП ПОСТА — бейдж
-// ════════════════════════════════
-function postTypeBadge(type) {
-  const map = {
-    news:   ['📢', 'Новость',    'ptb-news'],
-    update: ['🚀', 'Обновление', 'ptb-update'],
-    tip:    ['💡', 'Совет',      'ptb-tip'],
-    promo:  ['🎁', 'Акция',      'ptb-promo'],
-  };
-  if (!type || !map[type]) return '';
-  const [ico, label, cls] = map[type];
-  return `<div class="post-type-badge ${cls}">${ico} ${label}</div>`;
-}
-
-// ════════════════════════════════
-// СВАЙПЫ — навигация жестами
-// ════════════════════════════════
-(function initSwipes() {
-  const NAV_TABS = ['home', 'catalog', 'search', 'profile'];
-  let startX = 0, startY = 0, startTime = 0;
-  const THRESHOLD = 60;   // минимальный px свайпа
-  const RESTRAINT = 100;  // макс. отклонение по Y
-  const MAX_TIME  = 400;  // макс. мс
-
-  document.addEventListener('touchstart', e => {
-    startX    = e.touches[0].clientX;
-    startY    = e.touches[0].clientY;
-    startTime = Date.now();
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
-    const dx   = e.changedTouches[0].clientX - startX;
-    const dy   = e.changedTouches[0].clientY - startY;
-    const dt   = Date.now() - startTime;
-    if (Math.abs(dx) < THRESHOLD) return;
-    if (Math.abs(dy) > RESTRAINT) return;
-    if (dt > MAX_TIME) return;
-
-    // Свайп на главной — переключение лент
-    if (currentScreen === 'home') {
-      if (dx < 0 && activeFeedTab === 'subs') { switchFeedTab('rec');  return; }
-      if (dx > 0 && activeFeedTab === 'rec')  { switchFeedTab('subs'); return; }
+      await db.query(
+        `INSERT INTO email_otp (email, code, expires) VALUES ($1, $2, $3)
+         ON CONFLICT (email) DO UPDATE SET code = $2, expires = $3, created_at = NOW()`,
+        [key, code, expires]
+      )
+    } catch(dbErr) {
+      console.warn('OTP DB save failed, using memory fallback:', dbErr.message)
     }
 
-    // Свайп вправо с sub-screen — назад
-    if (dx > 0 && ['botpage','botmanage','postdetail'].includes(currentScreen)) {
-      if (currentScreen === 'botpage')    { closeBotPage();    return; }
-      if (currentScreen === 'botmanage')  { goBack();          return; }
-      if (currentScreen === 'postdetail') { closePostDetail(); return; }
-    }
-
-    // Свайп между основными вкладками
-    const mainScreens = ['home','catalog','search','profile'];
-    if (!mainScreens.includes(currentScreen)) return;
-    const idx = NAV_TABS.indexOf(currentScreen);
-    const target = dx < 0
-      ? NAV_TABS[Math.min(idx + 1, NAV_TABS.length - 1)]
-      : NAV_TABS[Math.max(idx - 1, 0)];
-    if (target === currentScreen) return;
-    const navItem = document.querySelector(`.nav-item:nth-child(${NAV_TABS.indexOf(target) + 2})`);
-    if (navItem) go(target, navItem);
-  }, { passive: true });
-})();
-
-// ════════════════════════════════
-// СТАРТ
-// ════════════════════════════════
-async function initApp() {
-  loadFeed();
-  showProfile();
-  loadSearchDefault();
-  if (TOKEN) {
-    // Обновляем данные пользователя (в т.ч. фото) с сервера
-    const fresh = await api('GET', '/auth/me');
-    if (fresh?.id) {
-      ME = fresh;
-      localStorage.setItem('bf_me', JSON.stringify(ME));
-      showProfile(); // перерисовываем с актуальным фото
-    } else if (fresh?.error || fresh === null) {
-      // Токен протух или сервер недоступен — тихо разлогиниваем
-      if (fresh?.error) {
-        TOKEN = null; ME = null;
-        localStorage.removeItem('bf_token');
-        localStorage.removeItem('bf_me');
-        showProfile();
-      }
-      // если null — сервер просто не ответил, оставляем кэш
-    }
-    const subs = await api('GET', '/my/subscriptions');
-    mySubIds = new Set((subs||[]).map(s => Number(s.id)));
+    console.log('✅ Email code sent to:', email)
+    return { ok: true }
+  } catch (e) {
+    console.error('Send email error:', e.message)
+    return reply.code(500).send({ error: 'Ошибка сервера: ' + e.message })
   }
+})
+
+// Проверка кода и вход
+app.post('/api/auth/email/verify', async (req, reply) => {
+  try {
+    const { email, code } = req.body
+    if (!email || !code) return reply.code(400).send({ error: 'Нет email или кода' })
+
+    const key         = email.toLowerCase().trim()
+    const codeClean   = String(code).replace(/\D/g, '').trim()
+
+    console.log('Verify attempt — email:', key, '| code received:', JSON.stringify(code), '| cleaned:', codeClean)
+
+    // Ищем код: сначала в БД, потом в памяти (fallback)
+    let entry = null
+    try {
+      const { rows: otpRows } = await db.query(
+        'SELECT code, expires FROM email_otp WHERE email = $1',
+        [key]
+      )
+      if (otpRows[0]) entry = otpRows[0]
+    } catch(dbErr) {
+      console.warn('OTP DB read failed:', dbErr.message)
+    }
+    // Fallback на память
+    if (!entry && emailCodes.has(key)) {
+      entry = emailCodes.get(key)
+    }
+
+    if (!entry)                            return reply.code(400).send({ error: 'Код не найден. Запроси новый.' })
+    if (Date.now() > Number(entry.expires)) {
+      await db.query('DELETE FROM email_otp WHERE email = $1', [key]).catch(() => {})
+      emailCodes.delete(key)
+      return reply.code(400).send({ error: 'Код истёк. Запроси новый.' })
+    }
+    console.log('Stored code:', entry.code, '| Received code:', codeClean, '| Match:', entry.code === codeClean)
+    if (entry.code !== codeClean) return reply.code(400).send({ error: 'Неверный код' })
+
+    // Код верный — удаляем отовсюду
+    await db.query('DELETE FROM email_otp WHERE email = $1', [key]).catch(() => {})
+    emailCodes.delete(key)
+
+    // Генерируем username из email
+    const baseUsername = key.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 25)
+
+    // Upsert пользователя по email
+    const { rows } = await db.query(`
+      INSERT INTO users (email, username, first_name)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+      RETURNING *
+    `, [key, baseUsername, baseUsername])
+
+    const user  = rows[0]
+    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
+
+    console.log('✅ Email auth:', user.email)
+    return {
+      token,
+      user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url }
+    }
+  } catch (e) {
+    console.error('Verify email error:', e.message)
+    return reply.code(500).send({ error: 'Ошибка сервера: ' + e.message })
+  }
+})
+
+// ════════════════════════════════
+// AUTH — Telegram OTP через бота
+// ════════════════════════════════
+
+// Шаг 1: создаём сессию, отдаём sessionId и ссылку на бота
+app.post('/api/auth/tg/start', async (req, reply) => {
+  try {
+    const sessionId = crypto.randomBytes(16).toString('hex')
+    const expires   = Date.now() + 15 * 60 * 1000 // 15 минут
+    const entry     = { session_id: sessionId, code: null, telegram_id: null, expires }
+
+    tgOtpMap.set(sessionId, entry)
+    try {
+      await db.query(`
+        INSERT INTO tg_otp (session_id, code, expires)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (session_id) DO UPDATE SET expires=$3
+      `, [sessionId, '', expires])
+    } catch {}
+
+    return {
+      ok: true,
+      sessionId,
+      botUrl: `https://t.me/BotFeeds_bot?start=LOGIN_${sessionId}`
+    }
+  } catch (e) {
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+// Шаг 2: проверяем код
+app.post('/api/auth/tg/verify', async (req, reply) => {
+  try {
+    const { sessionId, code } = req.body
+    if (!sessionId || !code) return reply.code(400).send({ error: 'Нет данных' })
+
+    const codeClean = String(code).replace(/\D/g, '').trim()
+
+    // Ищем сессию
+    let session = tgOtpMap.get(sessionId)
+    if (!session) {
+      try {
+        const { rows } = await db.query('SELECT * FROM tg_otp WHERE session_id=$1', [sessionId])
+        if (rows[0]) session = rows[0]
+      } catch {}
+    }
+
+    if (!session)                          return reply.code(400).send({ error: 'Сессия не найдена. Начни заново.' })
+    if (Date.now() > Number(session.expires)) return reply.code(400).send({ error: 'Код истёк. Начни заново.' })
+    if (!session.code)                     return reply.code(400).send({ error: 'Код ещё не получен. Открой бота.' })
+    if (session.code !== codeClean)        return reply.code(400).send({ error: 'Неверный код' })
+
+    // Код верный — удаляем сессию
+    tgOtpMap.delete(sessionId)
+    db.query('DELETE FROM tg_otp WHERE session_id=$1', [sessionId]).catch(() => {})
+
+    // Upsert пользователя
+    const { rows } = await db.query(`
+      INSERT INTO users (telegram_id, username, first_name, photo_url)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (telegram_id) DO UPDATE SET
+        username   = COALESCE(EXCLUDED.username, users.username),
+        first_name = EXCLUDED.first_name,
+        photo_url  = COALESCE(EXCLUDED.photo_url, users.photo_url)
+      RETURNING *
+    `, [session.telegram_id, session.username || null, session.first_name || 'User', session.photo_url || null])
+
+    const user  = rows[0]
+    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
+
+    console.log('✅ TG OTP auth:', user.first_name, user.telegram_id)
+    return {
+      token,
+      user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url }
+    }
+  } catch (e) {
+    console.error('TG verify error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+app.post('/api/auth/telegram', async (req, reply) => {
+  try {
+    const { id, first_name, last_name, username, photo_url } = req.body
+    console.log('Auth attempt for:', first_name, id)
+
+    if (!id || !first_name) {
+      return reply.code(400).send({ error: 'Нет данных от Telegram' })
+    }
+
+    const { rows } = await db.query(`
+      INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (telegram_id) DO UPDATE SET
+        username = EXCLUDED.username,
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
+        photo_url = EXCLUDED.photo_url
+      RETURNING *
+    `, [id, username || null, first_name, last_name || null, photo_url || null])
+
+    const user = rows[0]
+    const token = app.jwt.sign(
+      { id: user.id, telegram_id: user.telegram_id },
+      { expiresIn: '30d' }
+    )
+
+    console.log('Auth success:', user.first_name)
+    return {
+      token,
+      user: {
+        id: user.id,
+        first_name: user.first_name,
+        username: user.username,
+        photo_url: user.photo_url
+      }
+    }
+  } catch (e) {
+    console.error('Auth error:', e.message)
+    return reply.code(500).send({ error: 'Ошибка сервера: ' + e.message })
+  }
+})
+
+app.get('/api/auth/me', { preHandler: auth }, async (req) => {
+  const { rows } = await db.query(
+    'SELECT id, first_name, last_name, username, photo_url, telegram_id FROM users WHERE id = $1',
+    [req.user.id]
+  )
+  const user = rows[0]
+  if (!user) return null
+
+  // Обновляем фото из Telegram если есть telegram_id
+  if (user.telegram_id && TG_TOKEN) {
+    try {
+      const photosRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUserProfilePhotos?user_id=${user.telegram_id}&limit=1`)
+      const photosData = await photosRes.json()
+      const fileId     = photosData?.result?.photos?.[0]?.[2]?.file_id || photosData?.result?.photos?.[0]?.[0]?.file_id
+      if (fileId) {
+        const fileRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`)
+        const fileData = await fileRes.json()
+        if (fileData?.result?.file_path) {
+          const newPhoto = `https://api.telegram.org/file/bot${TG_TOKEN}/${fileData.result.file_path}`
+          if (newPhoto !== user.photo_url) {
+            await db.query('UPDATE users SET photo_url=$1 WHERE id=$2', [newPhoto, user.id])
+            user.photo_url = newPhoto
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return { id: user.id, first_name: user.first_name, last_name: user.last_name, username: user.username, photo_url: user.photo_url }
+})
+
+// ════════════════════════════════
+// БОТЫ
+// ════════════════════════════════
+app.get('/api/bots', async (req) => {
+  try {
+    const { q, category, limit = 20, offset = 0 } = req.query
+    let where = ['b.verified = true']
+    let params = []
+    let i = 1
+
+    if (q) {
+      where.push(`(b.name ILIKE $${i} OR b.description ILIKE $${i})`)
+      params.push(`%${q}%`)
+      i++
+    }
+    if (category && category !== 'all') {
+      where.push(`$${i} = ANY(b.categories)`)
+      params.push(category)
+      i++
+    }
+    params.push(Number(limit), Number(offset))
+
+    const { rows } = await db.query(`
+      SELECT b.id, b.username, b.name, b.description, b.photo_url,
+             b.members, b.categories, b.verified, b.created_at,
+             u.first_name as owner_name,
+             COUNT(DISTINCT s.id) as subscribers,
+             COUNT(DISTINCT p.id) as posts_count
+      FROM bots b
+      JOIN users u ON b.owner_id = u.id
+      LEFT JOIN subscriptions s ON b.id = s.bot_id
+      LEFT JOIN posts p ON b.id = p.bot_id
+      WHERE ${where.join(' AND ')}
+      GROUP BY b.id, u.first_name
+      ORDER BY b.members DESC
+      LIMIT $${i} OFFSET $${i + 1}
+    `, params)
+    return rows
+  } catch (e) {
+    console.error('GET /bots error:', e.message)
+    return []
+  }
+})
+
+app.get('/api/my/bots', { preHandler: auth }, async (req) => {
+  const { rows } = await db.query(`
+    SELECT b.*, COUNT(DISTINCT s.id) as subscribers, COUNT(DISTINCT p.id) as posts_count
+    FROM bots b
+    LEFT JOIN subscriptions s ON b.id = s.bot_id
+    LEFT JOIN posts p ON b.id = p.bot_id
+    WHERE b.owner_id = $1
+    GROUP BY b.id
+    ORDER BY b.created_at DESC
+  `, [req.user.id])
+  return rows
+})
+
+app.post('/api/bots', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { username, name, description, long_desc, categories } = req.body
+    if (!username || !name) return reply.code(400).send({ error: 'Username и имя обязательны' })
+    const clean = username.replace('@', '').toLowerCase()
+
+    // Только Telegram-пользователи могут добавлять ботов
+    const { rows: me } = await db.query('SELECT telegram_id FROM users WHERE id = $1', [req.user.id])
+    if (!me[0]?.telegram_id) {
+      return reply.code(403).send({ error: 'Для добавления бота нужно войти через Telegram' })
+    }
+
+    // Лимит: 1 бот на пользователя
+    const { rows: existing } = await db.query(
+      'SELECT id FROM bots WHERE owner_id = $1',
+      [req.user.id]
+    )
+    if (existing.length >= 1) {
+      return reply.code(400).send({ error: 'У вас уже есть бот. Удалите его, чтобы добавить новый.' })
+    }
+
+    const { rows } = await db.query(`
+      INSERT INTO bots (owner_id, username, name, description, long_desc, categories)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [req.user.id, clean, name, description || '', long_desc || '', categories || []])
+
+    return rows[0]
+  } catch (e) {
+    if (e.message.includes('unique')) {
+      return reply.code(400).send({ error: 'Бот с таким username уже существует' })
+    }
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+app.put('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { name, description, long_desc, categories } = req.body
+
+    const { rows: cur } = await db.query(
+      'SELECT * FROM bots WHERE id = $1 AND owner_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!cur[0]) return reply.code(404).send({ error: 'Бот не найден' })
+
+    const { rows } = await db.query(`
+      UPDATE bots SET
+        name        = $1,
+        description = $2,
+        long_desc   = $3,
+        categories  = $4
+      WHERE id=$5 AND owner_id=$6
+      RETURNING *
+    `, [
+      name        ?? cur[0].name,
+      description ?? cur[0].description,
+      long_desc   ?? cur[0].long_desc,
+      categories  ?? cur[0].categories,
+      req.params.id,
+      req.user.id
+    ])
+    return rows[0]
+  } catch (e) {
+    console.error('PUT /bots/:id error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+// Удалить бота
+app.delete('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT id FROM bots WHERE id = $1 AND owner_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден или нет доступа' })
+
+    await db.query('DELETE FROM reactions WHERE post_id IN (SELECT id FROM posts WHERE bot_id = $1)', [req.params.id])
+    await db.query('DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE bot_id = $1)', [req.params.id])
+    await db.query('DELETE FROM posts WHERE bot_id = $1', [req.params.id])
+    await db.query('DELETE FROM subscriptions WHERE bot_id = $1', [req.params.id])
+    await db.query('DELETE FROM bots WHERE id = $1', [req.params.id])
+
+    return { ok: true, message: 'Бот удалён' }
+  } catch (e) {
+    console.error('Delete bot error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+// ════════════════════════════════
+// ВЕРИФИКАЦИЯ — теперь с уведомлением админу
+// ════════════════════════════════
+
+// Глобальный хук: разрешаем пустое тело для POST запросов верификации
+app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+  try {
+    done(null, body ? JSON.parse(body) : {})
+  } catch (e) {
+    done(null, {})
+  }
+})
+
+app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT b.*, u.first_name, u.username as owner_username, u.telegram_id FROM bots b JOIN users u ON b.owner_id = u.id WHERE b.id = $1 AND b.owner_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
+    const b = rows[0]
+
+    // Генерируем токен верификации
+    const verifyToken = crypto.randomBytes(12).toString('hex')
+    await db.query('UPDATE bots SET verify_token=$1 WHERE id=$2', [verifyToken, req.params.id])
+
+    console.log('Verify request: bot', b.username, '| ADMIN_CHAT_ID:', ADMIN_CHAT_ID, '| TG_TOKEN set:', !!TG_TOKEN)
+
+    // Отправляем уведомление админу с кнопками
+    if (ADMIN_CHAT_ID && TG_TOKEN) {
+      const cats = (b.categories || []).join(', ') || 'не указаны'
+      await tgSend(
+        ADMIN_CHAT_ID,
+        `🔔 <b>Новая заявка на верификацию!</b>\n\n` +
+        `Бот: <b>${b.name}</b> (@${b.username})\n` +
+        `Описание: ${b.description || '—'}\n` +
+        `Категории: ${cats}\n` +
+        `Владелец: ${b.first_name}${b.owner_username ? ` (@${b.owner_username})` : ''}\n` +
+        `Ссылка: https://t.me/${b.username}\n\n` +
+        `Токен верификации: <code>${verifyToken}</code>`,
+        {
+          inline_keyboard: [[
+            { text: '✅ Одобрить', callback_data: `approve:${b.id}` },
+            { text: '❌ Отклонить', callback_data: `reject:${b.id}` }
+          ]]
+        }
+      )
+    } else {
+      console.warn('TG не настроен. ADMIN_CHAT_ID:', ADMIN_CHAT_ID, 'TG_TOKEN:', !!TG_TOKEN)
+    }
+
+    return { ok: true, code: verifyToken }
+  } catch (e) {
+    console.error('Verify request error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+// Verify confirm — пользователь нажал "Проверить" (для совместимости оставляем)
+app.post('/api/bots/:id/verify/confirm', { preHandler: auth }, async (req, reply) => {
+  try {
+    // Проверяем токен в описании бота через Telegram API
+    const { rows } = await db.query(
+      'SELECT b.*, u.telegram_id FROM bots b JOIN users u ON b.owner_id = u.id WHERE b.id = $1 AND b.owner_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
+    const b = rows[0]
+
+    if (!TG_TOKEN || !b.verify_token) {
+      return { ok: true, pending: true, message: 'Заявка отправлена на проверку' }
+    }
+
+    // Проверяем описание бота в Telegram
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getChat?chat_id=@${b.username}`)
+      const tgData = await tgRes.json()
+      const desc = tgData?.result?.description || ''
+
+      if (desc.includes(b.verify_token)) {
+        // Токен найден — подтверждаем верификацию автоматически
+        await db.query('UPDATE bots SET verified=true WHERE id=$1', [req.params.id])
+
+        // Уведомляем себя
+        if (ADMIN_CHAT_ID) {
+          await tgSend(ADMIN_CHAT_ID,
+            `✅ <b>Авто-верификация прошла</b>\n\nБот @${b.username} подтвердил владение через токен в описании.`
+          )
+        }
+
+        return { ok: true, verified: true, message: 'Бот верифицирован!' }
+      } else {
+        return { ok: false, verified: false, message: 'Токен не найден в описании бота. Заявка ожидает ручной проверки.' }
+      }
+    } catch (tgErr) {
+      // Не смогли проверить — ждём ручной проверки
+      return { ok: true, pending: true, message: 'Заявка отправлена. Мы проверим вручную.' }
+    }
+
+  } catch (e) {
+    console.error('Verify confirm error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+
+// ════════════════════════════════
+// ПОСТЫ
+// ════════════════════════════════
+app.get('/api/feed/discover', async (req) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query
+    const { rows } = await db.query(`
+      SELECT p.*,
+        b.name as bot_name, b.username as bot_username,
+        b.photo_url as bot_photo, b.verified as bot_verified,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
+          FILTER (WHERE r.emoji IS NOT NULL), '[]'
+        ) as reactions,
+        COUNT(DISTINCT c.id) as comments_count
+      FROM posts p
+      JOIN bots b ON p.bot_id = b.id
+      LEFT JOIN (
+        SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
+      ) r ON p.id = r.post_id
+      LEFT JOIN comments c ON p.id = c.post_id
+      GROUP BY p.id, b.name, b.username, b.photo_url, b.verified
+      ORDER BY p.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [Number(limit), Number(offset)])
+    return rows
+  } catch (e) {
+    console.error('Feed error:', e.message)
+    return []
+  }
+})
+
+app.get('/api/feed', { preHandler: optAuth }, async (req) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query
+    // Если авторизован — посты подписок, иначе — все посты
+    if (req.user?.id) {
+      const { rows } = await db.query(`
+        SELECT p.*,
+          b.name as bot_name, b.username as bot_username, b.id as bot_id,
+          b.photo_url as bot_photo, b.verified as bot_verified,
+          COALESCE(
+            json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
+            FILTER (WHERE r.emoji IS NOT NULL), '[]'
+          ) as reactions,
+          COUNT(DISTINCT c.id) as comments_count,
+          COALESCE(
+            json_agg(DISTINCT mr.emoji) FILTER (WHERE mr.emoji IS NOT NULL), '[]'
+          ) as my_reactions
+        FROM posts p
+        JOIN bots b ON p.bot_id = b.id
+        JOIN subscriptions s ON b.id = s.bot_id AND s.user_id = $1
+        LEFT JOIN (
+          SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
+        ) r ON p.id = r.post_id
+        LEFT JOIN comments c ON p.id = c.post_id
+        LEFT JOIN reactions mr ON p.id = mr.post_id AND mr.user_id = $1
+        GROUP BY p.id, b.name, b.username, b.id, b.photo_url, b.verified
+        ORDER BY p.created_at DESC
+        LIMIT $2 OFFSET $3
+      `, [req.user.id, Number(limit), Number(offset)])
+      return rows
+    } else {
+      const { rows } = await db.query(`
+        SELECT p.*,
+          b.name as bot_name, b.username as bot_username, b.id as bot_id,
+          b.photo_url as bot_photo, b.verified as bot_verified,
+          COALESCE(
+            json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
+            FILTER (WHERE r.emoji IS NOT NULL), '[]'
+          ) as reactions,
+          COUNT(DISTINCT c.id) as comments_count,
+          '[]'::json as my_reactions
+        FROM posts p
+        JOIN bots b ON p.bot_id = b.id
+        LEFT JOIN (
+          SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
+        ) r ON p.id = r.post_id
+        LEFT JOIN comments c ON p.id = c.post_id
+        WHERE b.verified = true
+        GROUP BY p.id, b.name, b.username, b.id, b.photo_url, b.verified
+        ORDER BY p.created_at DESC
+        LIMIT $1 OFFSET $2
+      `, [Number(limit), Number(offset)])
+      return rows
+    }
+  } catch (e) {
+    console.error('Feed error:', e.message)
+    return []
+  }
+})
+
+app.get('/api/bots/:botId/posts', { preHandler: optAuth }, async (req) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query
+    const { rows } = await db.query(`
+      SELECT p.*,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt))
+          FILTER (WHERE r.emoji IS NOT NULL), '[]'
+        ) as reactions,
+        COUNT(DISTINCT c.id) as comments_count
+      FROM posts p
+      LEFT JOIN (
+        SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji
+      ) r ON p.id = r.post_id
+      LEFT JOIN comments c ON p.id = c.post_id
+      WHERE p.bot_id = $1
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [req.params.botId, Number(limit), Number(offset)])
+    return rows
+  } catch (e) {
+    return []
+  }
+})
+
+app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
+  const { text, image_url, post_type } = req.body
+  if (!text?.trim()) return reply.code(400).send({ error: 'Текст обязателен' })
+
+  const { rows: b } = await db.query(
+    'SELECT id FROM bots WHERE id = $1 AND owner_id = $2',
+    [req.params.botId, req.user.id]
+  )
+  if (!b[0]) return reply.code(403).send({ error: 'Нет доступа' })
+
+  // Добавляем post_type если колонка есть (безопасный INSERT)
+  let rows
+  try {
+    const r = await db.query(
+      'INSERT INTO posts (bot_id, text, image_url, post_type) VALUES ($1, $2, $3, $4) RETURNING *',
+      [req.params.botId, text.trim(), image_url || null, post_type || null]
+    )
+    rows = r.rows
+  } catch {
+    // Если колонки нет — вставляем без неё
+    const r = await db.query(
+      'INSERT INTO posts (bot_id, text, image_url) VALUES ($1, $2, $3) RETURNING *',
+      [req.params.botId, text.trim(), image_url || null]
+    )
+    rows = r.rows
+  }
+  return rows[0]
+})
+
+app.delete('/api/posts/:id', { preHandler: auth }, async (req, reply) => {
+  try {
+    await db.query(`
+      DELETE FROM posts WHERE id = $1
+      AND bot_id IN (SELECT id FROM bots WHERE owner_id = $2)
+    `, [req.params.id, req.user.id])
+    return { ok: true }
+  } catch (e) {
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
+  const { emoji } = req.body
+  if (!['🔥', '👍', '❤️', '😂', '👏', '🎉'].includes(emoji)) {
+    return reply.code(400).send({ error: 'Неверный эмодзи' })
+  }
+  const { rows } = await db.query(
+    'SELECT id FROM reactions WHERE post_id=$1 AND user_id=$2 AND emoji=$3',
+    [req.params.id, req.user.id, emoji]
+  )
+  if (rows[0]) {
+    await db.query('DELETE FROM reactions WHERE id=$1', [rows[0].id])
+    return { action: 'removed' }
+  } else {
+    await db.query(
+      'INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1, $2, $3)',
+      [req.params.id, req.user.id, emoji]
+    )
+    return { action: 'added' }
+  }
+})
+
+app.get('/api/posts/:id/comments', async (req) => {
+  const { rows } = await db.query(`
+    SELECT c.*, u.first_name, u.username, u.photo_url
+    FROM comments c JOIN users u ON c.user_id = u.id
+    WHERE c.post_id = $1 ORDER BY c.created_at ASC
+  `, [req.params.id])
+  return rows
+})
+
+app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => {
+  if (!req.body.text?.trim()) return reply.code(400).send({ error: 'Пустой комментарий' })
+  const { rows } = await db.query(
+    'INSERT INTO comments (post_id, user_id, text) VALUES ($1, $2, $3) RETURNING *',
+    [req.params.id, req.user.id, req.body.text.trim()]
+  )
+  return rows[0]
+})
+
+// ════════════════════════════════
+// ПОДПИСКИ
+// ════════════════════════════════
+app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req, reply) => {
+  try {
+    const userId = req.user.id
+    const botId = parseInt(req.params.botId)
+
+    const { rows } = await db.query(
+      'SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2',
+      [userId, botId]
+    )
+
+    if (rows[0]) {
+      await db.query('DELETE FROM subscriptions WHERE id=$1', [rows[0].id])
+      return { subscribed: false }
+    } else {
+      await db.query(
+        'INSERT INTO subscriptions (user_id, bot_id) VALUES ($1, $2)',
+        [userId, botId]
+      )
+      return { subscribed: true }
+    }
+  } catch (e) {
+    console.error('Subscribe error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+app.get('/api/my/subscriptions', { preHandler: auth }, async (req) => {
+  const { rows } = await db.query(`
+    SELECT b.id, b.username, b.name, b.photo_url, b.members, b.verified, s.created_at as subscribed_at
+    FROM subscriptions s JOIN bots b ON s.bot_id = b.id
+    WHERE s.user_id = $1 ORDER BY s.created_at DESC
+  `, [req.user.id])
+  return rows
+})
+
+// Health check
+app.get('/health', () => ({ status: 'ok', time: new Date().toISOString() }))
+
+// Запуск
+try {
+  await app.listen({ port: Number(process.env.PORT) || 3000, host: '0.0.0.0' })
+} catch (err) {
+  console.error(err)
+  process.exit(1)
 }
-initApp();
-</script>
-</body>
-</html>
