@@ -970,26 +970,46 @@ html, body {
 
           <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;">
 
-            <!-- Google кнопка -->
-            <button id="googleAuthBtn" onclick="loginWithGoogle()" style="
-              width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
-              background:#fff;color:#1f1f1f;border:none;border-radius:14px;
-              padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;
-              box-shadow:0 4px 16px rgba(0,0,0,0.25);
-              font-family:'Inter',sans-serif;
-              transition:transform .12s ease, box-shadow .12s ease, opacity .12s;
-              -webkit-tap-highlight-color:transparent;
-              position:relative;overflow:hidden;
-            ">
-              <span id="googleBtnSpinner" style="display:none;width:20px;height:20px;border:2px solid #ccc;border-top-color:#1f1f1f;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></span>
-              <svg id="googleBtnIcon" width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              </svg>
-              <span id="googleBtnText">Продолжить с Google</span>
-            </button>
+            <!-- Email форма — шаг 1 -->
+            <div id="emailStep1">
+              <div style="font-size:12px;color:var(--sub);margin-bottom:8px;">📧 Введи свой email</div>
+              <div style="display:flex;gap:8px;">
+                <input id="emailInput" type="email" placeholder="example@gmail.com"
+                  style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;
+                  padding:13px 14px;font-size:15px;color:var(--text);font-family:'Inter',sans-serif;outline:none;"
+                  onkeydown="if(event.key==='Enter')sendEmailCode()"
+                  onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--border)'">
+                <button onclick="sendEmailCode()" id="sendCodeBtn" style="
+                  background:var(--acc);color:#fff;border:none;border-radius:12px;
+                  padding:13px 16px;font-size:14px;font-weight:600;cursor:pointer;
+                  font-family:'Inter',sans-serif;white-space:nowrap;flex-shrink:0;">
+                  Получить код
+                </button>
+              </div>
+            </div>
+
+            <!-- Email форма — шаг 2 (код) -->
+            <div id="emailStep2" style="display:none;">
+              <div style="font-size:12px;color:var(--sub);margin-bottom:8px;">🔑 Введи код из письма</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:10px;" id="emailHint"></div>
+              <div style="display:flex;gap:8px;">
+                <input id="codeInput" type="text" inputmode="numeric" maxlength="6" placeholder="123456"
+                  style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;
+                  padding:13px 14px;font-size:22px;font-weight:700;color:var(--text);letter-spacing:6px;
+                  font-family:'Inter',sans-serif;outline:none;text-align:center;"
+                  onkeydown="if(event.key==='Enter')verifyEmailCode()"
+                  onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--border)'">
+                <button onclick="verifyEmailCode()" style="
+                  background:var(--green);color:#fff;border:none;border-radius:12px;
+                  padding:13px 16px;font-size:14px;font-weight:600;cursor:pointer;
+                  font-family:'Inter',sans-serif;flex-shrink:0;">
+                  Войти
+                </button>
+              </div>
+              <div style="text-align:center;margin-top:10px;">
+                <span onclick="backToEmail()" style="font-size:12px;color:var(--acc);cursor:pointer;">← Изменить email</span>
+              </div>
+            </div>
 
             <!-- Разделитель -->
             <div style="display:flex;align-items:center;gap:10px;padding:2px 0;">
@@ -1026,7 +1046,6 @@ html, body {
           </div>
         </div>
 
-        <!-- Google OAuth redirect обрабатывается в JS автоматически -->
       </div>
 
       <!-- Авторизован -->
@@ -1496,105 +1515,75 @@ async function loginTelegram(data) {
 // AUTH — Google (OAuth redirect)
 // ════════════════════════════════
 
-const GOOGLE_CLIENT_ID = '443378593916-3atdtlsqnpc2b88av03i932948iv83m9.apps.googleusercontent.com';
-const GOOGLE_REDIRECT  = 'https://botfeed.vercel.app';
+// ════════════════════════════════
+// AUTH — Email OTP
+// ════════════════════════════════
 
-// Нажатие на кнопку — редиректим на Google
-function loginWithGoogle() {
-  const btn     = document.getElementById('googleAuthBtn');
-  const icon    = document.getElementById('googleBtnIcon');
-  const spinner = document.getElementById('googleBtnSpinner');
-  const txt     = document.getElementById('googleBtnText');
-
-  if (btn) {
-    btn.disabled = true; btn.style.opacity = '.75';
-    icon    && (icon.style.display    = 'none');
-    spinner && (spinner.style.display = 'block');
-    txt     && (txt.textContent       = 'Открываем Google...');
+async function sendEmailCode() {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    toast('⚠️', 'Введи корректный email'); return;
   }
-
-  const state = Math.random().toString(36).slice(2);
-  localStorage.setItem('google_oauth_state', state);
-
-  const params = new URLSearchParams({
-    client_id:     GOOGLE_CLIENT_ID,
-    redirect_uri:  GOOGLE_REDIRECT,
-    response_type: 'code',          // authorization code flow
-    scope:         'openid email profile',
-    state:         state,
-    prompt:        'select_account',
-    access_type:   'online'
-  });
-
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
-}
-
-// Обрабатываем возврат от Google (code в query string ?code=...)
-async function handleGoogleCallback() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const code  = urlParams.get('code');
-  const state = urlParams.get('state');
-  const error = urlParams.get('error');
-
-  if (error) {
-    toast('❌', 'Google отказал: ' + error);
-    history.replaceState(null, '', window.location.pathname);
-    return;
-  }
-  if (!code) return;
-
-  // Очищаем URL
-  history.replaceState(null, '', window.location.pathname);
-
-  const savedState = localStorage.getItem('google_oauth_state');
-  localStorage.removeItem('google_oauth_state');
-  if (state && savedState && state !== savedState) {
-    toast('❌', 'Ошибка безопасности, попробуй снова');
-    return;
-  }
-
-  toast('⏳', 'Входим через Google...');
+  const btn = document.getElementById('sendCodeBtn');
+  btn.disabled = true; btn.textContent = '⏳ Отправка...';
 
   try {
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 25000);
-
-    // Отправляем code на бэкенд — он обменяет на токен и получит профиль
-    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/google', {
+    const r   = await fetch('https://botfeed-9v15.onrender.com/api/auth/email/send', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ code, redirectUri: GOOGLE_REDIRECT }),
-      signal:  ctrl.signal
+      body:    JSON.stringify({ email })
     });
-
-    const text = await r.text();
-    let res;
-    try { res = JSON.parse(text); }
-    catch(e) { toast('❌', 'Сервер: ' + text.slice(0, 100)); return; }
-
-    if (res?.token) {
-      TOKEN = res.token;
-      ME    = res.user;
-      localStorage.setItem('bf_token', TOKEN);
-      localStorage.setItem('bf_me',    JSON.stringify(ME));
-      showProfile();
-      loadFeed();
-      showScreen('profile');
-      toast('🎉', `Привет, ${ME.first_name}!`);
+    const res = await r.json();
+    if (res.ok) {
+      document.getElementById('emailStep1').style.display = 'none';
+      document.getElementById('emailStep2').style.display = 'block';
+      document.getElementById('emailHint').textContent    = 'Код отправлен на ' + email;
+      document.getElementById('codeInput').focus();
+      toast('📧', 'Код отправлен на ' + email);
     } else {
-      toast('❌', 'Ошибка: ' + (res?.error || JSON.stringify(res).slice(0, 100)));
+      toast('❌', res.error || 'Ошибка отправки');
+      btn.disabled = false; btn.textContent = 'Получить код';
     }
   } catch(e) {
-    if (e.name === 'AbortError') {
-      toast('❌', 'Сервер не ответил за 25 сек');
-    } else {
-      toast('❌', 'Ошибка: ' + e.message);
-    }
+    toast('❌', 'Нет связи с сервером');
+    btn.disabled = false; btn.textContent = 'Получить код';
   }
 }
 
-// Запускаем проверку callback при загрузке страницы
-handleGoogleCallback();
+async function verifyEmailCode() {
+  const email = document.getElementById('emailInput').value.trim();
+  const code  = document.getElementById('codeInput').value.trim();
+  if (!code) { toast('⚠️', 'Введи код'); return; }
+
+  toast('⏳', 'Проверяем код...');
+  try {
+    const r   = await fetch('https://botfeed-9v15.onrender.com/api/auth/email/verify', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, code })
+    });
+    const res = await r.json();
+    if (res?.token) {
+      TOKEN = res.token; ME = res.user;
+      localStorage.setItem('bf_token', TOKEN);
+      localStorage.setItem('bf_me',    JSON.stringify(ME));
+      showProfile(); loadFeed(); showScreen('profile');
+      toast('🎉', `Привет, ${ME.first_name}!`);
+    } else {
+      toast('❌', res.error || 'Неверный код');
+    }
+  } catch(e) {
+    toast('❌', 'Нет связи с сервером');
+  }
+}
+
+function backToEmail() {
+  document.getElementById('emailStep2').style.display = 'none';
+  document.getElementById('emailStep1').style.display = 'block';
+  const btn = document.getElementById('sendCodeBtn');
+  btn.disabled = false; btn.textContent = 'Получить код';
+  document.getElementById('codeInput').value = '';
+}
 
 function logout() {
   TOKEN = null;
