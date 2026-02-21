@@ -958,79 +958,60 @@ html, body {
         <div style="margin:0 14px 32px;background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;">
 
           <div style="padding:18px 18px 4px;text-align:center;">
-            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;">Войди или зарегистрируйся</div>
-            <div style="font-size:12px;color:var(--muted);">Одно нажатие — никаких паролей</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;">Войди через Telegram</div>
+            <div style="font-size:12px;color:var(--muted);">Бот пришлёт код — никаких паролей</div>
           </div>
 
           <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px;">
 
-            <!-- Email форма — шаг 1 -->
-            <div id="emailStep1">
-              <div style="font-size:12px;color:var(--sub);margin-bottom:8px;">📧 Введи свой email</div>
-              <input id="emailInput" type="email" placeholder="example@gmail.com"
-                autocomplete="email" autocorrect="off" autocapitalize="off"
-                style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;
-                padding:13px 14px;font-size:15px;color:var(--text);font-family:'Inter',sans-serif;
-                outline:none;box-sizing:border-box;display:block;"
-                onkeydown="if(event.key==='Enter')sendEmailCode()"
-                onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--border)'">
-              <button onclick="sendEmailCode()" id="sendCodeBtn" style="
-                width:100%;margin-top:8px;background:var(--acc);color:#fff;border:none;border-radius:12px;
-                padding:14px;font-size:15px;font-weight:600;cursor:pointer;
-                font-family:'Inter',sans-serif;display:block;box-sizing:border-box;">
-                Получить код →
+            <!-- Шаг 1: кнопка открыть бота -->
+            <div id="tgStep1">
+              <button onclick="startTgAuth()" id="tgStartBtn" style="
+                width:100%;background:#2481cc;color:#fff;border:none;border-radius:14px;
+                padding:16px;font-size:16px;font-weight:700;cursor:pointer;
+                font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;
+                box-shadow:0 4px 16px rgba(36,129,204,0.35);box-sizing:border-box;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+                Получить код в Telegram
               </button>
+              <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5;">
+                Нажми кнопку → откроется бот → он пришлёт 6-значный код
+              </div>
             </div>
 
-            <!-- Email форма — шаг 2 (код) -->
-            <div id="emailStep2" style="display:none;">
-              <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">🔑 Введи код из письма</div>
-              <div style="font-size:12px;color:var(--muted);margin-bottom:10px;" id="emailHint"></div>
-              <input id="codeInput" type="text" inputmode="numeric" maxlength="7" placeholder="· · · · · ·"
+            <!-- Шаг 2: ввод кода (появляется после нажатия) -->
+            <div id="tgStep2" style="display:none;">
+              <div style="background:rgba(46,166,255,0.08);border:1px solid rgba(46,166,255,0.2);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center;">
+                <div style="font-size:13px;color:var(--acc);font-weight:600;margin-bottom:4px;">✅ Бот открыт!</div>
+                <div style="font-size:12px;color:var(--sub);">Введи код который прислал <b>@BotFeeds_bot</b></div>
+              </div>
+              <input id="tgCodeInput" type="text" inputmode="numeric" maxlength="7" placeholder="· · · · · ·"
                 autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
                 style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;
-                padding:14px;font-size:28px;font-weight:700;color:var(--text);letter-spacing:10px;
+                padding:16px;font-size:32px;font-weight:700;color:var(--text);letter-spacing:12px;
                 font-family:'Inter',sans-serif;outline:none;text-align:center;
                 box-sizing:border-box;display:block;"
-                oninput="this.value=this.value.replace(/\D/g,'')"
-                onkeydown="if(event.key==='Enter')verifyEmailCode()"
+                oninput="this.value=this.value.replace(/\D/g,'');if(this.value.length===6)verifyTgCode()"
+                onkeydown="if(event.key==='Enter')verifyTgCode()"
                 onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--border)'"
-                onpaste="setTimeout(()=>{this.value=this.value.replace(/\D/g,'')},0)">
-              <button onclick="verifyEmailCode()" style="
-                width:100%;margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:12px;
+                onpaste="setTimeout(()=>{this.value=this.value.replace(/\D/g,'');if(this.value.length===6)verifyTgCode()},50)">
+              <button onclick="verifyTgCode()" id="tgVerifyBtn" style="
+                width:100%;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:12px;
                 padding:14px;font-size:15px;font-weight:600;cursor:pointer;
                 font-family:'Inter',sans-serif;display:block;box-sizing:border-box;">
                 Войти ✓
               </button>
-              <div style="text-align:center;margin-top:10px;">
-                <span onclick="backToEmail()" style="font-size:12px;color:var(--acc);cursor:pointer;">← Изменить email</span>
+              <div style="text-align:center;margin-top:10px;display:flex;justify-content:center;gap:16px;">
+                <span onclick="startTgAuth()" style="font-size:12px;color:var(--acc);cursor:pointer;">↺ Получить новый код</span>
+                <span onclick="resetTgAuth()" style="font-size:12px;color:var(--muted);cursor:pointer;">← Назад</span>
               </div>
-            </div>
-
-            <!-- Разделитель -->
-            <div style="display:flex;align-items:center;gap:10px;padding:2px 0;">
-              <div style="flex:1;height:1px;background:var(--border);"></div>
-              <div style="color:var(--muted);font-size:11px;font-weight:500;letter-spacing:.5px;">ИЛИ</div>
-              <div style="flex:1;height:1px;background:var(--border);"></div>
-            </div>
-
-            <!-- Telegram кнопка -->
-            <div style="width:100%;border-radius:14px;overflow:hidden;background:#2481cc;box-shadow:0 4px 16px rgba(36,129,204,0.3);display:flex;align-items:center;justify-content:center;min-height:50px;">
-              <script async src="https://telegram.org/js/telegram-widget.js?22"
-                data-telegram-login="botfeeds_bot"
-                data-size="large"
-                data-radius="14"
-                data-onauth="onTelegramAuth(user)"
-                data-request-access="write">
-              </script>
             </div>
 
           </div>
 
           <div style="padding:0 18px 16px;text-align:center;">
             <div style="font-size:11px;color:var(--muted);line-height:1.6;">
-              🔒 Безопасно. Мы не храним пароли.<br>
-              ⚡ Telegram нужен чтобы добавлять своих ботов.
+              🔒 Безопасно. Мы не храним пароли.
             </div>
           </div>
         </div>
@@ -1516,8 +1497,82 @@ async function loginTelegram(data) {
 // ════════════════════════════════
 
 // ════════════════════════════════
-// AUTH — Email OTP
+// AUTH — Telegram OTP
 // ════════════════════════════════
+let tgSessionId = null
+
+async function startTgAuth() {
+  const btn = document.getElementById('tgStartBtn')
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Открываем бота...' }
+
+  try {
+    const res = await fetch('https://botfeed-9v15.onrender.com/api/auth/tg/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }
+    })
+    const data = await res.json()
+    if (!data.ok) throw new Error(data.error || 'Ошибка')
+
+    tgSessionId = data.sessionId
+
+    // Открываем бота
+    window.open(data.botUrl, '_blank')
+
+    // Показываем шаг 2
+    document.getElementById('tgStep1').style.display = 'none'
+    document.getElementById('tgStep2').style.display = 'block'
+    setTimeout(() => {
+      document.getElementById('tgCodeInput')?.focus()
+    }, 300)
+
+  } catch(e) {
+    toast('❌', 'Ошибка: ' + e.message)
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg> Получить код в Telegram' }
+  }
+}
+
+async function verifyTgCode() {
+  if (!tgSessionId) { toast('⚠️', 'Начни заново'); return }
+  const code = document.getElementById('tgCodeInput')?.value?.replace(/\D/g, '')
+  if (!code || code.length < 6) { toast('⚠️', 'Введи 6-значный код'); return }
+
+  const btn = document.getElementById('tgVerifyBtn')
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Проверяем...' }
+
+  try {
+    const res = await fetch('https://botfeed-9v15.onrender.com/api/auth/tg/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: tgSessionId, code })
+    })
+    const data = await res.json()
+
+    if (data?.token) {
+      TOKEN = data.token; ME = data.user
+      localStorage.setItem('bf_token', TOKEN)
+      localStorage.setItem('bf_me', JSON.stringify(ME))
+      showProfile(); loadFeed(); showScreen('profile')
+      toast('🎉', `Привет, ${ME.first_name}!`)
+      tgSessionId = null
+    } else {
+      toast('❌', data.error || 'Неверный код')
+      if (btn) { btn.disabled = false; btn.textContent = 'Войти ✓' }
+    }
+  } catch(e) {
+    toast('❌', 'Нет связи с сервером')
+    if (btn) { btn.disabled = false; btn.textContent = 'Войти ✓' }
+  }
+}
+
+function resetTgAuth() {
+  tgSessionId = null
+  document.getElementById('tgStep1').style.display = 'block'
+  document.getElementById('tgStep2').style.display = 'none'
+  const btn = document.getElementById('tgStartBtn')
+  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg> Получить код в Telegram' }
+  if (document.getElementById('tgCodeInput')) document.getElementById('tgCodeInput').value = ''
+}
+
+
 
 async function sendEmailCode() {
   const email = document.getElementById('emailInput').value.trim();
@@ -3082,12 +3137,18 @@ function postTypeBadge(type) {
 // ════════════════════════════════
 // СТАРТ
 // ════════════════════════════════
-// Загружаем подписки при старте
 async function initApp() {
   loadFeed();
   showProfile();
   loadSearchDefault();
   if (TOKEN) {
+    // Обновляем данные пользователя (в т.ч. фото) с сервера
+    const fresh = await api('GET', '/auth/me');
+    if (fresh?.id) {
+      ME = fresh;
+      localStorage.setItem('bf_me', JSON.stringify(ME));
+      showProfile(); // перерисовываем с актуальным фото
+    }
     const subs = await api('GET', '/my/subscriptions');
     mySubIds = new Set((subs||[]).map(s => Number(s.id)));
   }
