@@ -167,6 +167,59 @@ app.post('/api/tg/webhook', async (req, reply) => {
 // ════════════════════════════════
 // AUTH
 // ════════════════════════════════
+
+// Регистрация через логин/пароль
+app.post('/api/auth/register', async (req, reply) => {
+  try {
+    const { username, first_name, password } = req.body
+    if (!username || !first_name || !password) return reply.code(400).send({ error: 'Заполни все поля' })
+    if (password.length < 6) return reply.code(400).send({ error: 'Пароль минимум 6 символов' })
+    if (!/^[a-z0-9_]{3,30}$/i.test(username)) return reply.code(400).send({ error: 'Логин: только буквы, цифры, _' })
+
+    // Хешируем пароль (простой SHA-256 + соль)
+    const salt = process.env.JWT_SECRET || 'botfeed_salt'
+    const hash = crypto.createHash('sha256').update(password + salt).digest('hex')
+
+    const { rows } = await db.query(`
+      INSERT INTO users (username, first_name, password_hash)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [username.toLowerCase(), first_name, hash])
+
+    const user = rows[0]
+    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
+    return { token, user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url } }
+  } catch (e) {
+    if (e.message.includes('unique') || e.message.includes('duplicate')) return reply.code(400).send({ error: 'Этот логин уже занят' })
+    console.error('Register error:', e.message)
+    return reply.code(500).send({ error: 'Ошибка сервера: ' + e.message })
+  }
+})
+
+// Вход через логин/пароль
+app.post('/api/auth/login', async (req, reply) => {
+  try {
+    const { username, password } = req.body
+    if (!username || !password) return reply.code(400).send({ error: 'Заполни все поля' })
+
+    const salt = process.env.JWT_SECRET || 'botfeed_salt'
+    const hash = crypto.createHash('sha256').update(password + salt).digest('hex')
+
+    const { rows } = await db.query(
+      'SELECT * FROM users WHERE LOWER(username) = LOWER($1) AND password_hash = $2',
+      [username, hash]
+    )
+    if (!rows[0]) return reply.code(401).send({ error: 'Неверный логин или пароль' })
+
+    const user = rows[0]
+    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
+    return { token, user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url } }
+  } catch (e) {
+    console.error('Login error:', e.message)
+    return reply.code(500).send({ error: 'Ошибка сервера' })
+  }
+})
+
 app.post('/api/auth/telegram', async (req, reply) => {
   try {
     const { id, first_name, last_name, username, photo_url } = req.body
@@ -279,6 +332,12 @@ app.post('/api/bots', { preHandler: auth }, async (req, reply) => {
     const { username, name, description, long_desc, categories } = req.body
     if (!username || !name) return reply.code(400).send({ error: 'Username и имя обязательны' })
     const clean = username.replace('@', '').toLowerCase()
+
+    // Только Telegram-пользователи могут добавлять ботов
+    const { rows: me } = await db.query('SELECT telegram_id FROM users WHERE id = $1', [req.user.id])
+    if (!me[0]?.telegram_id) {
+      return reply.code(403).send({ error: 'Для добавления бота нужно войти через Telegram' })
+    }
 
     // Лимит: 1 бот на пользователя
     const { rows: existing } = await db.query(
