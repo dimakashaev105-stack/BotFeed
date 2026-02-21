@@ -16,9 +16,11 @@ db.query('SELECT 1').then(() => console.log('✅ БД подключена')).ca
 
 // Авто-миграция: добавляем google_id и email если нет
 db.query(`
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
-`).then(() => console.log('✅ Миграция google_id/email')).catch(e => console.log('Migration note:', e.message))
+  CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx ON users(google_id) WHERE google_id IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
+`).then(() => console.log('✅ Миграция OK')).catch(e => console.log('Migration note:', e.message))
 
 // ════════════════════════════════
 // TELEGRAM BOT (уведомления админу)
@@ -174,106 +176,105 @@ app.post('/api/tg/webhook', async (req, reply) => {
 // AUTH
 // ════════════════════════════════
 
-// Вход / регистрация через Google
-app.post('/api/auth/google', async (req, reply) => {
+// ════════════════════════════════
+// AUTH — Email OTP (через Resend)
+// ════════════════════════════════
+
+// Хранилище кодов в памяти { email -> { code, expires } }
+const emailCodes = new Map()
+
+// Отправка кода на email
+app.post('/api/auth/email/send', async (req, reply) => {
   try {
-    const { code, redirectUri, accessToken, googleUser } = req.body
-
-    let googleId, email, firstName, lastName, photoUrl
-
-    if (code) {
-      // Authorization code flow — обмениваем code на токены
-      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id:     process.env.GOOGLE_CLIENT_ID || '443378593916-3atdtlsqnpc2b88av03i932948iv83m9.apps.googleusercontent.com',
-          client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
-          redirect_uri:  redirectUri || 'https://botfeed.vercel.app',
-          grant_type:    'authorization_code'
-        })
-      })
-      const tokenData = await tokenRes.json()
-      console.log('Token exchange:', JSON.stringify(tokenData).slice(0, 200))
-
-      if (tokenData.error) {
-        return reply.code(401).send({ error: 'Ошибка обмена кода: ' + tokenData.error_description })
-      }
-
-      // Получаем профиль через id_token или access_token
-      const idToken = tokenData.id_token
-      if (idToken) {
-        const parts  = idToken.split('.')
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString())
-        googleId  = payload.sub
-        email     = payload.email       || null
-        firstName = payload.given_name  || payload.name?.split(' ')[0] || 'User'
-        lastName  = payload.family_name || null
-        photoUrl  = payload.picture     || null
-      } else {
-        // Fallback — получаем профиль через access_token
-        const uRes  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: 'Bearer ' + tokenData.access_token }
-        })
-        const uData = await uRes.json()
-        googleId  = uData.sub
-        email     = uData.email         || null
-        firstName = uData.given_name    || uData.name?.split(' ')[0] || 'User'
-        lastName  = uData.family_name   || null
-        photoUrl  = uData.picture       || null
-      }
-
-    } else if (accessToken) {
-      const gRes  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: 'Bearer ' + accessToken }
-      })
-      const gData = await gRes.json()
-      if (!gData.sub) return reply.code(401).send({ error: 'Неверный access token' })
-      googleId  = gData.sub
-      email     = gData.email        || null
-      firstName = gData.given_name   || gData.name?.split(' ')[0] || 'User'
-      lastName  = gData.family_name  || null
-      photoUrl  = gData.picture      || null
-
-    } else if (googleUser) {
-      googleId  = googleUser.sub
-      email     = googleUser.email       || null
-      firstName = googleUser.given_name  || googleUser.name?.split(' ')[0] || 'User'
-      lastName  = googleUser.family_name || null
-      photoUrl  = googleUser.picture     || null
-
-    } else {
-      return reply.code(400).send({ error: 'Нет данных Google' })
+    const { email } = req.body
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return reply.code(400).send({ error: 'Некорректный email' })
     }
 
-    if (!googleId) return reply.code(400).send({ error: 'Нет Google ID' })
+    // Генерируем 6-значный код
+    const code    = String(Math.floor(100000 + Math.random() * 900000))
+    const expires = Date.now() + 10 * 60 * 1000 // 10 минут
+    emailCodes.set(email.toLowerCase(), { code, expires })
 
-    const baseUsername = email
-      ? email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 25)
-      : `g_${googleId.slice(-8)}`
+    // Отправляем через Resend
+    const resendKey = process.env.RESEND_API_KEY
+    if (!resendKey) return reply.code(500).send({ error: 'RESEND_API_KEY не настроен' })
 
+    const r = await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: {
+        'Authorization': 'Bearer ' + resendKey,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({
+        from:    'BotFeed <onboarding@resend.dev>',
+        to:      [email],
+        subject: 'Код входа в BotFeed: ' + code,
+        html:    `
+          <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:32px;">
+            <h2 style="color:#2ea6ff;margin-bottom:8px;">BotFeed</h2>
+            <p style="color:#666;margin-bottom:24px;">Каталог Telegram-ботов</p>
+            <p style="font-size:16px;color:#333;">Твой код для входа:</p>
+            <div style="background:#f4f4f4;border-radius:12px;padding:24px;text-align:center;margin:16px 0;">
+              <span style="font-size:40px;font-weight:900;letter-spacing:8px;color:#1a1a1a;">${code}</span>
+            </div>
+            <p style="color:#999;font-size:13px;">Код действителен 10 минут. Если ты не запрашивал вход — просто игнорируй это письмо.</p>
+          </div>
+        `
+      })
+    })
+
+    const rData = await r.json()
+    if (rData.error) {
+      console.error('Resend error:', rData.error)
+      return reply.code(500).send({ error: 'Ошибка отправки письма: ' + rData.error.message })
+    }
+
+    console.log('✅ Email code sent to:', email)
+    return { ok: true }
+  } catch (e) {
+    console.error('Send email error:', e.message)
+    return reply.code(500).send({ error: 'Ошибка сервера: ' + e.message })
+  }
+})
+
+// Проверка кода и вход
+app.post('/api/auth/email/verify', async (req, reply) => {
+  try {
+    const { email, code } = req.body
+    if (!email || !code) return reply.code(400).send({ error: 'Нет email или кода' })
+
+    const key   = email.toLowerCase()
+    const entry = emailCodes.get(key)
+
+    if (!entry)                       return reply.code(400).send({ error: 'Код не найден. Запроси новый.' })
+    if (Date.now() > entry.expires)   { emailCodes.delete(key); return reply.code(400).send({ error: 'Код истёк. Запроси новый.' }) }
+    if (entry.code !== String(code).trim()) return reply.code(400).send({ error: 'Неверный код' })
+
+    // Код верный — удаляем
+    emailCodes.delete(key)
+
+    // Генерируем username из email
+    const baseUsername = key.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 25)
+
+    // Upsert пользователя по email
     const { rows } = await db.query(`
-      INSERT INTO users (google_id, email, username, first_name, last_name, photo_url)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (google_id) DO UPDATE SET
-        email      = EXCLUDED.email,
-        first_name = EXCLUDED.first_name,
-        last_name  = EXCLUDED.last_name,
-        photo_url  = EXCLUDED.photo_url
+      INSERT INTO users (email, username, first_name)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
       RETURNING *
-    `, [googleId, email, baseUsername, firstName, lastName, photoUrl])
+    `, [key, baseUsername, baseUsername])
 
     const user  = rows[0]
     const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
 
-    console.log('✅ Google auth:', user.first_name, user.email)
+    console.log('✅ Email auth:', user.email)
     return {
       token,
       user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url }
     }
   } catch (e) {
-    console.error('Google auth error:', e.message)
+    console.error('Verify email error:', e.message)
     return reply.code(500).send({ error: 'Ошибка сервера: ' + e.message })
   }
 })
