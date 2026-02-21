@@ -587,6 +587,59 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 #s-botpage .topbar ~ div { animation: botInfoIn .35s cubic-bezier(0.22, 1, 0.36, 1) .1s both; }
+
+/* ══════════════════════════════════════
+   HOME TABS — Подписки / Рекомендации
+══════════════════════════════════════ */
+.home-topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  padding: 0 48px;
+  flex-shrink: 0;
+}
+.home-tabs {
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+.home-tab {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sub);
+  padding: 6px 20px;
+  cursor: pointer;
+  position: relative;
+  transition: color .2s;
+  user-select: none;
+}
+.home-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 50%; right: 50%;
+  height: 2px;
+  background: var(--acc);
+  border-radius: 2px 2px 0 0;
+  transition: left .3s cubic-bezier(0.34,1.56,0.64,1),
+              right .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.home-tab.active { color: var(--text); }
+.home-tab.active::after { left: 8px; right: 8px; }
+
+@keyframes feedSlideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes feedSlideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.feed-anim-right { animation: feedSlideInRight .25s cubic-bezier(0.22,1,0.36,1) both; }
+.feed-anim-left  { animation: feedSlideInLeft  .25s cubic-bezier(0.22,1,0.36,1) both; }
 </style>
 </head>
 <body>
@@ -598,12 +651,15 @@ html, body {
 
     <!-- HOME -->
     <div class="screen active" id="s-home">
-      <div class="topbar">
-        <div class="topbar-logo">BotFeed</div>
-        <div class="tb-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="home-topbar">
+        <div class="home-tabs">
+          <div class="home-tab active" id="tab-subs" onclick="switchFeedTab('subs')">Подписки</div>
+          <div class="home-tab" id="tab-rec" onclick="switchFeedTab('rec')">Рекомендации</div>
+        </div>
+        <div class="tb-btn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
       </div>
 
-      <div class="feed">
+      <div class="feed" id="feed-subs">
         <div class="post">
           <div class="post-head">
             <div class="p-ava">🤖</div>
@@ -678,6 +734,9 @@ html, body {
           </div>
         </div>
       </div>
+
+      <!-- Рекомендации -->
+      <div class="feed" id="feed-rec" style="display:none;"></div>
     </div>
 
     <!-- CATALOG -->
@@ -687,37 +746,22 @@ html, body {
         <div class="tb-btn"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
       </div>
       <div class="cat-banner">
-        <div class="cat-banner-title">2 400+ ботов в одном месте</div>
+        <div class="cat-banner-title">Каталог ботов</div>
         <div class="cat-banner-sub">Находи, подписывайся, следи за обновлениями</div>
         <div class="banner-stats">
-          <div class="bstat"><div class="bstat-n">18M+</div><div class="bstat-l">Участников</div></div>
-          <div class="bstat"><div class="bstat-n">94</div><div class="bstat-l">Категории</div></div>
-          <div class="bstat"><div class="bstat-n">+12%</div><div class="bstat-l">За месяц</div></div>
+          <div class="bstat"><div class="bstat-n" id="catStatBots">—</div><div class="bstat-l">Ботов</div></div>
+          <div class="bstat"><div class="bstat-n" id="catStatMembers">—</div><div class="bstat-l">Участников</div></div>
+          <div class="bstat"><div class="bstat-n" id="catStatPosts">—</div><div class="bstat-l">Постов</div></div>
         </div>
       </div>
-      <div class="sec-head"><div class="sec-title">Рекомендуем</div><div class="sec-more">Все</div></div>
-      <div class="feat-scroll">
-        <div class="feat-card">
-          <div class="feat-ava">🤖</div>
-          <div class="feat-name">ChatAI Bot <div class="p-badge">✓</div></div>
-          <div class="feat-desc">GPT-4o без ограничений — код, тексты, анализ</div>
-          <div class="feat-foot"><div class="feat-m"><div class="gdot"></div>142K</div><div class="sub-btn" onclick="subToggle(this)">Подписаться</div></div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ava">🎵</div>
-          <div class="feat-name">MusicFlow</div>
-          <div class="feat-desc">Скачивай музыку из Spotify, YouTube, Apple Music</div>
-          <div class="feat-foot"><div class="feat-m"><div class="gdot"></div>89K</div><div class="sub-btn" onclick="subToggle(this)">Подписаться</div></div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ava">🧠</div>
-          <div class="feat-name">BrainBot</div>
-          <div class="feat-desc">Генератор идей и мозговой штурм за секунды</div>
-          <div class="feat-foot"><div class="feat-m"><div class="gdot"></div>45K</div><div class="sub-btn" onclick="subToggle(this)">Подписаться</div></div>
-        </div>
+      <div class="sec-head"><div class="sec-title">Топ боты</div></div>
+      <div class="feat-scroll" id="featuredList">
+        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
+        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
+        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
       </div>
       <div class="divider"></div>
-      <div class="sec-head"><div class="sec-title">Все боты</div><div class="sec-more">Сортировка</div></div>
+      <div class="sec-head"><div class="sec-title">Все боты</div></div>
       <div class="bot-rows" id="catalogList">
         <div style="text-align:center;padding:32px;color:var(--sub)">Загрузка...</div>
       </div>
@@ -746,21 +790,22 @@ html, body {
         </div>
       </div>
 
-      <!-- Trending (shown when no query) -->
+      <!-- Default (shown when no query) -->
       <div id="searchDefault">
-        <div class="s-lbl">Популярные категории</div>
-        <div class="trending-grid">
-          <div class="trend-item" onclick="tapCat('ai','🤖 ИИ')"><div class="tr-ico">🤖</div><div><div class="tr-name">ИИ боты</div><div class="tr-cnt">847 ботов</div></div></div>
-          <div class="trend-item" onclick="tapCat('music','🎵 Музыка')"><div class="tr-ico">🎵</div><div><div class="tr-name">Музыка</div><div class="tr-cnt">312 ботов</div></div></div>
-          <div class="trend-item" onclick="tapCat('finance','📈 Финансы')"><div class="tr-ico">📈</div><div><div class="tr-name">Финансы</div><div class="tr-cnt">204 бота</div></div></div>
-          <div class="trend-item" onclick="tapCat('games','🎮 Игры')"><div class="tr-ico">🎮</div><div><div class="tr-name">Игры</div><div class="tr-cnt">189 ботов</div></div></div>
-          <div class="trend-item" onclick="tapCat('news','📰 Новости')"><div class="tr-ico">📰</div><div><div class="tr-name">Новости</div><div class="tr-cnt">156 ботов</div></div></div>
-          <div class="trend-item" onclick="tapCat('edu','📚 Обучение')"><div class="tr-ico">📚</div><div><div class="tr-name">Обучение</div><div class="tr-cnt">134 бота</div></div></div>
+        <div class="s-lbl">Категории</div>
+        <div class="trending-grid" id="searchCatGrid">
+          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
+          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
+          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
+          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
+          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
+          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
         </div>
-        <div class="s-lbl" style="padding-top:14px;">Недавно искали</div>
-        <div class="bot-rows" id="recentRows">
-          <div class="bot-row" onclick="toast('🤖','ChatAI Bot')"><div class="br-ava">🤖</div><div class="br-info"><div class="br-name">ChatAI Bot <div class="p-badge">✓</div></div><div class="br-desc">GPT-4o без ограничений</div><div class="br-tags"><div class="tag">ИИ</div></div></div><div class="br-right"><div class="br-count"><div class="gdot"></div>142K</div></div></div>
-          <div class="bot-row" onclick="toast('🧠','BrainBot')"><div class="br-ava">🧠</div><div class="br-info"><div class="br-name">BrainBot</div><div class="br-desc">Генератор идей за секунды</div><div class="br-tags"><div class="tag">ИИ</div></div></div><div class="br-right"><div class="br-count"><div class="gdot"></div>45K</div></div></div>
+        <div class="s-lbl" style="padding-top:14px;">Популярные боты</div>
+        <div class="bot-rows" id="popularBotsList">
+          <div class="shimmer" style="height:72px;border-radius:14px;margin-bottom:8px;"></div>
+          <div class="shimmer" style="height:72px;border-radius:14px;margin-bottom:8px;"></div>
+          <div class="shimmer" style="height:72px;border-radius:14px;"></div>
         </div>
       </div>
 
@@ -1446,16 +1491,105 @@ function skeletonBotRow() {
   </div>`;
 }
 
+// ════════════════════════════════
+// ЛЕНТА — табы Подписки / Рекомендации
+// ════════════════════════════════
+let activeFeedTab = 'subs'; // 'subs' | 'rec'
+let recPostsCache = null;   // кэш рекомендаций
+
+async function switchFeedTab(tab) {
+  if (tab === activeFeedTab) return;
+  const prev = activeFeedTab;
+  activeFeedTab = tab;
+
+  // Обновляем табы
+  document.getElementById('tab-subs').classList.toggle('active', tab === 'subs');
+  document.getElementById('tab-rec').classList.toggle('active', tab === 'rec');
+
+  const subsEl = document.getElementById('feed-subs');
+  const recEl  = document.getElementById('feed-rec');
+
+  const dir = tab === 'rec' ? 'right' : 'left';
+
+  if (tab === 'rec') {
+    subsEl.style.display = 'none';
+    recEl.style.display = 'block';
+    recEl.classList.remove('feed-anim-right','feed-anim-left');
+    void recEl.offsetWidth;
+    recEl.classList.add('feed-anim-right');
+    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+    if (!recPostsCache) {
+      await loadRecommended();
+    }
+  } else {
+    recEl.style.display = 'none';
+    subsEl.style.display = 'block';
+    subsEl.classList.remove('feed-anim-right','feed-anim-left');
+    void subsEl.offsetWidth;
+    subsEl.classList.add('feed-anim-left');
+    window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+  }
+}
+
 async function loadFeed() {
-  const feedEl = document.querySelector('.feed');
-  if (!feedEl) return;
+  // Сбрасываем таб на Подписки
+  activeFeedTab = 'subs';
+  recPostsCache = null;
+  document.getElementById('tab-subs')?.classList.add('active');
+  document.getElementById('tab-rec')?.classList.remove('active');
+  document.getElementById('feed-subs').style.display = 'block';
+  document.getElementById('feed-rec').style.display = 'none';
+
+  const feedEl = document.getElementById('feed-subs');
   feedEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
+
   const data = await api('GET', TOKEN ? '/feed' : '/feed/discover');
+
   if (!data?.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">👀</div><div style="font-weight:600;color:var(--text);margin-bottom:6px;">Постов пока нет</div><div style="font-size:13px;">Подпишись на ботов чтобы видеть их посты</div></div>';
+    feedEl.innerHTML = `
+      <div style="text-align:center;padding:48px 24px;color:var(--sub);">
+        <div style="font-size:40px;margin-bottom:12px;">📭</div>
+        <div style="font-weight:700;color:var(--text);margin-bottom:8px;">Тут пусто</div>
+        <div style="font-size:13px;line-height:1.6;margin-bottom:20px;">Подпишись на ботов чтобы видеть их посты</div>
+        <div onclick="go('catalog', document.querySelector('.nav-item:nth-child(2)'))" 
+             style="display:inline-block;padding:10px 22px;background:var(--acc);color:#fff;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">
+          Смотреть каталог →
+        </div>
+      </div>`;
+    // Автоматически показываем рекомендации
+    setTimeout(() => {
+      if (activeFeedTab === 'subs') switchFeedTab('rec');
+    }, 600);
     return;
   }
   feedEl.innerHTML = data.map(postHTML).join('');
+
+  // Фоново грузим рекомендации
+  loadRecommended();
+}
+
+async function loadRecommended() {
+  const recEl = document.getElementById('feed-rec');
+  if (!recEl) return;
+
+  if (!recPostsCache) {
+    recEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
+    // Берём все посты и перемешиваем (как TikTok)
+    const data = await api('GET', '/feed/discover?limit=50');
+    if (!data?.length) {
+      recEl.innerHTML = '<div style="text-align:center;padding:48px;color:var(--sub);">Нет постов для рекомендаций</div>';
+      return;
+    }
+    // Перемешиваем Fisher-Yates
+    const shuffled = [...data];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    recPostsCache = shuffled;
+  }
+
+  recEl.innerHTML = recPostsCache.map(postHTML).join('');
 }
 
 function postHTML(p) {
@@ -1559,16 +1693,113 @@ async function loadCatalog() {
   const el = document.getElementById('catalogList');
   if (!el) return;
   el.innerHTML = Array(4).fill(0).map(skeletonBotRow).join('');
+
   const [data, subs] = await Promise.all([
-    api('GET', '/bots'),
+    api('GET', '/bots?limit=50'),
     TOKEN ? api('GET', '/my/subscriptions') : Promise.resolve([])
   ]);
   mySubIds = new Set((subs||[]).map(s => Number(s.id)));
+
   if (!data?.length) {
     el.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">🤖</div><div style="font-weight:600;color:var(--text);">Ботов пока нет</div></div>';
+    // Обнуляем статистику
+    document.getElementById('catStatBots').textContent = '0';
+    document.getElementById('catStatMembers').textContent = '0';
+    document.getElementById('catStatPosts').textContent = '0';
+    document.getElementById('featuredList').innerHTML = '';
     return;
   }
+
+  // Статистика из реальных данных
+  const totalBots = data.length;
+  const totalMembers = data.reduce((s, b) => s + Number(b.members||0), 0);
+  const totalPosts = data.reduce((s, b) => s + Number(b.posts_count||0), 0);
+  document.getElementById('catStatBots').textContent = totalBots;
+  document.getElementById('catStatMembers').textContent = totalMembers > 1000 ? Math.floor(totalMembers/1000)+'K' : totalMembers;
+  document.getElementById('catStatPosts').textContent = totalPosts > 1000 ? Math.floor(totalPosts/1000)+'K' : totalPosts;
+
+  // Топ боты (featured) — сортируем по участникам
+  const top = [...data].sort((a,b) => Number(b.members||0) - Number(a.members||0)).slice(0, 5);
+  document.getElementById('featuredList').innerHTML = top.map(b => {
+    const isSub = mySubIds.has(Number(b.id));
+    const avaHtml = botAvatarHTML(b.username, 48, 14);
+    return `<div class="feat-card" onclick="openBotPage(${b.id}, event)">
+      <div class="feat-ava" style="overflow:hidden;">${avaHtml}</div>
+      <div class="feat-name">${esc(b.name)}${b.verified ? ' <div class="p-badge" style="display:inline-flex;font-size:9px;">✓</div>' : ''}</div>
+      <div class="feat-desc">${esc(b.description||'')}</div>
+      <div class="feat-foot">
+        <div class="feat-m"><div class="gdot"></div>${Number(b.members||0) > 1000 ? Math.floor(Number(b.members)/1000)+'K' : b.members||0}</div>
+        <div class="${isSub?'sub-btn subbed':'sub-btn'}" onclick="event.stopPropagation();subBot(${b.id},this)">${isSub?'✓ Подписан':'Подписаться'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Список всех ботов
   el.innerHTML = data.map(b => botRowHTML(b)).join('');
+}
+
+// ════════════════════════════════
+// ПОИСК — реальные данные по умолчанию
+// ════════════════════════════════
+const CAT_META = {
+  ai:       { ico: '🤖', name: 'ИИ боты',  key: 'ai' },
+  games:    { ico: '🎮', name: 'Игры',     key: 'games' },
+  music:    { ico: '🎵', name: 'Музыка',   key: 'music' },
+  finance:  { ico: '📈', name: 'Финансы',  key: 'finance' },
+  news:     { ico: '📰', name: 'Новости',  key: 'news' },
+  utils:    { ico: '🛠', name: 'Утилиты', key: 'utils' },
+  translate:{ ico: '🌐', name: 'Перевод',  key: 'translate' },
+  edu:      { ico: '📚', name: 'Обучение', key: 'edu' },
+};
+
+async function loadSearchDefault() {
+  const catGrid = document.getElementById('searchCatGrid');
+  const popularEl = document.getElementById('popularBotsList');
+  if (!catGrid || !popularEl) return;
+
+  const data = await api('GET', '/bots?limit=100');
+  if (!data?.length) {
+    catGrid.innerHTML = Object.values(CAT_META).map(c =>
+      `<div class="trend-item" onclick="tapCat('${c.key}','${c.ico} ${c.name}')">
+        <div class="tr-ico">${c.ico}</div>
+        <div><div class="tr-name">${c.name}</div><div class="tr-cnt">0 ботов</div></div>
+      </div>`
+    ).join('');
+    popularEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub);">Ботов пока нет</div>';
+    return;
+  }
+
+  // Считаем реальное кол-во ботов по категориям
+  const counts = {};
+  data.forEach(b => (b.categories||[]).forEach(c => {
+    const key = c.replace(/[🤖🎮🎵📈📰🛠🌐📚\s]/g,'').toLowerCase();
+    // Нормализуем ключ
+    const mapped = Object.keys(CAT_META).find(k =>
+      c.toLowerCase().includes(k) ||
+      (k==='ai' && c.toLowerCase().includes('и')) ||
+      (k==='utils' && c.toLowerCase().includes('утил'))
+    );
+    if (mapped) counts[mapped] = (counts[mapped]||0) + 1;
+  }));
+
+  // Сортируем категории по количеству
+  const sorted = Object.values(CAT_META)
+    .map(c => ({ ...c, cnt: counts[c.key]||0 }))
+    .sort((a,b) => b.cnt - a.cnt);
+
+  catGrid.innerHTML = sorted.map(c =>
+    `<div class="trend-item" onclick="tapCat('${c.key}','${c.ico} ${c.name}')">
+      <div class="tr-ico">${c.ico}</div>
+      <div>
+        <div class="tr-name">${c.name}</div>
+        <div class="tr-cnt">${c.cnt} бот${c.cnt===1?'':c.cnt>=2&&c.cnt<=4?'а':'ов'}</div>
+      </div>
+    </div>`
+  ).join('');
+
+  // Топ-5 популярных ботов
+  const top = [...data].sort((a,b) => Number(b.members||0) - Number(a.members||0)).slice(0, 5);
+  popularEl.innerHTML = top.map(b => botRowHTML(b)).join('');
 }
 
 function botRowHTML(b) {
@@ -2137,6 +2368,7 @@ function go(id, el) {
   currentScreen = id;
   if (id === 'home')    loadFeed();
   if (id === 'catalog') loadCatalog();
+  if (id === 'search')  loadSearchDefault();
   if (id === 'profile') showProfile();
 }
 
@@ -2185,6 +2417,7 @@ function toast(ico, msg) {
 async function initApp() {
   loadFeed();
   showProfile();
+  loadSearchDefault();
   if (TOKEN) {
     const subs = await api('GET', '/my/subscriptions');
     mySubIds = new Set((subs||[]).map(s => Number(s.id)));
