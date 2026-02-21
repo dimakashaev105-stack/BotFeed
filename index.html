@@ -657,6 +657,31 @@ html, body {
 .tip-ico { font-size:18px; flex-shrink:0; margin-top:1px; }
 .tip-txt { font-size:13px; color:var(--sub); line-height:1.5; }
 .tip-txt b { color:var(--text); }
+
+/* ── Post type buttons ── */
+.post-type-btn {
+  flex-shrink:0; padding:6px 12px; border-radius:20px;
+  font-size:12px; font-weight:600; cursor:pointer;
+  background:var(--bg); color:var(--sub);
+  border:1.5px solid var(--border);
+  transition:all .15s;
+  white-space:nowrap;
+}
+.post-type-btn.active {
+  background:var(--acc-dim); color:var(--acc);
+  border-color:var(--acc);
+}
+
+/* ── Post type badge in feed ── */
+.post-type-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:11px; font-weight:700; padding:3px 8px;
+  border-radius:6px; margin-bottom:8px;
+}
+.ptb-news   { background:rgba(46,166,255,0.12); color:#2ea6ff; }
+.ptb-update { background:rgba(77,205,106,0.12); color:#4dcd6a; }
+.ptb-tip    { background:rgba(245,166,35,0.12);  color:#f5a623; }
+.ptb-promo  { background:rgba(255,76,109,0.12);  color:#ff4c6d; }
 </style>
 </head>
 <body>
@@ -947,8 +972,10 @@ html, body {
               <div class="chart-period" onclick="setChartPeriod(this,30)">30д</div>
             </div>
           </div>
-          <canvas id="subsChart" height="120" style="width:100%;display:block;"></canvas>
-          <div id="subsChartEmpty" style="display:none;text-align:center;padding:32px 0;color:var(--sub);font-size:13px;">Данные появятся после первых подписчиков</div>
+          <div style="overflow:hidden;border-radius:8px;margin:0 -4px;">
+            <canvas id="subsChart" height="120" style="width:100%;display:block;max-width:100%;"></canvas>
+          </div>
+          <div id="subsChartEmpty" style="display:none;text-align:center;padding:32px 0;color:var(--sub);font-size:13px;">График появится когда опубликуешь посты</div>
         </div>
 
         <!-- Топ посты -->
@@ -968,7 +995,14 @@ html, body {
       <div id="mng-posts" style="display:none;padding:16px;">
         <!-- Новый пост -->
         <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">Новый пост</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">Новый пост</div>
+          <!-- Тип поста -->
+          <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+            <div class="post-type-btn active" data-type="news" onclick="selectPostType(this)">📢 Новость</div>
+            <div class="post-type-btn" data-type="update" onclick="selectPostType(this)">🚀 Обновление</div>
+            <div class="post-type-btn" data-type="tip" onclick="selectPostType(this)">💡 Совет</div>
+            <div class="post-type-btn" data-type="promo" onclick="selectPostType(this)">🎁 Акция</div>
+          </div>
           <textarea id="newPostText" placeholder="Расскажи об обновлении, новой фиче или совете..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:120px;outline:none;line-height:1.5;"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
             <div style="font-size:12px;color:var(--muted);" id="postCharCount">0 / 1000</div>
@@ -1674,6 +1708,7 @@ function postHTML(p) {
   const img = p.image_url ? `<div class="post-img" style="background:url('${esc(p.image_url)}') center/cover;height:200px;border-radius:10px;margin-bottom:10px;"></div>` : '';
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
   const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
+  const typeBadge = postTypeBadge(p.post_type);
   return `<div class="post" data-id="${p.id}" onclick="openPostDetail(${p.id}, event)">
     <div class="post-head">
       <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
@@ -1684,6 +1719,7 @@ function postHTML(p) {
       <div class="p-time">${timeAgo(p.created_at)}</div>
     </div>
     ${img}
+    ${typeBadge}
     <div class="post-text">${esc(p.text)}</div>
     <div class="post-foot">
       ${reacts}
@@ -2380,18 +2416,34 @@ function goBack() {
   currentScreen = 'profile';
 }
 
+let currentPostType = 'news';
+
+function selectPostType(el) {
+  document.querySelectorAll('.post-type-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentPostType = el.dataset.type;
+  const placeholders = {
+    news:   'Расскажи о новостях своего бота...',
+    update: 'Что нового в этой версии? Какие фичи добавили?',
+    tip:    'Поделись полезным советом или лайфхаком...',
+    promo:  'Опиши акцию или специальное предложение...'
+  };
+  document.getElementById('newPostText').placeholder = placeholders[currentPostType] || '';
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+}
+
 async function publishPost() {
   const text = document.getElementById('newPostText').value.trim();
   if (!text) { toast('⚠️', 'Напиши текст поста'); return; }
   if (text.length > 1000) { toast('⚠️', 'Пост слишком длинный'); return; }
 
-  const res = await api('POST', `/bots/${currentBotId}/posts`, { text });
+  const res = await api('POST', `/bots/${currentBotId}/posts`, { text, post_type: currentPostType });
   if (res?.id) {
     document.getElementById('newPostText').value = '';
     document.getElementById('postCharCount').textContent = '0 / 1000';
     toast('🚀', 'Пост опубликован!');
     loadMyPostsList();
-    // Обновляем счётчик
+    analyticsPostsData.unshift(res);
     const mng = document.getElementById('mngPosts');
     mng.textContent = parseInt(mng.textContent) + 1;
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
@@ -2671,6 +2723,71 @@ function toast(ico, msg) {
     setTimeout(() => t.classList.remove('hide'), 300);
   }, 2400);
 }
+
+// ════════════════════════════════
+// ТИП ПОСТА — бейдж
+// ════════════════════════════════
+function postTypeBadge(type) {
+  const map = {
+    news:   ['📢', 'Новость',    'ptb-news'],
+    update: ['🚀', 'Обновление', 'ptb-update'],
+    tip:    ['💡', 'Совет',      'ptb-tip'],
+    promo:  ['🎁', 'Акция',      'ptb-promo'],
+  };
+  if (!type || !map[type]) return '';
+  const [ico, label, cls] = map[type];
+  return `<div class="post-type-badge ${cls}">${ico} ${label}</div>`;
+}
+
+// ════════════════════════════════
+// СВАЙПЫ — навигация жестами
+// ════════════════════════════════
+(function initSwipes() {
+  const NAV_TABS = ['home', 'catalog', 'search', 'profile'];
+  let startX = 0, startY = 0, startTime = 0;
+  const THRESHOLD = 60;   // минимальный px свайпа
+  const RESTRAINT = 100;  // макс. отклонение по Y
+  const MAX_TIME  = 400;  // макс. мс
+
+  document.addEventListener('touchstart', e => {
+    startX    = e.touches[0].clientX;
+    startY    = e.touches[0].clientY;
+    startTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    const dx   = e.changedTouches[0].clientX - startX;
+    const dy   = e.changedTouches[0].clientY - startY;
+    const dt   = Date.now() - startTime;
+    if (Math.abs(dx) < THRESHOLD) return;
+    if (Math.abs(dy) > RESTRAINT) return;
+    if (dt > MAX_TIME) return;
+
+    // Свайп на главной — переключение лент
+    if (currentScreen === 'home') {
+      if (dx < 0 && activeFeedTab === 'subs') { switchFeedTab('rec');  return; }
+      if (dx > 0 && activeFeedTab === 'rec')  { switchFeedTab('subs'); return; }
+    }
+
+    // Свайп вправо с sub-screen — назад
+    if (dx > 0 && ['botpage','botmanage','postdetail'].includes(currentScreen)) {
+      if (currentScreen === 'botpage')    { closeBotPage();    return; }
+      if (currentScreen === 'botmanage')  { goBack();          return; }
+      if (currentScreen === 'postdetail') { closePostDetail(); return; }
+    }
+
+    // Свайп между основными вкладками
+    const mainScreens = ['home','catalog','search','profile'];
+    if (!mainScreens.includes(currentScreen)) return;
+    const idx = NAV_TABS.indexOf(currentScreen);
+    const target = dx < 0
+      ? NAV_TABS[Math.min(idx + 1, NAV_TABS.length - 1)]
+      : NAV_TABS[Math.max(idx - 1, 0)];
+    if (target === currentScreen) return;
+    const navItem = document.querySelector(`.nav-item:nth-child(${NAV_TABS.indexOf(target) + 2})`);
+    if (navItem) go(target, navItem);
+  }, { passive: true });
+})();
 
 // ════════════════════════════════
 // СТАРТ
