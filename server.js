@@ -22,7 +22,7 @@ db.query(`
   CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
 `).then(() => console.log('✅ Миграция OK')).catch(e => console.log('Migration note:', e.message))
 
-// Таблица для OTP кодов — создаём синхронно перед стартом
+// Таблица для Telegram OTP кодов
 try {
   await db.query(`
     CREATE TABLE IF NOT EXISTS email_otp (
@@ -30,15 +30,26 @@ try {
       code TEXT NOT NULL,
       expires BIGINT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    )
+    );
+    CREATE TABLE IF NOT EXISTS tg_otp (
+      session_id TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      telegram_id BIGINT,
+      first_name TEXT,
+      username TEXT,
+      photo_url TEXT,
+      expires BIGINT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `)
-  console.log('✅ OTP table OK')
+  console.log('✅ OTP tables OK')
 } catch(e) {
   console.log('OTP table note:', e.message)
 }
 
-// Fallback на память если БД недоступна
+// In-memory fallback
 const emailCodes = new Map()
+const tgOtpMap   = new Map()
 
 // ════════════════════════════════
 // TELEGRAM BOT (уведомления админу)
@@ -116,7 +127,76 @@ async function optAuth(req) {
 app.post('/api/tg/webhook', async (req, reply) => {
   try {
     const update = req.body
-    const cb = update.callback_query
+    const cb  = update.callback_query
+    const msg = update.message
+
+    // ── Обработка /start LOGIN_<sessionId> ──
+    if (msg?.text?.startsWith('/start LOGIN_')) {
+      const sessionId = msg.text.replace('/start LOGIN_', '').trim()
+      const chatId    = msg.chat.id
+      const from      = msg.from
+
+      // Ищем сессию
+      let session = tgOtpMap.get(sessionId)
+      if (!session) {
+        try {
+          const { rows } = await db.query('SELECT * FROM tg_otp WHERE session_id=$1', [sessionId])
+          if (rows[0]) session = rows[0]
+        } catch {}
+      }
+
+      if (!session || Date.now() > Number(session.expires)) {
+        await tgSend(chatId, '❌ Сессия устарела. Вернись на сайт и нажми кнопку снова.')
+        return { ok: true }
+      }
+
+      // Получаем фото профиля пользователя
+      let photo_url = null
+      try {
+        const photosRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUserProfilePhotos?user_id=${chatId}&limit=1`)
+        const photosData = await photosRes.json()
+        const fileId     = photosData?.result?.photos?.[0]?.[2]?.file_id || photosData?.result?.photos?.[0]?.[0]?.file_id
+        if (fileId) {
+          const fileRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`)
+          const fileData = await fileRes.json()
+          if (fileData?.result?.file_path) {
+            photo_url = `https://api.telegram.org/file/bot${TG_TOKEN}/${fileData.result.file_path}`
+          }
+        }
+      } catch {}
+
+      // Сохраняем данные пользователя и отправляем код
+      const code = String(Math.floor(100000 + Math.random() * 900000))
+      const updated = {
+        ...session,
+        code,
+        telegram_id: chatId,
+        first_name:  from.first_name || '',
+        username:    from.username   || null,
+        photo_url,
+        expires:     Date.now() + 10 * 60 * 1000
+      }
+      tgOtpMap.set(sessionId, updated)
+      try {
+        await db.query(`
+          INSERT INTO tg_otp (session_id, code, telegram_id, first_name, username, photo_url, expires)
+          VALUES ($1,$2,$3,$4,$5,$6,$7)
+          ON CONFLICT (session_id) DO UPDATE SET
+            code=$2, telegram_id=$3, first_name=$4, username=$5, photo_url=$6, expires=$7
+        `, [sessionId, code, chatId, updated.first_name, updated.username, null, updated.expires])
+      } catch {}
+
+      await tgSend(chatId,
+        `👋 <b>Привет, ${updated.first_name}!</b>\n\n` +
+        `Твой код для входа в <b>BotFeed</b>:\n\n` +
+        `<code>${code}</code>\n\n` +
+        `⏱ Код действителен 10 минут.\n` +
+        `Вернись на сайт и введи этот код.`
+      )
+      return { ok: true }
+    }
+
+    // ── Обработка callback кнопок (одобрить/отклонить бота) ──
     if (!cb) return { ok: true }
 
     const data = cb.data || ''
@@ -332,7 +412,88 @@ app.post('/api/auth/email/verify', async (req, reply) => {
   }
 })
 
-app.post('/api/auth/telegram', async (req, reply) => {
+// ════════════════════════════════
+// AUTH — Telegram OTP через бота
+// ════════════════════════════════
+
+// Шаг 1: создаём сессию, отдаём sessionId и ссылку на бота
+app.post('/api/auth/tg/start', async (req, reply) => {
+  try {
+    const sessionId = crypto.randomBytes(16).toString('hex')
+    const expires   = Date.now() + 15 * 60 * 1000 // 15 минут
+    const entry     = { session_id: sessionId, code: null, telegram_id: null, expires }
+
+    tgOtpMap.set(sessionId, entry)
+    try {
+      await db.query(`
+        INSERT INTO tg_otp (session_id, code, expires)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (session_id) DO UPDATE SET expires=$3
+      `, [sessionId, '', expires])
+    } catch {}
+
+    return {
+      ok: true,
+      sessionId,
+      botUrl: `https://t.me/BotFeeds_bot?start=LOGIN_${sessionId}`
+    }
+  } catch (e) {
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+// Шаг 2: проверяем код
+app.post('/api/auth/tg/verify', async (req, reply) => {
+  try {
+    const { sessionId, code } = req.body
+    if (!sessionId || !code) return reply.code(400).send({ error: 'Нет данных' })
+
+    const codeClean = String(code).replace(/\D/g, '').trim()
+
+    // Ищем сессию
+    let session = tgOtpMap.get(sessionId)
+    if (!session) {
+      try {
+        const { rows } = await db.query('SELECT * FROM tg_otp WHERE session_id=$1', [sessionId])
+        if (rows[0]) session = rows[0]
+      } catch {}
+    }
+
+    if (!session)                          return reply.code(400).send({ error: 'Сессия не найдена. Начни заново.' })
+    if (Date.now() > Number(session.expires)) return reply.code(400).send({ error: 'Код истёк. Начни заново.' })
+    if (!session.code)                     return reply.code(400).send({ error: 'Код ещё не получен. Открой бота.' })
+    if (session.code !== codeClean)        return reply.code(400).send({ error: 'Неверный код' })
+
+    // Код верный — удаляем сессию
+    tgOtpMap.delete(sessionId)
+    db.query('DELETE FROM tg_otp WHERE session_id=$1', [sessionId]).catch(() => {})
+
+    // Upsert пользователя
+    const { rows } = await db.query(`
+      INSERT INTO users (telegram_id, username, first_name, photo_url)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (telegram_id) DO UPDATE SET
+        username   = COALESCE(EXCLUDED.username, users.username),
+        first_name = EXCLUDED.first_name,
+        photo_url  = COALESCE(EXCLUDED.photo_url, users.photo_url)
+      RETURNING *
+    `, [session.telegram_id, session.username || null, session.first_name || 'User', session.photo_url || null])
+
+    const user  = rows[0]
+    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
+
+    console.log('✅ TG OTP auth:', user.first_name, user.telegram_id)
+    return {
+      token,
+      user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url }
+    }
+  } catch (e) {
+    console.error('TG verify error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
+
   try {
     const { id, first_name, last_name, username, photo_url } = req.body
     console.log('Auth attempt for:', first_name, id)
@@ -376,10 +537,33 @@ app.post('/api/auth/telegram', async (req, reply) => {
 
 app.get('/api/auth/me', { preHandler: auth }, async (req) => {
   const { rows } = await db.query(
-    'SELECT id, first_name, last_name, username, photo_url FROM users WHERE id = $1',
+    'SELECT id, first_name, last_name, username, photo_url, telegram_id FROM users WHERE id = $1',
     [req.user.id]
   )
-  return rows[0] || null
+  const user = rows[0]
+  if (!user) return null
+
+  // Обновляем фото из Telegram если есть telegram_id
+  if (user.telegram_id && TG_TOKEN) {
+    try {
+      const photosRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUserProfilePhotos?user_id=${user.telegram_id}&limit=1`)
+      const photosData = await photosRes.json()
+      const fileId     = photosData?.result?.photos?.[0]?.[2]?.file_id || photosData?.result?.photos?.[0]?.[0]?.file_id
+      if (fileId) {
+        const fileRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`)
+        const fileData = await fileRes.json()
+        if (fileData?.result?.file_path) {
+          const newPhoto = `https://api.telegram.org/file/bot${TG_TOKEN}/${fileData.result.file_path}`
+          if (newPhoto !== user.photo_url) {
+            await db.query('UPDATE users SET photo_url=$1 WHERE id=$2', [newPhoto, user.id])
+            user.photo_url = newPhoto
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return { id: user.id, first_name: user.first_name, last_name: user.last_name, username: user.username, photo_url: user.photo_url }
 })
 
 // ════════════════════════════════
