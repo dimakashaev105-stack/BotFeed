@@ -42,6 +42,7 @@ html, body {
 }
 
 .screens { flex: 1; overflow: hidden; position: relative; min-height: 0; }
+/* Nav is fixed, so screens fill full height and content scrolls under nav */
 .screen {
   position: absolute; inset: 0;
   overflow-y: auto; overflow-x: hidden;
@@ -55,24 +56,30 @@ html, body {
 
 /* NAV */
 .nav-wrap {
-  flex-shrink: 0;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  padding: 8px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   background: transparent;
-  position: relative;
   z-index: 50;
+  pointer-events: none;
 }
 
 .nav {
-  height: 58px;
-  background: rgba(36, 47, 61, 0.82);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  height: 60px;
+  background: rgba(28, 39, 51, 0.72);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 22px;
+  border-radius: 24px;
   display: flex;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
   overflow: hidden;
+  pointer-events: all;
 }
 
 /* Sliding indicator under active nav item */
@@ -3159,6 +3166,8 @@ async function openPostDetail(postId, event) {
   page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
   currentScreen = 'postdetail';
   page.scrollTo(0, 0);
+  // Скрываем нижнюю панель навигации на странице поста
+  document.querySelector('.nav-wrap').style.display = 'none';
 
   // Счётчик просмотров — не чаще раза в 24ч
   const viewKey = `bf_view_${postId}`;
@@ -3173,12 +3182,13 @@ async function openPostDetail(postId, event) {
   document.getElementById('postDetailComments').innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Загрузка...</div>';
 
   // Параллельно грузим пост и комментарии
-  const [commentsData, feedData] = await Promise.all([
+  const [commentsData, feedData, postData] = await Promise.all([
     api('GET', `/posts/${postId}/comments`),
-    api('GET', '/feed?limit=50')
+    api('GET', '/feed?limit=50'),
+    api('GET', `/posts/${postId}`)
   ]);
 
-  const p = (feedData || []).find(x => x.id == postId);
+  const p = (feedData || []).find(x => x.id == postId) || postData;
   if (p) {
     const avaHtml = botAvatarHTML(p.bot_username, 44, 14);
     const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
@@ -3200,6 +3210,7 @@ async function openPostDetail(postId, event) {
         <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
           ${reacts}
           <div class="react on">💬 <span>${commentsData?.length||0}</span></div>
+          ${p.views_count ? `<div class="react" style="cursor:default;">👁 <span>${p.views_count >= 1000 ? (p.views_count/1000).toFixed(1)+'k' : p.views_count}</span></div>` : ''}
           <div class="react-sep"></div>
           <div class="share" onclick="sharePostDetail()">
             <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -3387,6 +3398,8 @@ function sharePostDetail() {
 }
 
 function closePostDetail() {
+  // Возвращаем нижнюю панель навигации
+  document.querySelector('.nav-wrap').style.display = '';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
   const prev = document.getElementById('s-' + prevScreenBeforePost) || document.getElementById('s-home');
   prev.classList.add('active','anim-left');
@@ -3611,4 +3624,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-  </html>
+</html>
