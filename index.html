@@ -572,6 +572,21 @@ html, body {
 .set-chev { font-size:18px; color:var(--muted); }
 .set-row.danger .set-lbl { color:var(--red); }
 
+
+/* ══════════════════════════════════════
+   BOT PAGE
+══════════════════════════════════════ */
+@keyframes heroIn {
+  from { opacity: 0; transform: scale(1.05); }
+  to   { opacity: 1; transform: scale(1); }
+}
+#botPageHero { animation: heroIn .4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes botInfoIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#s-botpage .topbar ~ div { animation: botInfoIn .35s cubic-bezier(0.22, 1, 0.36, 1) .1s both; }
 </style>
 </head>
 <body>
@@ -874,6 +889,65 @@ html, body {
         </div>
       </div>
     </div>
+
+    <!-- BOT PAGE -->
+    <div class="screen" id="s-botpage">
+      <div class="topbar" style="position:sticky;top:0;z-index:20;background:var(--bg);">
+        <div class="tb-btn" onclick="closeBotPage()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+        <div class="topbar-title" id="botPageTitle">Бот</div>
+        <div class="tb-btn" onclick="shareBotPage()" id="botShareBtn"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+      </div>
+
+      <!-- Hero -->
+      <div id="botPageHero" style="position:relative;height:180px;background:linear-gradient(135deg,#1e3a5f,#0d2137);overflow:hidden;flex-shrink:0;">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;opacity:0.15;" id="botPageBg">🤖</div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,var(--bg),transparent);"></div>
+        <div style="position:absolute;bottom:-28px;left:20px;width:64px;height:64px;border-radius:20px;background:var(--card);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:32px;" id="botPageAva">🤖</div>
+      </div>
+
+      <div style="padding:40px 16px 0;">
+        <!-- Info -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:20px;font-weight:800;display:flex;align-items:center;gap:7px;" id="botPageName">—</div>
+            <div style="font-size:13px;color:var(--sub);margin-top:3px;" id="botPageUsername">@—</div>
+          </div>
+          <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;" onclick="subBotPage()">Подписаться</div>
+        </div>
+
+        <!-- Description -->
+        <div style="font-size:14px;line-height:1.6;color:var(--sub);margin-bottom:16px;" id="botPageDesc">—</div>
+
+        <!-- Tags -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="botPageTags"></div>
+
+        <!-- Stats -->
+        <div style="display:flex;gap:8px;margin-bottom:20px;">
+          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:17px;font-weight:800;" id="botPageMembers">0</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Участников</div>
+          </div>
+          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:17px;font-weight:800;" id="botPagePosts">0</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Постов</div>
+          </div>
+          <div style="flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:17px;font-weight:800;" id="botPageSubs">0</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Подписчиков</div>
+          </div>
+        </div>
+
+        <!-- Open in Telegram -->
+        <a id="botPageTgLink" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:var(--acc);color:#fff;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:20px;">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:white;stroke:none;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg>
+          Открыть в Telegram
+        </a>
+
+        <!-- Posts divider -->
+        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;">Посты</div>
+        <div id="botPagePostsList" style="padding-bottom:80px;"></div>
+      </div>
+    </div>
   </div><!-- end .screens -->
   <div class="nav">
     <div class="nav-indicator" id="navIndicator"></div>
@@ -1154,6 +1228,156 @@ async function loadMySubs() {
   document.getElementById('statSubs').textContent = res?.length || 0;
 }
 
+
+// ════════════════════════════════
+// СТРАНИЦА БОТА
+// ════════════════════════════════
+let currentBotPageId = null;
+let currentBotPageData = null;
+let prevScreenBeforeBot = 'home';
+
+async function openBotPage(botId, event) {
+  // Не открываем если кликнули на кнопку подписки
+  if (event?.target?.classList.contains('sub-btn')) return;
+
+  prevScreenBeforeBot = currentScreen;
+  currentBotPageId = botId;
+
+  // Показываем экран
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
+  const page = document.getElementById('s-botpage');
+  page.classList.add('active','anim-right');
+  page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
+  currentScreen = 'botpage';
+
+  // Сброс
+  document.getElementById('botPageName').textContent = '—';
+  document.getElementById('botPageUsername').textContent = '@—';
+  document.getElementById('botPageDesc').textContent = 'Загрузка...';
+  document.getElementById('botPageTags').innerHTML = '';
+  document.getElementById('botPagePostsList').innerHTML = Array(2).fill(0).map(skeletonPost).join('');
+
+  // Загружаем данные параллельно
+  const [bots, posts] = await Promise.all([
+    api('GET', '/bots'),
+    api('GET', `/bots/${botId}/posts`)
+  ]);
+
+  const b = (bots||[]).find(x => x.id == botId);
+  if (!b) return;
+
+  currentBotPageData = b;
+
+  // Заполняем UI
+  document.getElementById('botPageTitle').textContent = b.name;
+  document.getElementById('botPageName').innerHTML = esc(b.name) + (b.verified ? ' <div class="p-badge" style="display:inline-flex;">✓</div>' : '');
+  document.getElementById('botPageUsername').textContent = '@' + esc(b.username);
+  document.getElementById('botPageDesc').textContent = b.description || '';
+  document.getElementById('botPageMembers').textContent = b.members || 0;
+  document.getElementById('botPageSubs').textContent = b.subscribers || 0;
+  document.getElementById('botPagePosts').textContent = (posts||[]).length;
+  document.getElementById('botPageBg').textContent = '🤖';
+  document.getElementById('botPageAva').textContent = '🤖';
+  document.getElementById('botPageTgLink').href = 'https://t.me/' + b.username;
+
+  // Теги
+  const tagsEl = document.getElementById('botPageTags');
+  tagsEl.innerHTML = (b.categories||[]).map(t => `<div class="tag" style="padding:5px 10px;font-size:12px;">${esc(t)}</div>`).join('');
+
+  // Кнопка подписки
+  const subBtn = document.getElementById('botPageSubBtn');
+  const isSub = mySubIds.has(Number(botId));
+  subBtn.className = isSub ? 'sub-btn subbed' : 'sub-btn';
+  subBtn.style.cssText = 'padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;';
+  subBtn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
+
+  // Посты
+  const postsEl = document.getElementById('botPagePostsList');
+  if (!posts?.length) {
+    postsEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--sub);">Постов пока нет</div>';
+  } else {
+    postsEl.innerHTML = posts.map(p => botPostHTML(p, b)).join('');
+  }
+}
+
+function botPostHTML(p, b) {
+  const postUrl = window.location.origin + '?post=' + p.id;
+  return `<div class="post" style="border-radius:14px;background:var(--card);margin-bottom:10px;border:none;">
+    <div class="post-head">
+      <div class="p-ava">🤖</div>
+      <div class="p-meta">
+        <div class="p-name">${esc(b.name)}</div>
+        <div class="p-cat">${timeAgo(p.created_at)}</div>
+      </div>
+      <div style="font-size:12px;color:var(--acc);cursor:pointer;" onclick="sharePost(${p.id})">Поделиться</div>
+    </div>
+    <div class="post-text">${esc(p.text)}</div>
+    <div class="post-foot">
+      <div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>
+      <div class="react" onclick="reactPost(${p.id},'👍',this)">👍 <span>0</span></div>
+      <div class="react-sep"></div>
+      <div class="share" onclick="sharePost(${p.id})">
+        <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      </div>
+    </div>
+  </div>`;
+}
+
+function sharePost(postId) {
+  const url = window.location.origin + '?post=' + postId;
+  if (navigator.share) {
+    navigator.share({ title: 'BotFeed', url });
+  } else {
+    navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка скопирована!'));
+  }
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+}
+
+function shareBotPage() {
+  if (!currentBotPageData) return;
+  const url = window.location.origin + '?bot=' + currentBotPageData.username;
+  if (navigator.share) {
+    navigator.share({ title: currentBotPageData.name, url });
+  } else {
+    navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка на бота скопирована!'));
+  }
+}
+
+async function subBotPage() {
+  if (!TOKEN) { toast('👤', 'Войди чтобы подписаться'); return; }
+  const btn = document.getElementById('botPageSubBtn');
+  const res = await api('POST', `/bots/${currentBotPageId}/subscribe`, {});
+  if (res) {
+    const on = res.subscribed;
+    if (on) mySubIds.add(Number(currentBotPageId));
+    else mySubIds.delete(Number(currentBotPageId));
+    btn.className = on ? 'sub-btn subbed' : 'sub-btn';
+    btn.style.cssText = 'padding:10px 18px;font-size:13px;margin-left:12px;flex-shrink:0;';
+    btn.textContent = on ? '✓ Подписан' : 'Подписаться';
+    // Обновляем кнопки в каталоге тоже
+    document.querySelectorAll(`[onclick*="subBot(${currentBotPageId},"]`).forEach(b => {
+      b.classList.toggle('subbed', on);
+      b.textContent = on ? '✓ Подписан' : 'Подписаться';
+    });
+    toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
+  }
+}
+
+function closeBotPage() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
+  const prev = document.getElementById('s-' + prevScreenBeforeBot) || document.getElementById('s-home');
+  prev.classList.add('active','anim-left');
+  prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
+  currentScreen = prevScreenBeforeBot;
+  // Обновляем nav
+  const navMap = { home:0, catalog:1, search:2, profile:3 };
+  const idx = navMap[prevScreenBeforeBot] ?? 0;
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
+  const indicator = document.getElementById('navIndicator');
+  if (indicator) indicator.style.left = (idx * 25) + '%';
+}
+
 // ════════════════════════════════
 // ЛЕНТА
 // ════════════════════════════════
@@ -1313,7 +1537,7 @@ function botRowHTML(b) {
   const isSub = mySubIds.has(Number(b.id));
   const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
   const subText = isSub ? '✓ Подписан' : 'Подписаться';
-  return `<div class="bot-row">
+  return `<div class="bot-row" onclick="openBotPage(${b.id}, event)">
     <div class="br-ava">🤖</div>
     <div class="br-info">
       <div class="br-name">${esc(b.name)} ${badge}</div>
@@ -1322,7 +1546,7 @@ function botRowHTML(b) {
     </div>
     <div class="br-right">
       <div class="br-count"><div class="gdot"></div>${b.members||0}</div>
-      <div class="${subClass}" onclick="subBot(${b.id},this)">${subText}</div>
+      <div class="${subClass}" onclick="event.stopPropagation();subBot(${b.id},this)">${subText}</div>
     </div>
   </div>`;
 }
