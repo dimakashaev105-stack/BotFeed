@@ -1444,6 +1444,9 @@ async function api(method, path, body, _retry = 0) {
       await new Promise(res => setTimeout(res, 2000 * (_retry + 1)));
       return api(method, path, body, _retry + 1);
     }
+    if (r.status === 401 || r.status === 404) {
+      return { error: r.status === 401 ? 'Unauthorized' : 'Not Found', status: r.status };
+    }
     return await r.json();
   } catch (e) {
     console.error('API error:', e);
@@ -3148,6 +3151,15 @@ async function initApp() {
       ME = fresh;
       localStorage.setItem('bf_me', JSON.stringify(ME));
       showProfile(); // перерисовываем с актуальным фото
+    } else if (fresh?.error || fresh === null) {
+      // Токен протух или сервер недоступен — тихо разлогиниваем
+      if (fresh?.error) {
+        TOKEN = null; ME = null;
+        localStorage.removeItem('bf_token');
+        localStorage.removeItem('bf_me');
+        showProfile();
+      }
+      // если null — сервер просто не ответил, оставляем кэш
     }
     const subs = await api('GET', '/my/subscriptions');
     mySubIds = new Set((subs||[]).map(s => Number(s.id)));
