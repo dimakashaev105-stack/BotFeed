@@ -584,7 +584,7 @@ app.get('/api/bots/:botId/posts', { preHandler: optAuth }, async (req) => {
 })
 
 app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
-  const { text, image_url } = req.body
+  const { text, image_url, post_type } = req.body
   if (!text?.trim()) return reply.code(400).send({ error: 'Текст обязателен' })
 
   const { rows: b } = await db.query(
@@ -593,10 +593,22 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
   )
   if (!b[0]) return reply.code(403).send({ error: 'Нет доступа' })
 
-  const { rows } = await db.query(
-    'INSERT INTO posts (bot_id, text, image_url) VALUES ($1, $2, $3) RETURNING *',
-    [req.params.botId, text.trim(), image_url || null]
-  )
+  // Добавляем post_type если колонка есть (безопасный INSERT)
+  let rows
+  try {
+    const r = await db.query(
+      'INSERT INTO posts (bot_id, text, image_url, post_type) VALUES ($1, $2, $3, $4) RETURNING *',
+      [req.params.botId, text.trim(), image_url || null, post_type || null]
+    )
+    rows = r.rows
+  } catch {
+    // Если колонки нет — вставляем без неё
+    const r = await db.query(
+      'INSERT INTO posts (bot_id, text, image_url) VALUES ($1, $2, $3) RETURNING *',
+      [req.params.botId, text.trim(), image_url || null]
+    )
+    rows = r.rows
+  }
   return rows[0]
 })
 
