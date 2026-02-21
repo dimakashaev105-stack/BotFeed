@@ -26,6 +26,10 @@ db.query(`
 db.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFERENCES comments(id) ON DELETE SET NULL`)
   .catch(e => console.log('Comments migration note:', e.message))
 
+// Миграция постов — кнопки
+db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'`)
+  .catch(e => console.log('Buttons migration note:', e.message))
+
 // OTP таблицы
 try {
   await db.query(`
@@ -538,17 +542,34 @@ app.get('/api/bots/:botId/posts', { preHandler: optAuth }, async (req) => {
 })
 
 app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
-  const { text, image_url, post_type } = req.body
+  const { text, image_url, post_type, buttons } = req.body
   if (!text?.trim()) return reply.code(400).send({ error: 'Текст обязателен' })
   const { rows: b } = await db.query('SELECT id FROM bots WHERE id=$1 AND owner_id=$2', [req.params.botId, req.user.id])
   if (!b[0]) return reply.code(403).send({ error: 'Нет доступа' })
+
+  // Валидация кнопок
+  const cleanButtons = Array.isArray(buttons)
+    ? buttons.filter(b => b?.label?.trim() && b?.url?.trim()).slice(0, 4)
+    : []
+
   let rows
   try {
-    const r = await db.query('INSERT INTO posts (bot_id, text, image_url, post_type) VALUES ($1,$2,$3,$4) RETURNING *', [req.params.botId, text.trim(), image_url || null, post_type || null])
+    const r = await db.query(
+      'INSERT INTO posts (bot_id, text, image_url, post_type, buttons) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [req.params.botId, text.trim(), image_url || null, post_type || null, JSON.stringify(cleanButtons)]
+    )
     rows = r.rows
   } catch {
-    const r = await db.query('INSERT INTO posts (bot_id, text, image_url) VALUES ($1,$2,$3) RETURNING *', [req.params.botId, text.trim(), image_url || null])
-    rows = r.rows
+    try {
+      const r = await db.query(
+        'INSERT INTO posts (bot_id, text, image_url, post_type) VALUES ($1,$2,$3,$4) RETURNING *',
+        [req.params.botId, text.trim(), image_url || null, post_type || null]
+      )
+      rows = r.rows
+    } catch {
+      const r = await db.query('INSERT INTO posts (bot_id, text, image_url) VALUES ($1,$2,$3) RETURNING *', [req.params.botId, text.trim(), image_url || null])
+      rows = r.rows
+    }
   }
   return rows[0]
 })
