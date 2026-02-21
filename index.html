@@ -695,8 +695,30 @@ html, body {
   top: 0; left: 0; right: 0;
   z-index: 10;
 }
-#s-botpage .topbar .tb-btn svg { stroke: rgba(255,255,255,0.85); }
-#s-botpage .topbar .topbar-title { color: transparent; }
+/* Кнопки topbar — стеклянные кружки, видны на любом фоне */
+#s-botpage .topbar .tb-btn {
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+#s-botpage .topbar .tb-btn svg { stroke: rgba(255,255,255,0.92); }
+#s-botpage .topbar .topbar-title { color: transparent; transition: color .25s; }
+
+/* При скролле — убираем кружки с кнопок */
+#s-botpage.scrolled .topbar {
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+#s-botpage.scrolled .topbar .tb-btn {
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+}
+#s-botpage.scrolled .topbar .tb-btn svg { stroke: var(--sub); }
+#s-botpage.scrolled .topbar .topbar-title { color: var(--text) !important; }
 
 /* Stats блок */
 .bot-stat-grid {
@@ -1492,18 +1514,21 @@ html, body {
       </div>
 
       <!-- Hero — full blurred background + avatar bottom-left -->
-      <div id="botPageHero" style="position:relative;height:220px;overflow:hidden;flex-shrink:0;background:#0d1a27;">
-        <!-- Blurred full-cover bg -->
-        <div id="botPageBg" style="position:absolute;inset:-20px;background:linear-gradient(135deg,#1a3a5c,#0a1e30);"></div>
-        <!-- Dark gradient at bottom -->
-        <div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,var(--bg) 0%,rgba(15,25,35,0.6) 60%,transparent 100%);z-index:2;pointer-events:none;"></div>
-        <!-- Avatar bottom-left, overlapping the gradient -->
-        <div style="position:absolute;bottom:-30px;left:18px;z-index:3;">
-          <div id="botPageAva" style="width:76px;height:76px;border-radius:22px;background:var(--card);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5);">🤖</div>
+      <div id="botPageHero" style="position:relative;height:200px;overflow:visible;flex-shrink:0;background:#0d1a27;">
+        <!-- Clip внутри отдельного div чтобы аватарка не обрезалась -->
+        <div style="position:absolute;inset:0;overflow:hidden;border-radius:0;">
+          <!-- Blurred full-cover bg -->
+          <div id="botPageBg" style="position:absolute;inset:-20px;background:linear-gradient(135deg,#1a3a5c,#0a1e30);"></div>
+          <!-- Dark gradient at bottom -->
+          <div style="position:absolute;bottom:0;left:0;right:0;height:130px;background:linear-gradient(to top,var(--bg) 0%,rgba(15,25,35,0.5) 55%,transparent 100%);z-index:2;pointer-events:none;"></div>
+        </div>
+        <!-- Avatar — выступает за нижний край hero -->
+        <div style="position:absolute;bottom:-22px;left:18px;z-index:10;">
+          <div id="botPageAva" style="width:72px;height:72px;border-radius:20px;background:var(--card);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.55);">🤖</div>
         </div>
       </div>
 
-      <div style="padding:46px 16px 0;">
+      <div style="padding:38px 16px 0;">
         <!-- Info -->
         <div style="margin-bottom:14px;">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
@@ -2058,6 +2083,8 @@ async function openBotPage(botId, event) {
   // Показываем экран
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
   const page = document.getElementById('s-botpage');
+  page.classList.remove('scrolled'); // сброс при каждом открытии
+  page.scrollTo(0, 0);
   page.classList.add('active','anim-right');
   page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
   currentScreen = 'botpage';
@@ -3812,16 +3839,8 @@ function postTypeBadge(type) {
 // BOT PAGE SCROLL — topbar становится непрозрачным при скролле
 // ════════════════════════════════
 document.getElementById('s-botpage').addEventListener('scroll', function() {
-  const topbar = this.querySelector('.topbar');
-  if (!topbar) return;
-  const scrolled = this.scrollTop > 160;
-  topbar.style.background = scrolled ? 'var(--bg)' : 'transparent';
-  topbar.style.borderBottom = scrolled ? '1px solid var(--border)' : 'none';
-  topbar.style.transition = 'background .25s, border-color .25s';
-  const title = topbar.querySelector('.topbar-title');
-  if (title) title.style.color = scrolled ? 'var(--text)' : 'transparent';
-  const svgs = topbar.querySelectorAll('.tb-btn svg');
-  svgs.forEach(s => s.style.stroke = scrolled ? 'var(--sub)' : 'rgba(255,255,255,0.85)');
+  const scrolled = this.scrollTop > 150;
+  this.classList.toggle('scrolled', scrolled);
 }, { passive: true });
 
 async function initApp() {
@@ -3861,4 +3880,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-                </html>
+</html>
