@@ -1137,13 +1137,14 @@ function tap(el) {
 // ════════════════════════════════
 async function api(method, path, body) {
   try {
+    const needsBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase());
     const r = await fetch(API + path, {
       method,
       headers: {
         'Content-Type': 'application/json',
         ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {})
       },
-      body: body ? JSON.stringify(body) : undefined
+      body: needsBody ? JSON.stringify(body || {}) : undefined
     });
     return await r.json();
   } catch (e) {
@@ -1815,7 +1816,11 @@ async function submitBot() {
 
   if (res?.ok) {
     document.getElementById('overlay').classList.remove('open');
-    toast('🚀', 'Бот верифицирован и добавлен в каталог!');
+    if (res?.verified) {
+      toast('🚀', 'Бот верифицирован!');
+    } else {
+      toast('⏳', 'Заявка отправлена — ожидай решения в Telegram!');
+    }
     loadCatalog();
     loadMyBots();
   } else {
