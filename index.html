@@ -471,8 +471,10 @@ html, body {
   border: 1px solid rgba(255,255,255,0.13);
   box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   cursor: pointer;
+  margin-bottom: 16px;
   transition: transform .15s, box-shadow .15s;
 }
+.post:last-child { margin-bottom: 0; }
 .post:active { transform: scale(0.985); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
 
 .post-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -793,9 +795,18 @@ html, body {
   line-height: 1; padding: 4px;
   flex-shrink: 0;
 }
-  display:inline-flex; align-items:center; gap:4px;
-  font-size:11px; font-weight:700; padding:3px 8px;
-  border-radius:6px; margin-bottom:8px;
+/* ── Post type badge in feed ── */
+.post-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  width: fit-content;
+  max-width: fit-content;
 }
 .ptb-news   { background:rgba(46,166,255,0.12); color:#2ea6ff; }
 .ptb-update { background:rgba(77,205,106,0.12); color:#4dcd6a; }
