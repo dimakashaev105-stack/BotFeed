@@ -640,6 +640,23 @@ html, body {
 }
 .feed-anim-right { animation: feedSlideInRight .25s cubic-bezier(0.22,1,0.36,1) both; }
 .feed-anim-left  { animation: feedSlideInLeft  .25s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Analytics ── */
+.chart-period {
+  font-size:11px; font-weight:700; padding:4px 10px;
+  border-radius:8px; color:var(--sub); cursor:pointer;
+  transition: all .15s;
+}
+.chart-period.active { background:var(--acc); color:#fff; }
+.top-post-row {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 0; border-bottom:1px solid var(--border);
+}
+.top-post-row:last-child { border-bottom:none; }
+.tip-row { display:flex; gap:10px; align-items:flex-start; }
+.tip-ico { font-size:18px; flex-shrink:0; margin-top:1px; }
+.tip-txt { font-size:13px; color:var(--sub); line-height:1.5; }
+.tip-txt b { color:var(--text); }
 </style>
 </head>
 <body>
@@ -884,42 +901,100 @@ html, body {
     <div class="screen" id="s-botmanage">
       <div class="topbar">
         <div class="tb-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-        <div class="topbar-title" id="manageTitle">Управление ботом</div>
+        <div class="topbar-title" id="manageTitle">Мой бот</div>
       </div>
-      <div style="padding:16px;">
-        <!-- Статистика -->
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:20px;font-weight:700;" id="mngMembers">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Участников</div>
+
+      <!-- Вкладки управления -->
+      <div class="p-tabs" style="position:sticky;top:52px;z-index:10;background:var(--bg);">
+        <div class="p-tab on" onclick="mngTab(this,'mng-analytics')">📊 Аналитика</div>
+        <div class="p-tab" onclick="mngTab(this,'mng-posts')">📝 Посты</div>
+        <div class="p-tab" onclick="mngTab(this,'mng-settings')">⚙️ Настройки</div>
+      </div>
+
+      <!-- ── АНАЛИТИКА ── -->
+      <div id="mng-analytics" style="padding:16px;">
+
+        <!-- Карточки метрик -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <div style="background:var(--card);border-radius:14px;padding:16px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Участников</div>
+            <div style="font-size:28px;font-weight:800;color:var(--text);" id="mngMembers">—</div>
+            <div style="font-size:11px;color:var(--green);margin-top:4px;" id="mngMembersGrowth"></div>
           </div>
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:20px;font-weight:700;" id="mngPosts">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Постов</div>
+          <div style="background:var(--card);border-radius:14px;padding:16px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Подписчиков</div>
+            <div style="font-size:28px;font-weight:800;color:var(--acc);" id="mngSubs">—</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:4px;">на BotFeed</div>
           </div>
-          <div style="flex:1;background:var(--card);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:20px;font-weight:700;" id="mngSubs">0</div>
-            <div style="font-size:11px;color:var(--sub);margin-top:2px;">Подписчиков</div>
+          <div style="background:var(--card);border-radius:14px;padding:16px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Постов</div>
+            <div style="font-size:28px;font-weight:800;color:var(--text);" id="mngPosts">—</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:4px;" id="mngPostsLast"></div>
+          </div>
+          <div style="background:var(--card);border-radius:14px;padding:16px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Реакций</div>
+            <div style="font-size:28px;font-weight:800;color:#f5a623;" id="mngReacts">—</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:4px;">всего за всё время</div>
           </div>
         </div>
 
+        <!-- График подписчиков -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-size:14px;font-weight:700;">Рост подписчиков</div>
+            <div style="display:flex;gap:4px;">
+              <div class="chart-period active" onclick="setChartPeriod(this,7)">7д</div>
+              <div class="chart-period" onclick="setChartPeriod(this,30)">30д</div>
+            </div>
+          </div>
+          <canvas id="subsChart" height="120" style="width:100%;display:block;"></canvas>
+          <div id="subsChartEmpty" style="display:none;text-align:center;padding:32px 0;color:var(--sub);font-size:13px;">Данные появятся после первых подписчиков</div>
+        </div>
+
+        <!-- Топ посты -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🏆 Лучшие посты</div>
+          <div id="topPostsList"></div>
+        </div>
+
+        <!-- Советы -->
+        <div style="background:linear-gradient(135deg,rgba(46,166,255,0.12),rgba(46,166,255,0.04));border:1px solid rgba(46,166,255,0.2);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;">💡 Советы для роста</div>
+          <div id="growthTips" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+
+      <!-- ── ПОСТЫ ── -->
+      <div id="mng-posts" style="display:none;padding:16px;">
         <!-- Новый пост -->
         <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
           <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">Новый пост</div>
-          <textarea id="newPostText" placeholder="Напиши что-нибудь про своего бота..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:100px;outline:none;line-height:1.5;"></textarea>
+          <textarea id="newPostText" placeholder="Расскажи об обновлении, новой фиче или совете..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:120px;outline:none;line-height:1.5;"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
             <div style="font-size:12px;color:var(--muted);" id="postCharCount">0 / 1000</div>
             <button onclick="publishPost()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Опубликовать</button>
           </div>
         </div>
-
-        <!-- Посты бота -->
-        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Мои посты</div>
+        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Все посты</div>
         <div id="myPostsList"></div>
+      </div>
 
-        <!-- Удалить бота -->
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);" id="deleteBotSection">
-          <button id="deleteBotBtn" onclick="showDeleteConfirm()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;">
+      <!-- ── НАСТРОЙКИ ── -->
+      <div id="mng-settings" style="display:none;padding:16px;">
+        <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:16px;">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">О боте</div>
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+            <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">Username</div>
+            <div style="font-size:14px;font-weight:600;" id="mngUsername">—</div>
+          </div>
+          <div style="padding:14px 16px;">
+            <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">Статус верификации</div>
+            <div style="font-size:14px;font-weight:600;" id="mngVerifyStatus">—</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;padding-top:4px;border-top:1px solid var(--border);">
+          <button id="deleteBotBtn" onclick="showDeleteConfirm()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">
             🗑 Удалить бота навсегда
           </button>
           <div id="deleteBotConfirm" style="display:none;margin-top:10px;background:rgba(240,64,64,0.08);border:1px solid rgba(240,64,64,0.3);border-radius:10px;padding:14px;">
@@ -2075,35 +2150,222 @@ async function submitBot() {
 // ════════════════════════════════
 let currentBotId = null;
 
-function openBotManage(botId, botName, members, posts, subs) {
+// ── Вкладки управления ботом ──
+function mngTab(el, id) {
+  document.querySelectorAll('#s-botmanage .p-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  ['mng-analytics','mng-posts','mng-settings'].forEach(i => {
+    const e2 = document.getElementById(i);
+    if (e2) e2.style.display = 'none';
+  });
+  const target = document.getElementById(id);
+  if (target) target.style.display = 'block';
+  if (id === 'mng-posts') loadMyPostsList();
+}
+
+let chartPeriodDays = 7;
+let analyticsPostsData = [];
+
+function setChartPeriod(el, days) {
+  document.querySelectorAll('.chart-period').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  chartPeriodDays = days;
+  renderSubsChart(analyticsPostsData);
+}
+
+function renderSubsChart(posts) {
+  const canvas = document.getElementById('subsChart');
+  const empty  = document.getElementById('subsChartEmpty');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const days = chartPeriodDays;
+  const labels = [], values = [];
+  const now = Date.now();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now - i * 86400000);
+    labels.push(d.toLocaleDateString('ru', { day:'numeric', month:'short' }));
+    const dayStart = new Date(d.setHours(0,0,0,0)).getTime();
+    const dayEnd = dayStart + 86400000;
+    const cnt = posts.filter(p => {
+      const t = new Date(p.created_at).getTime();
+      return t >= dayStart && t < dayEnd;
+    }).length;
+    values.push(cnt);
+  }
+
+  const hasData = values.some(v => v > 0);
+  canvas.style.display = hasData ? 'block' : 'none';
+  empty.style.display  = hasData ? 'none'  : 'block';
+  if (!hasData) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width * dpr;
+  canvas.height = 120 * dpr;
+  canvas.style.width  = rect.width + 'px';
+  canvas.style.height = '120px';
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = 120;
+  const pad = { l:4, r:4, t:10, b:28 };
+  const chartW = W - pad.l - pad.r;
+  const chartH = H - pad.t - pad.b;
+  const step = chartW / (labels.length - 1 || 1);
+  const max = Math.max(...values) || 1;
+
+  const pts = values.map((v, i) => ({
+    x: pad.l + i * step,
+    y: pad.t + chartH - (v / max) * chartH
+  }));
+
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + chartH);
+  grad.addColorStop(0, 'rgba(46,166,255,0.3)');
+  grad.addColorStop(1, 'rgba(46,166,255,0)');
+
+  // Fill
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cx = (pts[i-1].x + pts[i].x) / 2;
+    ctx.bezierCurveTo(cx, pts[i-1].y, cx, pts[i].y, pts[i].x, pts[i].y);
+  }
+  ctx.lineTo(pts[pts.length-1].x, H - pad.b);
+  ctx.lineTo(pts[0].x, H - pad.b);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cx = (pts[i-1].x + pts[i].x) / 2;
+    ctx.bezierCurveTo(cx, pts[i-1].y, cx, pts[i].y, pts[i].x, pts[i].y);
+  }
+  ctx.strokeStyle = '#2ea6ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dots
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#2ea6ff';
+    ctx.fill();
+  });
+
+  // Labels
+  ctx.fillStyle = 'rgba(138,155,176,0.9)';
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  [0, Math.floor(labels.length/2), labels.length-1].forEach(i => {
+    if (i < labels.length) ctx.fillText(labels[i], pts[i].x, H - 6);
+  });
+}
+
+function renderGrowthTips(b, posts) {
+  const el = document.getElementById('growthTips');
+  if (!el) return;
+  const tips = [];
+  if (!b.verified)                tips.push({ ico:'✅', text:'<b>Верифицируй бота</b> — верифицированные боты попадают в каталог и получают больше доверия' });
+  if (!posts.length)              tips.push({ ico:'📝', text:'<b>Опубликуй первый пост</b> — расскажи что умеет бот, это привлечёт первых подписчиков' });
+  if (posts.length > 0 && posts.length < 5) tips.push({ ico:'🚀', text:'<b>Публикуй регулярно</b> — 3+ поста в неделю дают кратный рост аудитории' });
+  if (!(b.description||'').trim()) tips.push({ ico:'✏️', text:'<b>Добавь описание</b> — боты с описанием чаще находят в поиске' });
+  if (!(b.categories||[]).length)  tips.push({ ico:'🏷', text:'<b>Выбери категории</b> — так бот появится в нужных разделах' });
+  if (tips.length === 0)           tips.push({ ico:'🎉', text:'<b>Всё отлично!</b> Продолжай публиковать контент для роста аудитории' });
+  el.innerHTML = tips.map(t => `<div class="tip-row"><div class="tip-ico">${t.ico}</div><div class="tip-txt">${t.text}</div></div>`).join('');
+}
+
+async function openBotManage(botId, botName, members, posts, subs) {
   currentBotId = botId;
+
+  // Сброс вкладок — открываем Аналитику
+  document.querySelectorAll('#s-botmanage .p-tab').forEach((t,i) => t.classList.toggle('on', i===0));
+  ['mng-analytics','mng-posts','mng-settings'].forEach((id,i) => {
+    const e = document.getElementById(id);
+    if (e) e.style.display = i===0 ? 'block' : 'none';
+  });
+
   document.getElementById('manageTitle').textContent = botName;
-  document.getElementById('mngMembers').textContent = members;
+  document.getElementById('mngMembers').textContent = Number(members).toLocaleString('ru');
   document.getElementById('mngPosts').textContent = posts;
   document.getElementById('mngSubs').textContent = subs;
+  document.getElementById('mngReacts').textContent = '…';
 
-  // Сбрасываем состояние кнопки удаления
+  // Сброс кнопки удаления
   const btn = document.getElementById('deleteBotBtn');
-  const confirm = document.getElementById('deleteBotConfirm');
+  const confirmEl = document.getElementById('deleteBotConfirm');
   if (btn) { btn.style.display = 'block'; btn.textContent = '🗑 Удалить бота навсегда'; }
-  if (confirm) confirm.style.display = 'none';
+  if (confirmEl) confirmEl.style.display = 'none';
 
-  // Показываем экран управления с анимацией
+  // Показываем экран
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'anim-right', 'anim-left'));
   const manageScreen = document.getElementById('s-botmanage');
   manageScreen.classList.add('active', 'anim-right');
   manageScreen.addEventListener('animationend', () => manageScreen.classList.remove('anim-right'), { once: true });
   currentScreen = 'botmanage';
 
-  // Загружаем посты
-  loadMyPostsList();
-
   // Счётчик символов
   const ta = document.getElementById('newPostText');
-  ta.value = '';
-  ta.oninput = () => {
-    document.getElementById('postCharCount').textContent = ta.value.length + ' / 1000';
-  };
+  if (ta) { ta.value = ''; ta.oninput = () => { document.getElementById('postCharCount').textContent = ta.value.length + ' / 1000'; }; }
+
+  // Грузим аналитику
+  const postsData = await api('GET', `/bots/${botId}/posts?limit=100`);
+  analyticsPostsData = postsData || [];
+
+  let totalReacts = 0;
+  analyticsPostsData.forEach(p => (p.reactions||[]).forEach(r => totalReacts += Number(r.count||0)));
+  document.getElementById('mngReacts').textContent = totalReacts || 0;
+
+  const lastPostEl = document.getElementById('mngPostsLast');
+  if (lastPostEl && analyticsPostsData.length)
+    lastPostEl.textContent = 'последний ' + timeAgo(analyticsPostsData[0].created_at);
+
+  const growthEl = document.getElementById('mngMembersGrowth');
+  if (growthEl) {
+    growthEl.textContent = members > 0 ? '↑ есть аудитория' : 'пока нет';
+    growthEl.style.color = members > 0 ? 'var(--green)' : 'var(--sub)';
+  }
+
+  renderSubsChart(analyticsPostsData);
+
+  // Топ-3 поста
+  const topEl = document.getElementById('topPostsList');
+  if (topEl) {
+    const sorted = [...analyticsPostsData].sort((a,b) => {
+      const ra = (a.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
+      const rb = (b.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
+      return rb - ra;
+    }).slice(0,3);
+    if (!sorted.length) {
+      topEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px;">Опубликуй первый пост ☝️</div>';
+    } else {
+      topEl.innerHTML = sorted.map((p,i) => {
+        const reacts = (p.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
+        return `<div class="top-post-row">
+          <div style="font-size:20px;flex-shrink:0;">${['🥇','🥈','🥉'][i]}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.text||'')}</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px;">${timeAgo(p.created_at)}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--acc);flex-shrink:0;">🔥 ${reacts}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Настройки — инфо о боте
+  const myBots = await api('GET', '/my/bots');
+  const myBot  = (myBots||[]).find(b => String(b.id) === String(botId));
+  if (myBot) {
+    const unEl = document.getElementById('mngUsername');
+    const vEl  = document.getElementById('mngVerifyStatus');
+    if (unEl) unEl.textContent = '@' + myBot.username;
+    if (vEl)  vEl.innerHTML = myBot.verified
+      ? '<span style="color:var(--green);">✓ Верифицирован</span>'
+      : '<span style="color:var(--red);">✗ Не верифицирован</span>';
+    renderGrowthTips(myBot, analyticsPostsData);
+  }
 }
 
 function goBack() {
