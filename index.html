@@ -444,28 +444,59 @@ html, body {
 .tb-btn:active { background:var(--card); }
 
 /* ══════════════════════════════════════
-   FEED & POSTS
+   FEED & POSTS — стильные карточки
 ══════════════════════════════════════ */
-.feed { padding:8px 0 80px; }
-.post { padding:14px 14px 10px; border-bottom:1px solid var(--border); }
+.feed { padding:8px 12px 80px; display:flex; flex-direction:column; gap:10px; }
+
+/* Карточка поста */
+.post {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.post:active { transform: scale(0.985); box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+
 .post-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.p-ava { width:40px; height:40px; border-radius:12px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; }
+.p-ava { width:42px; height:42px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; }
 .p-meta { flex:1; min-width:0; }
 .p-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.p-cat { font-size:12px; color:var(--sub); margin-top:2px; }
-.p-time { font-size:12px; color:var(--muted); flex-shrink:0; }
+.p-cat { font-size:12px; color:var(--sub); margin-top:1px; }
+.p-time { font-size:11px; color:var(--muted); flex-shrink:0; background:var(--hover); padding:3px 8px; border-radius:20px; }
 .p-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; background:var(--acc); color:#fff; border-radius:50%; font-size:9px; font-weight:800; flex-shrink:0; }
-.post-img { height:180px; border-radius:12px; background:var(--card); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:48px; overflow:hidden; }
-.post-text { font-size:14px; line-height:1.6; margin-bottom:12px; color:var(--text); }
-.post-foot { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-.react { display:flex; align-items:center; gap:5px; padding:6px 10px; border-radius:8px; background:var(--card); border:1px solid var(--border); font-size:13px; cursor:pointer; user-select:none; }
+
+.post-img { height:180px; border-radius:10px; background:var(--hover); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:48px; overflow:hidden; }
+.post-text { font-size:14px; line-height:1.65; margin-bottom:12px; color:var(--text); }
+
+/* Разделитель перед реакциями */
+.post-divider { height:1px; background:var(--border); margin:0 -2px 10px; }
+
+.post-foot { display:flex; align-items:center; gap:5px; }
+.react {
+  display:flex; align-items:center; gap:4px;
+  padding:5px 10px; border-radius:20px;
+  background:var(--hover); border:1px solid transparent;
+  font-size:13px; cursor:pointer; user-select:none;
+  transition: background .12s, border-color .12s, transform .1s;
+}
+.react:active { transform: scale(0.92); }
 .react span { font-size:12px; font-weight:600; color:var(--sub); }
-.react.on { background:rgba(46,166,255,0.12); border-color:rgba(46,166,255,0.25); }
+.react.on { background:rgba(46,166,255,0.12); border-color:rgba(46,166,255,0.3); }
 .react.on span { color:var(--acc); }
 .react-sep { flex:1; }
-.share { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; cursor:pointer; }
+.share { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; transition:.12s; }
 .share svg { width:17px; height:17px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.share:active { background:var(--card); }
+.share:active { background:var(--hover); }
+
+/* Auth tabs */
+.auth-tab {
+  flex:1; text-align:center; padding:8px; border-radius:10px;
+  font-size:14px; font-weight:600; color:var(--sub);
+  cursor:pointer; transition:all .2s;
+}
+.auth-tab.active { background:var(--acc); color:#fff; }
 
 /* ══════════════════════════════════════
    CATALOG
@@ -866,16 +897,66 @@ html, body {
       </div>
 
       <!-- Не авторизован -->
-      <div id="prof-guest" style="display:none; padding:48px 24px; text-align:center;">
-        <div style="font-size:56px;margin-bottom:16px;">👤</div>
-        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Войди через Telegram</div>
-        <div style="font-size:14px;color:var(--sub);margin-bottom:28px;line-height:1.6;">Чтобы подписываться на ботов,<br>оставлять реакции и добавлять своих ботов</div>
-        <script async src="https://telegram.org/js/telegram-widget.js?22"
-          data-telegram-login="botfeeds_bot"
-          data-size="large"
-          data-onauth="onTelegramAuth(user)"
-          data-request-access="write">
-        </script>
+      <div id="prof-guest" style="display:none;">
+        <!-- Лого -->
+        <div style="padding:36px 24px 20px;text-align:center;">
+          <div style="font-size:40px;font-weight:900;color:var(--acc);letter-spacing:-1px;margin-bottom:4px;">BotFeed</div>
+          <div style="font-size:14px;color:var(--sub);">Каталог Telegram-ботов</div>
+        </div>
+
+        <!-- Табы способа входа -->
+        <div style="display:flex;margin:0 20px 20px;background:var(--card);border-radius:12px;padding:3px;">
+          <div id="authTabLogin" class="auth-tab active" onclick="switchAuthTab('login')">Войти</div>
+          <div id="authTabReg"   class="auth-tab"        onclick="switchAuthTab('reg')">Регистрация</div>
+        </div>
+
+        <!-- Форма логин/пароль -->
+        <div id="authFormLogin" style="padding:0 20px;">
+          <div class="f-lbl">Логин</div>
+          <input id="loginUsername" class="f-inp" type="text" placeholder="ваш_логин" autocomplete="username">
+          <div class="f-lbl">Пароль</div>
+          <div style="position:relative;margin-bottom:14px;">
+            <input id="loginPassword" class="f-inp" type="password" placeholder="••••••••" autocomplete="current-password" style="margin-bottom:0;width:100%;padding-right:42px;">
+            <div onclick="togglePwd('loginPassword')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--sub);font-size:18px;">👁</div>
+          </div>
+          <button class="sh-btn" onclick="loginWithPassword()" style="margin-bottom:16px;">Войти</button>
+          <div style="text-align:center;color:var(--sub);font-size:13px;margin-bottom:20px;">— или —</div>
+          <script async src="https://telegram.org/js/telegram-widget.js?22"
+            data-telegram-login="botfeeds_bot"
+            data-size="large"
+            data-onauth="onTelegramAuth(user)"
+            data-request-access="write">
+          </script>
+          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:16px;padding-bottom:32px;line-height:1.6;">
+            Для добавления ботов нужен Telegram-аккаунт
+          </div>
+        </div>
+
+        <!-- Форма регистрации -->
+        <div id="authFormReg" style="display:none;padding:0 20px;">
+          <div class="f-lbl">Логин</div>
+          <input id="regUsername" class="f-inp" type="text" placeholder="придумай_логин" autocomplete="username">
+          <div class="f-lbl">Имя</div>
+          <input id="regName" class="f-inp" type="text" placeholder="Как тебя зовут?">
+          <div class="f-lbl">Пароль</div>
+          <div style="position:relative;margin-bottom:14px;">
+            <input id="regPassword" class="f-inp" type="password" placeholder="минимум 6 символов" autocomplete="new-password" style="margin-bottom:0;width:100%;padding-right:42px;">
+            <div onclick="togglePwd('regPassword')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--sub);font-size:18px;">👁</div>
+          </div>
+          <button class="sh-btn" onclick="registerWithPassword()" style="margin-bottom:16px;">Создать аккаунт</button>
+          <div style="text-align:center;color:var(--sub);font-size:13px;margin-bottom:12px;">— или зайди через —</div>
+          <div style="display:flex;justify-content:center;margin-bottom:8px;">
+            <script async src="https://telegram.org/js/telegram-widget.js?22"
+              data-telegram-login="botfeeds_bot"
+              data-size="medium"
+              data-onauth="onTelegramAuth(user)"
+              data-request-access="write">
+            </script>
+          </div>
+          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;padding-bottom:32px;line-height:1.6;">
+            ⚡ Telegram-аккаунт нужен чтобы добавлять своих ботов
+          </div>
+        </div>
       </div>
 
       <!-- Авторизован -->
@@ -1352,6 +1433,73 @@ function logout() {
 }
 
 // ════════════════════════════════
+// AUTH — логин / пароль
+// ════════════════════════════════
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('authTabLogin').classList.toggle('active', isLogin);
+  document.getElementById('authTabReg').classList.toggle('active', !isLogin);
+  document.getElementById('authFormLogin').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('authFormReg').style.display  = isLogin ? 'none'  : 'block';
+}
+
+function togglePwd(id) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function loginWithPassword() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!username || !password) { toast('⚠️', 'Заполни все поля'); return; }
+  toast('⏳', 'Входим...');
+  try {
+    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const res = await r.json();
+    if (res?.token) {
+      TOKEN = res.token; ME = res.user;
+      localStorage.setItem('bf_token', TOKEN);
+      localStorage.setItem('bf_me', JSON.stringify(ME));
+      showProfile(); loadFeed();
+      toast('👋', `Привет, ${ME.first_name || ME.username}!`);
+    } else {
+      toast('❌', res?.error || 'Неверный логин или пароль');
+    }
+  } catch(e) { toast('❌', 'Нет связи с сервером'); }
+}
+
+async function registerWithPassword() {
+  const username = document.getElementById('regUsername').value.trim();
+  const name     = document.getElementById('regName').value.trim();
+  const password = document.getElementById('regPassword').value;
+  if (!username || !name || !password) { toast('⚠️', 'Заполни все поля'); return; }
+  if (password.length < 6) { toast('⚠️', 'Пароль минимум 6 символов'); return; }
+  if (!/^[a-z0-9_]{3,30}$/i.test(username)) { toast('⚠️', 'Логин: только буквы, цифры, _'); return; }
+  toast('⏳', 'Создаём аккаунт...');
+  try {
+    const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, first_name: name, password })
+    });
+    const res = await r.json();
+    if (res?.token) {
+      TOKEN = res.token; ME = res.user;
+      localStorage.setItem('bf_token', TOKEN);
+      localStorage.setItem('bf_me', JSON.stringify(ME));
+      showProfile(); loadFeed();
+      toast('🎉', `Добро пожаловать, ${ME.first_name}!`);
+    } else {
+      toast('❌', res?.error || 'Ошибка регистрации');
+    }
+  } catch(e) { toast('❌', 'Нет связи с сервером'); }
+}
+
+// ════════════════════════════════
 // ПРОФИЛЬ
 // ════════════════════════════════
 function showProfile() {
@@ -1721,6 +1869,7 @@ function postHTML(p) {
     ${img}
     ${typeBadge}
     <div class="post-text">${esc(p.text)}</div>
+    <div class="post-divider"></div>
     <div class="post-foot">
       ${reacts}
       <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
@@ -2805,4 +2954,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-</html>
+                                                                                                                                                                   </html>
