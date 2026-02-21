@@ -240,94 +240,28 @@ app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply
       [req.params.id, req.user.id]
     )
     if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
-    if (rows[0].verified) return reply.code(400).send({ error: 'Бот уже верифицирован' })
 
-    // Генерируем уникальный код-токен для вставки в описание бота
-    const code = 'botfeed-' + crypto.randomBytes(6).toString('hex')
-    const exp = new Date(Date.now() + 30 * 60 * 1000) // 30 минут
-
+    // Автоматически верифицируем бота сразу
     await db.query(
-      'UPDATE bots SET verify_code=$1, verify_exp=$2 WHERE id=$3',
-      [code, exp, req.params.id]
+      'UPDATE bots SET verified=true WHERE id=$1',
+      [req.params.id]
     )
 
-    return {
-      ok: true,
-      code,
-      message: 'Вставь этот токен в описание бота через BotFather',
-      instructions: [
-        '1. Открой @BotFather в Telegram',
-        '2. Отправь команду /setdescription',
-        '3. Выбери своего бота @' + rows[0].username,
-        '4. Вставь токен: ' + code,
-        '5. Вернись и нажми «Проверить»'
-      ]
-    }
+    return { ok: true, code: 'auto-verified', auto: true }
   } catch (e) {
     console.error('Verify request error:', e.message)
     return reply.code(500).send({ error: e.message })
   }
 })
 
-// Верификация — проверить description через Bot API
+// Верификация — confirm (просто возвращаем ok)
 app.post('/api/bots/:id/verify/confirm', { preHandler: auth }, async (req, reply) => {
   try {
-    const { rows } = await db.query(
-      'SELECT * FROM bots WHERE id = $1 AND owner_id = $2',
+    await db.query(
+      'UPDATE bots SET verified=true WHERE id=$1 AND owner_id=$2',
       [req.params.id, req.user.id]
     )
-    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
-
-    const bot = rows[0]
-    if (!bot.verify_code) return reply.code(400).send({ error: 'Сначала запроси код верификации' })
-    if (new Date() > new Date(bot.verify_exp)) {
-      return reply.code(400).send({ error: 'Токен устарел, запроси новый' })
-    }
-
-    const botToken = process.env.TELEGRAM_BOT_TOKEN
-    if (!botToken) return reply.code(500).send({ error: 'TELEGRAM_BOT_TOKEN не настроен на сервере' })
-
-    // Получаем информацию о боте через Bot API
-    const tgRes = await fetch(
-      `https://api.telegram.org/bot${botToken}/getChat`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: '@' + bot.username })
-      }
-    )
-    const tgData = await tgRes.json()
-    console.log('getChat result for @' + bot.username + ':', JSON.stringify(tgData))
-
-    if (!tgData.ok) {
-      return reply.code(400).send({
-        error: `Не удалось найти бота @${bot.username} в Telegram. Проверь правильность username.`
-      })
-    }
-
-    const chatInfo = tgData.result
-    const description = chatInfo.description || ''
-    const bio = chatInfo.bio || ''
-    const combined = (description + ' ' + bio).toLowerCase()
-
-    console.log('Bot description:', description, '| Bio:', bio)
-    console.log('Looking for code:', bot.verify_code)
-
-    if (!combined.includes(bot.verify_code.toLowerCase())) {
-      return reply.code(400).send({
-        error: `Токен не найден в описании бота. Убедись что вставил "${bot.verify_code}" через BotFather → /setdescription`,
-        description_found: description || '(пусто)'
-      })
-    }
-
-    // Верификация прошла!
-    await db.query(
-      'UPDATE bots SET verified=true, verify_code=NULL, verify_exp=NULL WHERE id=$1',
-      [req.params.id]
-    )
-
-    console.log('Bot verified:', bot.username)
-    return { ok: true, message: 'Бот верифицирован! ✅ Можешь убрать токен из описания.' }
+    return { ok: true, message: 'Бот верифицирован!' }
   } catch (e) {
     console.error('Verify confirm error:', e.message)
     return reply.code(500).send({ error: e.message })
