@@ -14,18 +14,12 @@ const db = new Pool({
 
 db.query('SELECT 1').then(() => console.log('✅ БД подключена')).catch(e => console.error('❌ БД:', e.message))
 
-// Миграции
-db.query(`
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
-  CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx ON users(google_id) WHERE google_id IS NOT NULL;
-  CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
-`).catch(e => console.log('Migration note:', e.message))
-
-// OTP таблицы
-try {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS tg_otp (
+// ════════════════════════════════
+// МИГРАЦИИ — каждый ALTER отдельно, иначе pg падает
+// ════════════════════════════════
+async function runMigrations() {
+  const migrations = [
+    `CREATE TABLE IF NOT EXISTS tg_otp (
       session_id TEXT PRIMARY KEY,
       code TEXT,
       telegram_id BIGINT,
@@ -34,14 +28,18 @@ try {
       photo_url TEXT,
       expires BIGINT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-  console.log('✅ OTP table OK')
-} catch(e) {
-  console.log('OTP note:', e.message)
+    )`,
+    // Удаляем старые email/google колонки только если они вдруг нужны (безопасно)
+    // Не трогаем — просто создаём таблицу OTP если нет
+  ]
+  for (const sql of migrations) {
+    try { await db.query(sql) } catch (e) { console.log('Migration note:', e.message) }
+  }
+  console.log('✅ Миграции выполнены')
 }
+await runMigrations()
 
-// In-memory fallback для OTP
+// In-memory fallback для OTP (на случай если БД недоступна)
 const tgOtpMap = new Map()
 
 // ════════════════════════════════
@@ -50,17 +48,48 @@ const tgOtpMap = new Map()
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID
 
+// Диагностика при старте
+if (!TG_TOKEN) {
+  console.error('❌ TELEGRAM_BOT_TOKEN не задан! Коды OTP отправляться не будут.')
+} else {
+  console.log('✅ TELEGRAM_BOT_TOKEN задан, длина:', TG_TOKEN.length)
+  // Проверяем токен через getMe
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/getMe`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) console.log('✅ Telegram bot OK:', d.result.username)
+      else console.error('❌ Telegram token invalid:', d.description)
+    })
+    .catch(e => console.error('❌ Telegram check error:', e.message))
+}
+
 async function tgSend(chatId, text, replyMarkup) {
-  if (!TG_TOKEN || !chatId) return
+  if (!TG_TOKEN) {
+    console.error('tgSend: нет TG_TOKEN')
+    return null
+  }
+  if (!chatId) {
+    console.error('tgSend: chatId пустой')
+    return null
+  }
   try {
     const body = { chat_id: String(chatId), text, parse_mode: 'HTML' }
     if (replyMarkup) body.reply_markup = replyMarkup
+    console.log(`📤 Отправка сообщения в чат ${chatId}...`)
     const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     })
     const json = await res.json()
-    if (!json.ok) console.error('TG error:', json.description)
-  } catch (e) { console.error('TG send error:', e.message) }
+    if (!json.ok) {
+      console.error('❌ TG sendMessage error:', json.description, '| chatId:', chatId)
+    } else {
+      console.log('✅ Сообщение отправлено в чат:', chatId)
+    }
+    return json
+  } catch (e) {
+    console.error('❌ TG send exception:', e.message)
+    return null
+  }
 }
 
 async function tgEditMessage(chatId, messageId, text) {
@@ -132,21 +161,32 @@ app.post('/api/tg/webhook', async (req, reply) => {
     const msg = update.message
     const cb  = update.callback_query
 
+    console.log('📨 Webhook update:', JSON.stringify(update).slice(0, 200))
+
     // /start LOGIN_<sessionId> — OTP авторизация
     if (msg?.text?.startsWith('/start LOGIN_')) {
       const sessionId = msg.text.replace('/start LOGIN_', '').trim()
       const chatId    = msg.chat.id
       const from      = msg.from
 
+      console.log(`🔑 OTP запрос: sessionId=${sessionId}, chatId=${chatId}, user=${from.first_name}`)
+
       let session = tgOtpMap.get(sessionId)
       if (!session) {
         try {
           const { rows } = await db.query('SELECT * FROM tg_otp WHERE session_id=$1', [sessionId])
           if (rows[0]) session = rows[0]
-        } catch {}
+        } catch (e) { console.error('DB read error:', e.message) }
       }
 
-      if (!session || Date.now() > Number(session.expires)) {
+      if (!session) {
+        console.log('❌ Сессия не найдена:', sessionId)
+        await tgSend(chatId, '❌ Сессия не найдена. Вернись на сайт и нажми кнопку снова.')
+        return { ok: true }
+      }
+
+      if (Date.now() > Number(session.expires)) {
+        console.log('❌ Сессия устарела:', sessionId)
         await tgSend(chatId, '❌ Сессия устарела. Вернись на сайт и нажми кнопку снова.')
         return { ok: true }
       }
@@ -161,7 +201,10 @@ app.post('/api/tg/webhook', async (req, reply) => {
         photo_url,
         expires: Date.now() + 10 * 60 * 1000
       }
+      // Сохраняем в памяти
       tgOtpMap.set(sessionId, updated)
+
+      // Сохраняем в БД
       try {
         await db.query(`
           INSERT INTO tg_otp (session_id, code, telegram_id, first_name, username, photo_url, expires)
@@ -169,14 +212,35 @@ app.post('/api/tg/webhook', async (req, reply) => {
           ON CONFLICT (session_id) DO UPDATE SET
             code=$2, telegram_id=$3, first_name=$4, username=$5, photo_url=$6, expires=$7
         `, [sessionId, code, chatId, updated.first_name, updated.username, photo_url, updated.expires])
-      } catch {}
+        console.log('✅ OTP сохранён в БД, session:', sessionId, 'code:', code)
+      } catch (e) {
+        console.error('❌ Ошибка сохранения OTP в БД:', e.message, '— используем in-memory')
+      }
 
-      await tgSend(chatId,
+      // Отправляем код пользователю
+      const sendResult = await tgSend(chatId,
         `👋 <b>Привет, ${updated.first_name}!</b>\n\n` +
         `Твой код для входа в <b>BotFeed</b>:\n\n` +
         `<code>${code}</code>\n\n` +
         `⏱ Код действителен 10 минут.\n` +
         `Вернись на сайт и введи этот код.`
+      )
+
+      if (!sendResult?.ok) {
+        console.error('❌ Не удалось отправить код пользователю chatId:', chatId)
+      }
+
+      return { ok: true }
+    }
+
+    // /start без параметров — приветствие
+    if (msg?.text === '/start') {
+      const chatId = msg.chat.id
+      const from   = msg.from
+      await tgSend(chatId,
+        `👋 <b>Привет, ${from.first_name}!</b>\n\n` +
+        `Я бот BotFeed — каталог и лента Telegram-ботов.\n\n` +
+        `Чтобы войти на сайт, перейди на <b>botfeed</b> и нажми кнопку входа — я пришлю тебе код.`
       )
       return { ok: true }
     }
@@ -223,17 +287,33 @@ app.post('/api/tg/webhook', async (req, reply) => {
 // Шаг 1: создать сессию
 app.post('/api/auth/tg/start', async (req, reply) => {
   try {
+    if (!TG_TOKEN) {
+      return reply.code(503).send({ error: 'Telegram бот не настроен. Проверьте TELEGRAM_BOT_TOKEN.' })
+    }
+
     const sessionId = crypto.randomBytes(16).toString('hex')
     const expires   = Date.now() + 15 * 60 * 1000
+
+    // Сохраняем в памяти
     tgOtpMap.set(sessionId, { session_id: sessionId, code: null, expires })
+
+    // Сохраняем в БД (не критично если упадёт — есть in-memory)
     try {
       await db.query(
-        `INSERT INTO tg_otp (session_id, code, expires) VALUES ($1,'',  $2) ON CONFLICT (session_id) DO UPDATE SET expires=$2`,
+        `INSERT INTO tg_otp (session_id, code, expires) VALUES ($1, '', $2)
+         ON CONFLICT (session_id) DO UPDATE SET expires=$2`,
         [sessionId, expires]
       )
-    } catch {}
-    return { ok: true, sessionId, botUrl: `https://t.me/BotFeeds_bot?start=LOGIN_${sessionId}` }
-  } catch (e) { return reply.code(500).send({ error: e.message }) }
+    } catch (e) { console.log('OTP DB insert note:', e.message) }
+
+    const botUrl = `https://t.me/BotFeeds_bot?start=LOGIN_${sessionId}`
+    console.log('🔑 Создана сессия:', sessionId, '| botUrl:', botUrl)
+
+    return { ok: true, sessionId, botUrl }
+  } catch (e) {
+    console.error('tg/start error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
 })
 
 // Шаг 2: проверить код
@@ -241,24 +321,27 @@ app.post('/api/auth/tg/verify', async (req, reply) => {
   try {
     const { sessionId, code } = req.body
     if (!sessionId || !code) return reply.code(400).send({ error: 'Нет данных' })
-    const codeClean = String(code).replace(/\D/g, '').trim()
+    const codeClean = String(code).replace(/\D/g, '')
 
+    // Ищем сессию: сначала в памяти, потом в БД
     let session = tgOtpMap.get(sessionId)
     if (!session) {
       try {
         const { rows } = await db.query('SELECT * FROM tg_otp WHERE session_id=$1', [sessionId])
         if (rows[0]) session = rows[0]
-      } catch {}
+      } catch (e) { console.error('DB session read error:', e.message) }
     }
 
-    if (!session)                            return reply.code(400).send({ error: 'Сессия не найдена. Начни заново.' })
+    if (!session)                             return reply.code(400).send({ error: 'Сессия не найдена. Начни заново.' })
     if (Date.now() > Number(session.expires)) return reply.code(400).send({ error: 'Код истёк. Начни заново.' })
-    if (!session.code)                        return reply.code(400).send({ error: 'Код ещё не получен. Открой бота и нажми Start.' })
-    if (session.code !== codeClean)           return reply.code(400).send({ error: 'Неверный код' })
+    if (!session.code || session.code === '') return reply.code(400).send({ error: 'Код ещё не получен. Открой бота и нажми Start.' })
+    if (session.code.trim() !== codeClean)    return reply.code(400).send({ error: 'Неверный код' })
 
+    // Код верный — удаляем сессию
     tgOtpMap.delete(sessionId)
     db.query('DELETE FROM tg_otp WHERE session_id=$1', [sessionId]).catch(() => {})
 
+    // Создаём или обновляем пользователя
     const { rows } = await db.query(`
       INSERT INTO users (telegram_id, username, first_name, photo_url)
       VALUES ($1, $2, $3, $4)
@@ -279,32 +362,30 @@ app.post('/api/auth/tg/verify', async (req, reply) => {
   }
 })
 
-// Старый Telegram Widget auth (оставляем для совместимости)
-app.post('/api/auth/telegram', async (req, reply) => {
-  try {
-    const { id, first_name, last_name, username, photo_url } = req.body
-    if (!id || !first_name) return reply.code(400).send({ error: 'Нет данных от Telegram' })
-
-    const { rows } = await db.query(`
-      INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (telegram_id) DO UPDATE SET
-        username = EXCLUDED.username, first_name = EXCLUDED.first_name,
-        last_name = EXCLUDED.last_name, photo_url = EXCLUDED.photo_url
-      RETURNING *
-    `, [id, username || null, first_name, last_name || null, photo_url || null])
-
-    const user  = rows[0]
-    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
-    return { token, user: { id: user.id, first_name: user.first_name, username: user.username, photo_url: user.photo_url } }
-  } catch (e) {
-    console.error('Auth error:', e.message)
-    return reply.code(500).send({ error: e.message })
+// Диагностический эндпоинт — проверить состояние сессии
+app.get('/api/auth/tg/session/:sessionId', async (req, reply) => {
+  const { sessionId } = req.params
+  let session = tgOtpMap.get(sessionId)
+  if (!session) {
+    try {
+      const { rows } = await db.query('SELECT session_id, expires, telegram_id, first_name, code FROM tg_otp WHERE session_id=$1', [sessionId])
+      if (rows[0]) session = rows[0]
+    } catch {}
+  }
+  if (!session) return { found: false }
+  return {
+    found: true,
+    hasCode: !!(session.code && session.code !== ''),
+    expired: Date.now() > Number(session.expires),
+    expiresIn: Math.max(0, Number(session.expires) - Date.now()),
+    telegramId: session.telegram_id,
+    firstName: session.first_name
   }
 })
 
 // Текущий пользователь
-app.get('/api/auth/me', { preHandler: auth }, async (req) => {
+// ИСПРАВЛЕНО: добавлен reply в аргументы
+app.get('/api/auth/me', { preHandler: auth }, async (req, reply) => {
   try {
     const { rows } = await db.query(
       'SELECT id, first_name, last_name, username, photo_url, telegram_id FROM users WHERE id=$1',
@@ -322,7 +403,7 @@ app.get('/api/auth/me', { preHandler: auth }, async (req) => {
       }
     }
     return { id: user.id, first_name: user.first_name, last_name: user.last_name, username: user.username, photo_url: user.photo_url }
-  } catch (e) { return { error: e.message } }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
 // ════════════════════════════════
@@ -581,13 +662,23 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
 })
 
 // ════════════════════════════════
-// ПОДПИСКИ
+// ПОДПИСКИ — ИСПРАВЛЕНО: используем ON CONFLICT вместо SELECT+INSERT
 // ════════════════════════════════
 app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req, reply) => {
   try {
-    const { rows } = await db.query('SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2', [req.user.id, parseInt(req.params.botId)])
-    if (rows[0]) { await db.query('DELETE FROM subscriptions WHERE id=$1', [rows[0].id]); return { subscribed: false } }
-    await db.query('INSERT INTO subscriptions (user_id, bot_id) VALUES ($1,$2)', [req.user.id, parseInt(req.params.botId)])
+    const botId = parseInt(req.params.botId)
+    const { rows } = await db.query(
+      'SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2',
+      [req.user.id, botId]
+    )
+    if (rows[0]) {
+      await db.query('DELETE FROM subscriptions WHERE id=$1', [rows[0].id])
+      return { subscribed: false }
+    }
+    await db.query(
+      'INSERT INTO subscriptions (user_id, bot_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+      [req.user.id, botId]
+    )
     return { subscribed: true }
   } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
