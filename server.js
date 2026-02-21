@@ -362,6 +362,16 @@ app.delete('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
 // ════════════════════════════════
 // ВЕРИФИКАЦИЯ — теперь с уведомлением админу
 // ════════════════════════════════
+
+// Глобальный хук: разрешаем пустое тело для POST запросов верификации
+app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+  try {
+    done(null, body ? JSON.parse(body) : {})
+  } catch (e) {
+    done(null, {})
+  }
+})
+
 app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply) => {
   try {
     const { rows } = await db.query(
@@ -375,8 +385,10 @@ app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply
     const verifyToken = crypto.randomBytes(12).toString('hex')
     await db.query('UPDATE bots SET verify_token=$1 WHERE id=$2', [verifyToken, req.params.id])
 
+    console.log('Verify request: bot', b.username, '| ADMIN_CHAT_ID:', ADMIN_CHAT_ID, '| TG_TOKEN set:', !!TG_TOKEN)
+
     // Отправляем уведомление админу с кнопками
-    if (ADMIN_CHAT_ID) {
+    if (ADMIN_CHAT_ID && TG_TOKEN) {
       const cats = (b.categories || []).join(', ') || 'не указаны'
       await tgSend(
         ADMIN_CHAT_ID,
@@ -394,6 +406,8 @@ app.post('/api/bots/:id/verify/request', { preHandler: auth }, async (req, reply
           ]]
         }
       )
+    } else {
+      console.warn('TG не настроен. ADMIN_CHAT_ID:', ADMIN_CHAT_ID, 'TG_TOKEN:', !!TG_TOKEN)
     }
 
     return { ok: true, code: verifyToken }
