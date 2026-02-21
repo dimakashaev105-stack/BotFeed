@@ -948,6 +948,25 @@ html, body {
         <div id="botPagePostsList" style="padding-bottom:80px;"></div>
       </div>
     </div>
+    <!-- POST DETAIL -->
+    <div class="screen" id="s-postdetail">
+      <div class="topbar" style="position:sticky;top:0;z-index:20;background:var(--bg);">
+        <div class="tb-btn" onclick="closePostDetail()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+        <div class="topbar-title">Пост</div>
+        <div class="tb-btn" id="postDetailShareBtn" onclick="sharePostDetail()"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+      </div>
+      <div style="padding:16px 16px 0;" id="postDetailContent"></div>
+      <div style="padding:0 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;padding-top:4px;">Комментарии</div>
+        <div id="postDetailComments" style="padding-bottom:90px;"></div>
+      </div>
+      <!-- Инпут комментария -->
+      <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:30;">
+        <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
+        <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
+      </div>
+    </div>
+
   </div><!-- end .screens -->
   <div class="nav">
     <div class="nav-indicator" id="navIndicator"></div>
@@ -1083,6 +1102,18 @@ try { ME = JSON.parse(localStorage.getItem('bf_me')); } catch {}
 // ════════════════════════════════
 // УТИЛИТЫ
 // ════════════════════════════════
+// ════════════════════════════════
+// АВАТАР БОТА ИЗ TELEGRAM
+// ════════════════════════════════
+function botAvatarHTML(username, size = 40, radius = 12) {
+  if (!username) return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${size*0.55}px;">🤖</div>`;
+  const clean = username.replace('@','');
+  return `<img src="https://t.me/i/userpic/320/${clean}.jpg" 
+    style="width:${size}px;height:${size}px;border-radius:${radius}px;object-fit:cover;display:block;"
+    onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.55)}px;\\'>🤖</div>'"
+  >`;
+}
+
 function esc(str) {
   if (!str) return '';
   return String(str)
@@ -1205,8 +1236,9 @@ async function loadMyBots() {
   list.innerHTML = res.map(b => {
     total += Number(b.members || 0);
     const badge = b.verified ? '<div class="p-badge">✓</div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
+    const avaHtml = botAvatarHTML(b.username, 44, 14);
     return `<div class="my-bot" data-bot-id="${b.id}" data-bot-name="${esc(b.name)}" data-members="${b.members||0}" data-posts="${b.posts_count||0}" data-subs="${b.subscribers||0}">
-      <div class="mb-ava">🤖</div>
+      <div class="mb-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="mb-info">
         <div class="mb-name">${esc(b.name)} ${badge}</div>
         <div class="mb-meta">${b.members||0} участников · ${b.posts_count||0} постов</div>
@@ -1276,8 +1308,13 @@ async function openBotPage(botId, event) {
   document.getElementById('botPageMembers').textContent = b.members || 0;
   document.getElementById('botPageSubs').textContent = b.subscribers || 0;
   document.getElementById('botPagePosts').textContent = (posts||[]).length;
-  document.getElementById('botPageBg').textContent = '🤖';
-  document.getElementById('botPageAva').textContent = '🤖';
+  
+  // Аватарка из Telegram
+  const cleanUsername = b.username.replace('@','');
+  const avatarUrl = `https://t.me/i/userpic/320/${cleanUsername}.jpg`;
+  document.getElementById('botPageBg').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;filter:blur(20px);transform:scale(1.2);" onerror="this.outerHTML='🤖'">`;
+  document.getElementById('botPageAva').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;border-radius:17px;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='🤖'">`;
+  
   document.getElementById('botPageTgLink').href = 'https://t.me/' + b.username;
 
   // Теги
@@ -1301,22 +1338,23 @@ async function openBotPage(botId, event) {
 }
 
 function botPostHTML(p, b) {
-  const postUrl = window.location.origin + '?post=' + p.id;
-  return `<div class="post" style="border-radius:14px;background:var(--card);margin-bottom:10px;border:none;">
+  const avaHtml = botAvatarHTML(b.username, 40, 12);
+  return `<div class="post" style="border-radius:14px;background:var(--card);margin-bottom:10px;border:none;" onclick="openPostDetail(${p.id}, event, b)">
     <div class="post-head">
-      <div class="p-ava">🤖</div>
+      <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="p-meta">
         <div class="p-name">${esc(b.name)}</div>
         <div class="p-cat">${timeAgo(p.created_at)}</div>
       </div>
-      <div style="font-size:12px;color:var(--acc);cursor:pointer;" onclick="sharePost(${p.id})">Поделиться</div>
+      <div style="font-size:12px;color:var(--acc);cursor:pointer;" onclick="event.stopPropagation();sharePost(${p.id})">Поделиться</div>
     </div>
     <div class="post-text">${esc(p.text)}</div>
     <div class="post-foot">
-      <div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>
-      <div class="react" onclick="reactPost(${p.id},'👍',this)">👍 <span>0</span></div>
+      <div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>
+      <div class="react" onclick="event.stopPropagation();reactPost(${p.id},'👍',this)">👍 <span>0</span></div>
       <div class="react-sep"></div>
-      <div class="share" onclick="sharePost(${p.id})">
+      <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>0</span></div>
+      <div class="share" onclick="event.stopPropagation();sharePost(${p.id})">
         <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       </div>
     </div>
@@ -1421,13 +1459,14 @@ async function loadFeed() {
 
 function postHTML(p) {
   const reacts = (p.reactions || []).map(r =>
-    `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
-  ).join('') || `<div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
+    `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="event.stopPropagation();reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
+  ).join('') || `<div class="react" onclick="event.stopPropagation();reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
   const img = p.image_url ? `<div class="post-img" style="background:url('${esc(p.image_url)}') center/cover;height:200px;border-radius:10px;margin-bottom:10px;"></div>` : '';
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
-  return `<div class="post" data-id="${p.id}">
+  const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
+  return `<div class="post" data-id="${p.id}" onclick="openPostDetail(${p.id}, event)">
     <div class="post-head">
-      <div class="p-ava">🤖</div>
+      <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="p-meta">
         <div class="p-name">${esc(p.bot_name||'Бот')} ${badge}</div>
         <div class="p-cat">@${esc(p.bot_username||'')}</div>
@@ -1438,9 +1477,9 @@ function postHTML(p) {
     <div class="post-text">${esc(p.text)}</div>
     <div class="post-foot">
       ${reacts}
-      <div class="react" onclick="openComments(${p.id})">💬 <span>${p.comments_count||0}</span></div>
+      <div class="react" onclick="event.stopPropagation();openPostDetail(${p.id}, event)">💬 <span>${p.comments_count||0}</span></div>
       <div class="react-sep"></div>
-      <div class="share" onclick="toast('🔗','Ссылка скопирована')">
+      <div class="share" onclick="event.stopPropagation();toast('🔗','Ссылка скопирована')">
         <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       </div>
     </div>
@@ -1537,8 +1576,9 @@ function botRowHTML(b) {
   const isSub = mySubIds.has(Number(b.id));
   const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
   const subText = isSub ? '✓ Подписан' : 'Подписаться';
+  const avaHtml = botAvatarHTML(b.username, 44, 14);
   return `<div class="bot-row" onclick="openBotPage(${b.id}, event)">
-    <div class="br-ava">🤖</div>
+    <div class="br-ava" style="overflow:hidden;">${avaHtml}</div>
     <div class="br-info">
       <div class="br-name">${esc(b.name)} ${badge}</div>
       <div class="br-desc">${esc(b.description||'')}</div>
@@ -1924,7 +1964,123 @@ async function deleteBot() {
   }
 }
 
-const NAV_ORDER = ['home', 'catalog', 'search', 'profile'];
+// ════════════════════════════════
+// ПРОСМОТР ПОСТА (detail view)
+// ════════════════════════════════
+let currentPostDetailId = null;
+let prevScreenBeforePost = 'home';
+
+async function openPostDetail(postId, event) {
+  if (event) event.stopPropagation();
+  prevScreenBeforePost = currentScreen;
+  currentPostDetailId = postId;
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
+  const page = document.getElementById('s-postdetail');
+  page.classList.add('active','anim-right');
+  page.addEventListener('animationend', () => page.classList.remove('anim-right'), { once: true });
+  currentScreen = 'postdetail';
+  page.scrollTo(0, 0);
+
+  // Skeleton
+  document.getElementById('postDetailContent').innerHTML = '<div class="shimmer" style="height:120px;margin-bottom:12px;border-radius:14px;"></div>';
+  document.getElementById('postDetailComments').innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Загрузка...</div>';
+
+  // Параллельно грузим пост и комментарии
+  const [commentsData, feedData] = await Promise.all([
+    api('GET', `/posts/${postId}/comments`),
+    api('GET', '/feed?limit=50')
+  ]);
+
+  const p = (feedData || []).find(x => x.id == postId);
+  if (p) {
+    const avaHtml = botAvatarHTML(p.bot_username, 44, 14);
+    const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
+    const reacts = (p.reactions || []).map(r =>
+      `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)">${r.emoji} <span>${r.count}</span></div>`
+    ).join('') || `<div class="react" onclick="reactPost(${p.id},'🔥',this)">🔥 <span>0</span></div>`;
+
+    document.getElementById('postDetailContent').innerHTML = `
+      <div style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;">
+        <div class="post-head" style="cursor:pointer;" onclick="openBotPage(${p.bot_id||0},event)">
+          <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
+          <div class="p-meta">
+            <div class="p-name">${esc(p.bot_name||'Бот')} ${badge}</div>
+            <div class="p-cat">@${esc(p.bot_username||'')}</div>
+          </div>
+          <div class="p-time">${timeAgo(p.created_at)}</div>
+        </div>
+        <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;">${esc(p.text)}</div>
+        <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          ${reacts}
+          <div class="react on">💬 <span>${commentsData?.length||0}</span></div>
+          <div class="react-sep"></div>
+          <div class="share" onclick="sharePostDetail()">
+            <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    document.getElementById('postDetailContent').innerHTML = '';
+  }
+
+  renderPostDetailComments(commentsData);
+}
+
+function renderPostDetailComments(data) {
+  const el = document.getElementById('postDetailComments');
+  if (!data?.length) {
+    el.innerHTML = '<div style="color:var(--sub);text-align:center;padding:32px 0;"><div style="font-size:36px;margin-bottom:10px;">💬</div><div>Будь первым — напиши комментарий!</div></div>';
+    return;
+  }
+  el.innerHTML = data.map(c => `
+    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">👤</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-weight:700;font-size:13px;">${esc(c.first_name||'Пользователь')}</span>
+          <span style="font-size:11px;color:var(--sub);">${timeAgo(c.created_at||Date.now())}</span>
+        </div>
+        <div style="font-size:14px;line-height:1.5;">${esc(c.text)}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function sendPostDetailComment() {
+  if (!TOKEN) { toast('👤', 'Войди чтобы комментировать'); return; }
+  const inp = document.getElementById('postDetailCommentInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  const res = await api('POST', `/posts/${currentPostDetailId}/comments`, { text });
+  if (res?.id) {
+    inp.value = '';
+    toast('💬', 'Комментарий отправлен');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+    const data = await api('GET', `/posts/${currentPostDetailId}/comments`);
+    renderPostDetailComments(data);
+  }
+}
+
+function sharePostDetail() {
+  const url = window.location.origin + '?post=' + currentPostDetailId;
+  if (navigator.share) navigator.share({ title: 'BotFeed', url });
+  else navigator.clipboard?.writeText(url).then(() => toast('🔗', 'Ссылка скопирована!'));
+}
+
+function closePostDetail() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','anim-right','anim-left'));
+  const prev = document.getElementById('s-' + prevScreenBeforePost) || document.getElementById('s-home');
+  prev.classList.add('active','anim-left');
+  prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
+  currentScreen = prevScreenBeforePost;
+  const navMap = { home:0, catalog:1, search:2, profile:3 };
+  const idx = navMap[prevScreenBeforePost] ?? 0;
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
+  const indicator = document.getElementById('navIndicator');
+  if (indicator) indicator.style.left = (idx * 25) + '%';
+}
+
+
 let currentScreen = 'home';
 
 function navRipple(el) {
