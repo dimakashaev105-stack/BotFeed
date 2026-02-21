@@ -30,9 +30,11 @@ db.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFE
 db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'`)
   .catch(e => console.log('Buttons migration note:', e.message))
 
-// Миграция постов — просмотры
 db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0`)
   .catch(e => console.log('Views migration note:', e.message))
+
+db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notify BOOLEAN DEFAULT true`)
+  .catch(e => console.log('Notify migration note:', e.message))
 
 // OTP таблицы
 try {
@@ -548,10 +550,9 @@ app.get('/api/bots/:botId/posts', { preHandler: optAuth }, async (req) => {
 app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
   const { text, image_url, post_type, buttons } = req.body
   if (!text?.trim()) return reply.code(400).send({ error: 'Текст обязателен' })
-  const { rows: b } = await db.query('SELECT id FROM bots WHERE id=$1 AND owner_id=$2', [req.params.botId, req.user.id])
+  const { rows: b } = await db.query('SELECT id, name, username FROM bots WHERE id=$1 AND owner_id=$2', [req.params.botId, req.user.id])
   if (!b[0]) return reply.code(403).send({ error: 'Нет доступа' })
 
-  // Валидация кнопок
   const cleanButtons = Array.isArray(buttons)
     ? buttons.filter(b => b?.label?.trim() && b?.url?.trim()).slice(0, 4)
     : []
@@ -575,7 +576,29 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
       rows = r.rows
     }
   }
-  return rows[0]
+
+  const post = rows[0]
+
+  // Отправляем уведомления подписчикам асинхронно
+  ;(async () => {
+    try {
+      const { rows: subs } = await db.query(`
+        SELECT u.telegram_id FROM subscriptions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.bot_id = $1 AND s.notify = true AND u.telegram_id IS NOT NULL
+      `, [req.params.botId])
+      const preview = text.trim().length > 200 ? text.trim().slice(0, 200) + '…' : text.trim()
+      const postUrl = `https://botfeed.vercel.app?post=${post.id}`
+      for (const sub of subs) {
+        await tgSend(sub.telegram_id,
+          `🔔 <b>${b[0].name}</b> опубликовал новый пост!\n\n${preview}\n\n<a href="${postUrl}">Открыть →</a>`
+        )
+        await new Promise(r => setTimeout(r, 50))
+      }
+    } catch (e) { console.error('Notify error:', e.message) }
+  })()
+
+  return post
 })
 
 app.delete('/api/posts/:id', { preHandler: auth }, async (req, reply) => {
@@ -592,13 +615,6 @@ app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
   if (rows[0]) { await db.query('DELETE FROM reactions WHERE id=$1', [rows[0].id]); return { action: 'removed' } }
   await db.query('INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1,$2,$3)', [req.params.id, req.user.id, emoji])
   return { action: 'added' }
-})
-
-app.post('/api/posts/:id/view', async (req, reply) => {
-  try {
-    await db.query('UPDATE posts SET views_count = COALESCE(views_count,0) + 1 WHERE id=$1', [req.params.id])
-    return { ok: true }
-  } catch (e) { return { ok: false } }
 })
 
 app.get('/api/posts/:id/comments', async (req) => {
@@ -636,6 +652,13 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
 // ════════════════════════════════
 // ПОДПИСКИ
 // ════════════════════════════════
+app.post('/api/posts/:id/view', async (req, reply) => {
+  try {
+    await db.query('UPDATE posts SET views_count = COALESCE(views_count,0) + 1 WHERE id=$1', [req.params.id])
+    return { ok: true }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
+})
+
 app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req, reply) => {
   try {
     const { rows } = await db.query('SELECT id FROM subscriptions WHERE user_id=$1 AND bot_id=$2', [req.user.id, parseInt(req.params.botId)])
@@ -645,9 +668,20 @@ app.post('/api/bots/:botId/subscribe', { preHandler: auth }, async (req, reply) 
   } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
+app.post('/api/bots/:botId/notify', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query('SELECT id, notify FROM subscriptions WHERE user_id=$1 AND bot_id=$2', [req.user.id, parseInt(req.params.botId)])
+    if (!rows[0]) return reply.code(404).send({ error: 'Нет подписки' })
+    const newNotify = !rows[0].notify
+    await db.query('UPDATE subscriptions SET notify=$1 WHERE id=$2', [newNotify, rows[0].id])
+    return { notify: newNotify }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
+})
+
 app.get('/api/my/subscriptions', { preHandler: auth }, async (req) => {
   const { rows } = await db.query(`
-    SELECT b.id, b.username, b.name, b.photo_url, b.members, b.verified, s.created_at as subscribed_at
+    SELECT b.id, b.username, b.name, b.photo_url, b.members, b.verified,
+           s.created_at as subscribed_at, COALESCE(s.notify, true) as notify
     FROM subscriptions s JOIN bots b ON s.bot_id=b.id
     WHERE s.user_id=$1 ORDER BY s.created_at DESC
   `, [req.user.id])
