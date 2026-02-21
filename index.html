@@ -1299,7 +1299,7 @@ async function loadCatalog() {
     api('GET', '/bots'),
     TOKEN ? api('GET', '/my/subscriptions') : Promise.resolve([])
   ]);
-  mySubIds = new Set((subs||[]).map(s => s.id));
+  mySubIds = new Set((subs||[]).map(s => Number(s.id)));
   if (!data?.length) {
     el.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">🤖</div><div style="font-weight:600;color:var(--text);">Ботов пока нет</div></div>';
     return;
@@ -1310,7 +1310,7 @@ async function loadCatalog() {
 function botRowHTML(b) {
   const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
   const tags = (b.categories||[]).map(t => `<div class="tag">${esc(t)}</div>`).join('');
-  const isSub = mySubIds.has(b.id);
+  const isSub = mySubIds.has(Number(b.id));
   const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
   const subText = isSub ? '✓ Подписан' : 'Подписаться';
   return `<div class="bot-row">
