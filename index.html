@@ -1026,13 +1026,7 @@ html, body {
           </div>
         </div>
 
-        <!-- Скрытый Google Sign-In div (для GSI library) -->
-        <div id="g_id_onload"
-          data-client_id="443378593916-3atdtlsqnpc2b88av03i932948iv83m9.apps.googleusercontent.com"
-          data-callback="onGoogleAuth"
-          data-auto_select="false"
-          style="display:none;">
-        </div>
+        <!-- Google OAuth redirect обрабатывается в JS автоматически -->
       </div>
 
       <!-- Авторизован -->
@@ -1499,92 +1493,92 @@ async function loginTelegram(data) {
 }
 
 // ════════════════════════════════
-// AUTH — Google
+// AUTH — Google (OAuth redirect)
 // ════════════════════════════════
 
-// Загружаем Google GSI script
-function loadGoogleScript() {
-  if (document.getElementById('gsi-script')) return;
-  const s = document.createElement('script');
-  s.id = 'gsi-script';
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true;
-  document.head.appendChild(s);
-}
-loadGoogleScript();
+const GOOGLE_CLIENT_ID = '443378593916-3atdtlsqnpc2b88av03i932948iv83m9.apps.googleusercontent.com';
+const GOOGLE_REDIRECT  = 'https://botfeed.vercel.app';
 
-// Вызывается Google после выбора аккаунта
-async function onGoogleAuth(response) {
-  await loginWithGoogleCredential(response.credential);
-}
-
-// Открываем Google-попап выбора аккаунта
+// Нажатие на кнопку — редиректим на Google
 function loginWithGoogle() {
-  const btn = document.getElementById('googleAuthBtn');
-  const icon = document.getElementById('googleBtnIcon');
+  const btn     = document.getElementById('googleAuthBtn');
+  const icon    = document.getElementById('googleBtnIcon');
   const spinner = document.getElementById('googleBtnSpinner');
-  const txt = document.getElementById('googleBtnText');
+  const txt     = document.getElementById('googleBtnText');
 
-  // Показываем загрузку
   if (btn) {
-    btn.disabled = true;
-    btn.style.opacity = '.75';
-    icon && (icon.style.display = 'none');
+    btn.disabled = true; btn.style.opacity = '.75';
+    icon    && (icon.style.display    = 'none');
     spinner && (spinner.style.display = 'block');
-    txt && (txt.textContent = 'Открываем Google...');
+    txt     && (txt.textContent       = 'Открываем Google...');
   }
 
-  const resetBtn = () => {
-    if (!btn) return;
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    icon && (icon.style.display = '');
-    spinner && (spinner.style.display = 'none');
-    txt && (txt.textContent = 'Продолжить с Google');
-  };
+  // state — случайная строка против CSRF
+  const state = Math.random().toString(36).slice(2);
+  localStorage.setItem('google_oauth_state', state);
 
-  // Если GSI ещё не загружен — ждём
-  if (typeof google === 'undefined' || !google.accounts) {
-    setTimeout(() => { resetBtn(); loginWithGoogle(); }, 900);
+  const params = new URLSearchParams({
+    client_id:     GOOGLE_CLIENT_ID,
+    redirect_uri:  GOOGLE_REDIRECT,
+    response_type: 'token',          // implicit flow — токен прямо в URL
+    scope:         'openid email profile',
+    state:         state,
+    prompt:        'select_account'
+  });
+
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+// Обрабатываем возврат от Google (access_token в hash #)
+async function handleGoogleCallback() {
+  const hash   = window.location.hash.slice(1);
+  if (!hash) return;
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const state       = params.get('state');
+  if (!accessToken) return;
+
+  // Очищаем hash из URL
+  history.replaceState(null, '', window.location.pathname);
+
+  // Проверяем state
+  const savedState = localStorage.getItem('google_oauth_state');
+  localStorage.removeItem('google_oauth_state');
+  if (state && savedState && state !== savedState) {
+    toast('❌', 'Ошибка безопасности, попробуй снова');
     return;
   }
-  google.accounts.id.initialize({
-    client_id: document.getElementById('g_id_onload').dataset.clientId,
-    callback: onGoogleAuth
-  });
-  google.accounts.id.prompt((notification) => {
-    resetBtn();
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      openGoogleOAuthRedirect();
-    }
-  });
-}
 
-// Fallback: классический redirect OAuth (если попап заблокирован)
-function openGoogleOAuthRedirect() {
-  const clientId = document.getElementById('g_id_onload').dataset.clientId;
-  const redirectUri = encodeURIComponent(window.location.origin + '/auth/google/callback');
-  const scope = encodeURIComponent('openid email profile');
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&prompt=select_account`;
-  window.location.href = url;
-}
-
-async function loginWithGoogleCredential(credential) {
   toast('⏳', 'Входим через Google...');
+
   try {
+    // Получаем инфо о пользователе через Google API
+    const gRes  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const gUser = await gRes.json();
+
+    if (!gUser.sub) {
+      toast('❌', 'Не удалось получить данные Google');
+      return;
+    }
+
+    // Отправляем на наш бэкенд
     const r = await fetch('https://botfeed-9v15.onrender.com/api/auth/google', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential })
+      body:    JSON.stringify({ googleUser: gUser })
     });
     const res = await r.json();
+
     if (res?.token) {
       TOKEN = res.token;
-      ME = res.user;
+      ME    = res.user;
       localStorage.setItem('bf_token', TOKEN);
-      localStorage.setItem('bf_me', JSON.stringify(ME));
+      localStorage.setItem('bf_me',    JSON.stringify(ME));
       showProfile();
       loadFeed();
+      showScreen('profile');
       toast('🎉', `Привет, ${ME.first_name}!`);
     } else {
       toast('❌', res?.error || 'Ошибка входа через Google');
@@ -1593,6 +1587,9 @@ async function loginWithGoogleCredential(credential) {
     toast('❌', 'Нет связи с сервером');
   }
 }
+
+// Запускаем проверку callback при загрузке страницы
+handleGoogleCallback();
 
 function logout() {
   TOKEN = null;
@@ -3059,4 +3056,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-</html>
+              </html>
