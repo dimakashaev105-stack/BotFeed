@@ -177,36 +177,46 @@ app.post('/api/tg/webhook', async (req, reply) => {
 // Вход / регистрация через Google
 app.post('/api/auth/google', async (req, reply) => {
   try {
-    // Принимаем либо googleUser (от implicit flow), либо credential (ID token)
-    const { googleUser, credential } = req.body
+    const { accessToken, googleUser, credential } = req.body
 
     let googleId, email, firstName, lastName, photoUrl
 
-    if (googleUser) {
-      // Implicit flow — данные пришли напрямую после верификации access_token фронтендом
-      googleId  = googleUser.sub
-      email     = googleUser.email     || null
-      firstName = googleUser.given_name  || googleUser.name?.split(' ')[0] || 'User'
-      lastName  = googleUser.family_name || null
-      photoUrl  = googleUser.picture    || null
-
-    } else if (credential) {
-      // ID Token flow — верифицируем через Google API
-      const gRes  = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`)
+    if (accessToken) {
+      // Сервер сам спрашивает Google по access_token
+      const gRes  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      })
       const gData = await gRes.json()
-
-      if (gData.error || !gData.sub) {
-        return reply.code(401).send({ error: 'Неверный Google токен' })
-      }
-      const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
-      if (GOOGLE_CLIENT_ID && gData.aud !== GOOGLE_CLIENT_ID) {
-        return reply.code(401).send({ error: 'Неверный Google Client ID' })
+      if (!gData.sub) {
+        console.error('Google userinfo error:', gData)
+        return reply.code(401).send({ error: 'Неверный Google токен: ' + (gData.error || 'нет sub') })
       }
       googleId  = gData.sub
-      email     = gData.email          || null
-      firstName = gData.given_name     || gData.name?.split(' ')[0] || 'User'
-      lastName  = gData.family_name    || null
-      photoUrl  = gData.picture        || null
+      email     = gData.email        || null
+      firstName = gData.given_name   || gData.name?.split(' ')[0] || 'User'
+      lastName  = gData.family_name  || null
+      photoUrl  = gData.picture      || null
+
+    } else if (googleUser) {
+      // Данные уже получены фронтендом
+      googleId  = googleUser.sub
+      email     = googleUser.email       || null
+      firstName = googleUser.given_name  || googleUser.name?.split(' ')[0] || 'User'
+      lastName  = googleUser.family_name || null
+      photoUrl  = googleUser.picture     || null
+
+    } else if (credential) {
+      // ID Token
+      const gRes  = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`)
+      const gData = await gRes.json()
+      if (gData.error || !gData.sub) {
+        return reply.code(401).send({ error: 'Неверный ID token' })
+      }
+      googleId  = gData.sub
+      email     = gData.email        || null
+      firstName = gData.given_name   || gData.name?.split(' ')[0] || 'User'
+      lastName  = gData.family_name  || null
+      photoUrl  = gData.picture      || null
 
     } else {
       return reply.code(400).send({ error: 'Нет данных Google' })
@@ -214,12 +224,10 @@ app.post('/api/auth/google', async (req, reply) => {
 
     if (!googleId) return reply.code(400).send({ error: 'Нет Google ID' })
 
-    // Генерируем username из email
     const baseUsername = email
       ? email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 25)
       : `g_${googleId.slice(-8)}`
 
-    // Upsert по google_id
     const { rows } = await db.query(`
       INSERT INTO users (google_id, email, username, first_name, last_name, photo_url)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -234,7 +242,7 @@ app.post('/api/auth/google', async (req, reply) => {
     const user  = rows[0]
     const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '30d' })
 
-    console.log('Google auth success:', user.first_name, user.email)
+    console.log('✅ Google auth:', user.first_name, user.email)
     return {
       token,
       user: {
@@ -799,4 +807,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-                   }
+}
