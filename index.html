@@ -2682,13 +2682,12 @@ async function openBotPage(botId, event) {
   document.getElementById('botPagePostsList').innerHTML = Array(2).fill(0).map(skeletonPost).join('');
 
   // Загружаем данные параллельно
-  const [bots, posts] = await Promise.all([
-    api('GET', '/bots'),
+  const [b, posts] = await Promise.all([
+    api('GET', `/bots/${botId}`),
     api('GET', `/bots/${botId}/posts`)
   ]);
 
-  const b = (bots||[]).find(x => x.id == botId);
-  if (!b) return;
+  if (!b || b.error) return;
 
   currentBotPageData = b;
 
@@ -3254,7 +3253,9 @@ function sharePost(postId) {
 }
 
 function timeAgo(ts) {
+  if (!ts) return '';
   const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (isNaN(d) || d < 0) return '';
   if (d < 60) return 'только что';
   if (d < 3600) return Math.floor(d/60) + ' мин';
   if (d < 86400) return Math.floor(d/3600) + ' ч';
