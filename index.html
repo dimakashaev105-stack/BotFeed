@@ -1802,6 +1802,20 @@ html, body {
           </div>
           <textarea id="newPostText" placeholder="Расскажи об обновлении, новой фиче или совете..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:120px;outline:none;line-height:1.5;"></textarea>
 
+          <!-- Загрузка изображения -->
+          <div style="margin-top:10px;">
+            <input type="file" id="postImageFile" accept="image/*" style="display:none;" onchange="handleImageSelect(this)">
+            <div id="postImagePreview" style="display:none;position:relative;margin-bottom:10px;">
+              <img id="postImageThumb" src="" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;display:block;">
+              <div onclick="removePostImage()" style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.65);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;">×</div>
+            </div>
+            <div id="postImageUploadBtn" onclick="document.getElementById('postImageFile').click()" style="display:flex;align-items:center;gap:7px;padding:8px 12px;background:var(--bg);border:1.5px dashed rgba(46,166,255,0.3);border-radius:10px;cursor:pointer;color:var(--sub);font-size:13px;transition:border-color .15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Добавить изображение</span>
+            </div>
+            <div id="postImageStatus" style="font-size:11px;color:var(--sub);margin-top:4px;display:none;"></div>
+          </div>
+
           <!-- Кнопки поста -->
           <div style="margin-top:12px;">
             <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Кнопки в посте <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.6;">(необязательно, макс. 4)</span></div>
@@ -2709,19 +2723,20 @@ function skeletonBotRow() {
 let activeFeedTab = 'subs'; // 'subs' | 'rec'
 let recPostsCache = null;   // кэш рекомендаций
 
+// Пагинация
+const FEED_PAGE_SIZE = 15;
+let feedSubsOffset = 0, feedSubsLoading = false, feedSubsHasMore = true;
+let feedRecOffset  = 0, feedRecLoading  = false, feedRecHasMore  = true;
+
 async function switchFeedTab(tab) {
   if (tab === activeFeedTab) return;
-  const prev = activeFeedTab;
   activeFeedTab = tab;
 
-  // Обновляем табы
   document.getElementById('tab-subs').classList.toggle('active', tab === 'subs');
   document.getElementById('tab-rec').classList.toggle('active', tab === 'rec');
 
   const subsEl = document.getElementById('feed-subs');
   const recEl  = document.getElementById('feed-rec');
-
-  const dir = tab === 'rec' ? 'right' : 'left';
 
   if (tab === 'rec') {
     subsEl.style.display = 'none';
@@ -2730,7 +2745,7 @@ async function switchFeedTab(tab) {
     void recEl.offsetWidth;
     recEl.classList.add('feed-anim-right');
     window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
-    if (!recPostsCache) {
+    if (feedRecOffset === 0 && !recEl.querySelector('.post')) {
       await loadRecommended();
     }
   } else {
@@ -2743,10 +2758,66 @@ async function switchFeedTab(tab) {
   }
 }
 
+function createFeedLoader(feedId) {
+  const existing = document.getElementById(feedId + '_loader');
+  if (existing) return;
+  const el = document.createElement('div');
+  el.id = feedId + '_loader';
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sub);font-size:13px;">Загрузка...</div>';
+  document.getElementById(feedId).appendChild(el);
+}
+
+function removeFeedLoader(feedId) {
+  document.getElementById(feedId + '_loader')?.remove();
+}
+
+function createEndMarker(feedId) {
+  const existing = document.getElementById(feedId + '_end');
+  if (existing) return;
+  const el = document.createElement('div');
+  el.id = feedId + '_end';
+  el.style.cssText = 'text-align:center;padding:24px 0 90px;color:var(--muted);font-size:12px;';
+  el.textContent = '— Больше нет постов —';
+  document.getElementById(feedId).appendChild(el);
+}
+
+// Инициализация IntersectionObserver для бесконечного скролла
+let feedObserver = null;
+function initFeedObserver() {
+  if (feedObserver) feedObserver.disconnect();
+  feedObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const id = entry.target.dataset.feed;
+      if (id === 'feed-subs' && !feedSubsLoading && feedSubsHasMore) loadMoreFeedSubs();
+      if (id === 'feed-rec'  && !feedRecLoading  && feedRecHasMore)  loadMoreFeedRec();
+    });
+  }, { rootMargin: '200px' });
+
+  // Сентинел-элемент для подписок
+  setupFeedSentinel('feed-subs');
+  setupFeedSentinel('feed-rec');
+}
+
+function setupFeedSentinel(feedId) {
+  let sentinel = document.getElementById(feedId + '_sentinel');
+  if (!sentinel) {
+    sentinel = document.createElement('div');
+    sentinel.id = feedId + '_sentinel';
+    sentinel.dataset.feed = feedId;
+    sentinel.style.height = '1px';
+    document.getElementById(feedId).appendChild(sentinel);
+  }
+  feedObserver?.observe(sentinel);
+}
+
 async function loadFeed() {
-  // Сбрасываем таб на Подписки
+  // Сбрасываем состояние
   activeFeedTab = 'subs';
+  feedSubsOffset = 0; feedSubsHasMore = true; feedSubsLoading = false;
+  feedRecOffset  = 0; feedRecHasMore  = true; feedRecLoading  = false;
   recPostsCache = null;
+
   document.getElementById('tab-subs')?.classList.add('active');
   document.getElementById('tab-rec')?.classList.remove('active');
   document.getElementById('feed-subs').style.display = 'block';
@@ -2755,7 +2826,9 @@ async function loadFeed() {
   const feedEl = document.getElementById('feed-subs');
   feedEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
 
-  const data = await api('GET', TOKEN ? '/feed' : '/feed/discover');
+  const data = await api('GET', TOKEN
+    ? `/feed?limit=${FEED_PAGE_SIZE}&offset=0`
+    : `/feed/discover?limit=${FEED_PAGE_SIZE}&offset=0`);
 
   if (data === null) {
     feedEl.innerHTML = `
@@ -2779,49 +2852,115 @@ async function loadFeed() {
           Смотреть каталог →
         </div>
       </div>`;
-    // Автоматически показываем рекомендации
-    setTimeout(() => {
-      if (activeFeedTab === 'subs') switchFeedTab('rec');
-    }, 600);
+    setTimeout(() => { if (activeFeedTab === 'subs') switchFeedTab('rec'); }, 600);
     return;
   }
-  feedEl.innerHTML = data.map(postHTML).join('');
 
-  // Замораживаем анимацию после проигрывания чтобы не повторялась
+  feedEl.innerHTML = data.map(postHTML).join('');
+  feedSubsOffset = data.length;
+  feedSubsHasMore = data.length >= FEED_PAGE_SIZE;
+
   setTimeout(() => {
     feedEl.querySelectorAll('.post').forEach(p => p.classList.add('no-anim'));
   }, 800);
 
+  if (feedSubsHasMore) setupFeedSentinel('feed-subs');
+
+  // Инициализируем observer
+  initFeedObserver();
+
   // Фоново грузим рекомендации
   loadRecommended();
+}
+
+async function loadMoreFeedSubs() {
+  if (feedSubsLoading || !feedSubsHasMore) return;
+  feedSubsLoading = true;
+  createFeedLoader('feed-subs');
+
+  const data = await api('GET', TOKEN
+    ? `/feed?limit=${FEED_PAGE_SIZE}&offset=${feedSubsOffset}`
+    : `/feed/discover?limit=${FEED_PAGE_SIZE}&offset=${feedSubsOffset}`);
+
+  removeFeedLoader('feed-subs');
+  feedSubsLoading = false;
+
+  if (!data?.length) {
+    feedSubsHasMore = false;
+    createEndMarker('feed-subs');
+    return;
+  }
+
+  const feedEl = document.getElementById('feed-subs');
+  const tmp = document.createElement('div');
+  tmp.innerHTML = data.map(postHTML).join('');
+  // Перемещаем перед сентинелем
+  const sentinel = document.getElementById('feed-subs_sentinel');
+  tmp.querySelectorAll('.post').forEach(el => {
+    el.classList.add('no-anim');
+    feedEl.insertBefore(el, sentinel);
+  });
+
+  feedSubsOffset += data.length;
+  feedSubsHasMore = data.length >= FEED_PAGE_SIZE;
+  if (!feedSubsHasMore) createEndMarker('feed-subs');
 }
 
 async function loadRecommended() {
   const recEl = document.getElementById('feed-rec');
   if (!recEl) return;
 
-  if (!recPostsCache) {
+  if (feedRecOffset === 0) {
     recEl.innerHTML = Array(3).fill(0).map(skeletonPost).join('');
-    // Берём все посты и перемешиваем (как TikTok)
-    const data = await api('GET', '/feed/discover?limit=50');
-    if (!data?.length) {
-      recEl.innerHTML = '<div style="text-align:center;padding:48px;color:var(--sub);">Нет постов для рекомендаций</div>';
-      return;
-    }
-    // Перемешиваем Fisher-Yates
-    const shuffled = [...data];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    recPostsCache = shuffled;
   }
 
-  recEl.innerHTML = recPostsCache.map(postHTML).join('');
-  // Замораживаем анимацию после проигрывания
-  setTimeout(() => {
-    recEl.querySelectorAll('.post').forEach(p => p.classList.add('no-anim'));
-  }, 800);
+  const data = await api('GET', `/feed/discover?limit=${FEED_PAGE_SIZE}&offset=${feedRecOffset}`);
+
+  if (feedRecOffset === 0) recEl.innerHTML = '';
+
+  if (!data?.length) {
+    if (feedRecOffset === 0) {
+      recEl.innerHTML = '<div style="text-align:center;padding:48px;color:var(--sub);">Нет постов для рекомендаций</div>';
+    } else {
+      feedRecHasMore = false;
+      createEndMarker('feed-rec');
+    }
+    return;
+  }
+
+  // Перемешиваем только первую страницу (для свежести)
+  let posts = [...data];
+  if (feedRecOffset === 0) {
+    for (let i = posts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [posts[i], posts[j]] = [posts[j], posts[i]];
+    }
+  }
+
+  const tmp = document.createElement('div');
+  tmp.innerHTML = posts.map(postHTML).join('');
+
+  const sentinel = document.getElementById('feed-rec_sentinel');
+  tmp.querySelectorAll('.post').forEach(el => {
+    el.classList.add('no-anim');
+    if (sentinel) recEl.insertBefore(el, sentinel);
+    else recEl.appendChild(el);
+  });
+
+  feedRecOffset += data.length;
+  feedRecHasMore = data.length >= FEED_PAGE_SIZE;
+  if (!feedRecHasMore) createEndMarker('feed-rec');
+
+  if (feedRecOffset === data.length) setupFeedSentinel('feed-rec');
+}
+
+async function loadMoreFeedRec() {
+  if (feedRecLoading || !feedRecHasMore) return;
+  feedRecLoading = true;
+  createFeedLoader('feed-rec');
+  await loadRecommended();
+  removeFeedLoader('feed-rec');
+  feedRecLoading = false;
 }
 
 function postHTML(p) {
@@ -3770,10 +3909,80 @@ function renderPostButtons(buttons) {
     </a>`).join('')}</div>`;
 }
 
+// ════════════════════════════════
+// ЗАГРУЗКА ИЗОБРАЖЕНИЙ ДЛЯ ПОСТА
+// ════════════════════════════════
+let pendingImageUrl = null; // URL уже загруженного изображения
+
+function handleImageSelect(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('⚠️', 'Файл больше 5 МБ'); input.value = ''; return; }
+
+  // Превью
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('postImageThumb').src = e.target.result;
+    document.getElementById('postImagePreview').style.display = 'block';
+    document.getElementById('postImageUploadBtn').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+
+  // Сразу начинаем загрузку на сервер
+  uploadPostImage(file);
+}
+
+async function uploadPostImage(file) {
+  const statusEl = document.getElementById('postImageStatus');
+  pendingImageUrl = null;
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ Загружаем изображение...';
+  statusEl.style.color = 'var(--sub)';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const r = await fetch(API + '/upload/image', {
+      method: 'POST',
+      headers: { ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}) },
+      body: formData
+    });
+    const res = await r.json();
+
+    if (res?.url) {
+      pendingImageUrl = res.url;
+      statusEl.textContent = '✓ Изображение готово';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = '❌ ' + (res?.error || 'Ошибка загрузки');
+      statusEl.style.color = 'var(--red)';
+      toast('❌', res?.error || 'Ошибка загрузки изображения');
+    }
+  } catch (e) {
+    statusEl.textContent = '❌ Нет связи с сервером';
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+function removePostImage() {
+  pendingImageUrl = null;
+  document.getElementById('postImageFile').value = '';
+  document.getElementById('postImagePreview').style.display = 'none';
+  document.getElementById('postImageUploadBtn').style.display = 'flex';
+  document.getElementById('postImageStatus').style.display = 'none';
+}
+
 async function publishPost() {
   const text = document.getElementById('newPostText').value.trim();
   if (!text) { toast('⚠️', 'Напиши текст поста'); return; }
   if (text.length > 1000) { toast('⚠️', 'Пост слишком длинный'); return; }
+
+  // Проверяем — вдруг изображение ещё загружается
+  const statusEl = document.getElementById('postImageStatus');
+  if (statusEl.textContent.includes('⏳')) {
+    toast('⏳', 'Дождись загрузки изображения'); return;
+  }
 
   // Валидация кнопок
   const validButtons = postButtons.filter(b => b.label.trim() && b.url.trim());
@@ -3785,6 +3994,7 @@ async function publishPost() {
 
   const res = await api('POST', `/bots/${currentBotId}/posts`, {
     text,
+    image_url: pendingImageUrl || undefined,
     post_type: currentPostType,
     buttons: validButtons.length ? validButtons : undefined
   });
@@ -3792,6 +4002,7 @@ async function publishPost() {
     document.getElementById('newPostText').value = '';
     document.getElementById('postCharCount').textContent = '0 / 1000';
     resetBtnEditor();
+    removePostImage();
     toast('🚀', 'Пост опубликован!');
     loadMyPostsList();
     analyticsPostsData.unshift(res);
@@ -4056,6 +4267,10 @@ function renderPostDetailComments(data) {
                 Написать
               </span>` : ''}
             ${c.replies?.length ? `<span style="font-size:12px;color:var(--sub);">↳ ${c.replies.length} ${c.replies.length===1?'ответ':c.replies.length<5?'ответа':'ответов'}</span>` : ''}
+            ${ME && String(c.user_id) === String(ME.id) ? `
+              <span style="font-size:12px;color:var(--red);cursor:pointer;margin-left:auto;opacity:0.7;" onclick="deleteComment(${c.id}, this)">
+                Удалить
+              </span>` : ''}
           </div>
         </div>
         <div class="comment-reply-indicator" id="ri-${c.id}">
@@ -4127,6 +4342,49 @@ async function sendPostDetailComment() {
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
     const data = await api('GET', `/posts/${currentPostDetailId}/comments`);
     renderPostDetailComments(data);
+  }
+}
+
+async function deleteComment(commentId, el) {
+  if (!TOKEN) return;
+  if (!confirm('Удалить комментарий?')) return;
+
+  const res = await api('DELETE', `/comments/${commentId}`);
+  if (res?.ok) {
+    // Находим блок комментария и удаляем с анимацией
+    const item = el.closest('.comment-item') || el.closest('[data-id]');
+    if (item) {
+      item.style.transition = 'opacity .25s, transform .25s';
+      item.style.opacity = '0';
+      item.style.transform = 'translateX(10px)';
+      setTimeout(() => {
+        // Удаляем также разделитель после элемента
+        item.nextElementSibling?.tagName === 'DIV' && item.nextElementSibling.style.height === '1px'
+          && item.nextElementSibling.remove();
+        item.remove();
+        // Если комментариев не осталось — показываем пустое состояние
+        const remaining = document.querySelectorAll('.comment-item');
+        if (!remaining.length) {
+          document.getElementById('postDetailComments').innerHTML = `
+            <div style="color:var(--sub);text-align:center;padding:40px 0 80px;">
+              <div style="font-size:48px;margin-bottom:12px;">💬</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Комментариев пока нет</div>
+              <div style="font-size:13px;">Будь первым — напиши что-нибудь!</div>
+            </div>`;
+        }
+      }, 260);
+    }
+    // Обновляем счётчик комментариев на карточках постов
+    document.querySelectorAll(`.post[data-id="${currentPostDetailId}"] .react`).forEach(el => {
+      if (el.textContent.includes('💬')) {
+        const sp = el.querySelector('span');
+        if (sp) sp.textContent = Math.max(0, parseInt(sp.textContent || '0') - 1);
+      }
+    });
+    toast('🗑', 'Комментарий удалён');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  } else {
+    toast('❌', res?.error || 'Ошибка удаления');
   }
 }
 
@@ -4411,6 +4669,29 @@ function sseConnect() {
     }
   })
 
+  // ── Удаление комментария ──
+  sseSource.addEventListener('comment_deleted', (e) => {
+    const { post_id, comment_id, comments_count } = JSON.parse(e.data)
+
+    // Обновляем счётчик на карточках
+    document.querySelectorAll(`.post[data-id="${post_id}"] .react`).forEach(el => {
+      if (el.textContent.includes('💬')) {
+        const sp = el.querySelector('span:not(.react-emoji)')
+        if (sp) sp.textContent = comments_count
+      }
+    })
+
+    // Если открыт этот пост и удалил НЕ текущий пользователь — убираем комментарий из UI
+    if (String(currentPostDetailId) === String(post_id)) {
+      const item = document.querySelector(`.comment-item[data-id="${comment_id}"]`)
+      if (item) {
+        item.style.transition = 'opacity .2s'
+        item.style.opacity = '0'
+        setTimeout(() => item.remove(), 220)
+      }
+    }
+  })
+
   sseSource.onerror = () => {
     updateOnlineIndicator(false)
     sseSource.close()
@@ -4571,4 +4852,4 @@ async function initApp() {
 initApp();
 </script>
 </body>
-</html>
+  </html>
