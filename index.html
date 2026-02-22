@@ -877,6 +877,13 @@ html, body {
   will-change: transform;
   user-select: none;
 }
+/* Кликабельный пользователь в комментарии */
+.comment-item [onclick*="t.me"] {
+  transition: opacity .15s;
+}
+.comment-item [onclick*="t.me"]:active {
+  opacity: 0.6;
+}
 .comment-item.swiping {
   transition: none;
 }
@@ -3457,8 +3464,11 @@ async function openPostDetail(postId, event) {
         <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;">${esc(p.text)}</div>
         <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
           ${reacts}
-          <div class="react on">💬 <span>${commentsData?.length||0}</span></div>
-          ${p.views_count ? `<div class="react" style="cursor:default;">👁 <span>${p.views_count >= 1000 ? (p.views_count/1000).toFixed(1)+'k' : p.views_count}</span></div>` : ''}
+          <div class="react" style="cursor:default;pointer-events:none;">💬 <span>${commentsData?.length||0}</span></div>
+          ${p.views_count ? `<div class="react" style="cursor:default;pointer-events:none;opacity:0.7;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>${p.views_count >= 1000 ? (p.views_count/1000).toFixed(1)+'k' : p.views_count}</span>
+          </div>` : ''}
           <div class="react-sep"></div>
           <div class="share" onclick="sharePostDetail()">
             <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -3543,17 +3553,31 @@ function renderPostDetailComments(data) {
     const ava = avatarHTML(c, isReply ? 28 : 36);
     const replies = (c.replies||[]).map(r => commentHTML(r, true)).join('');
 
+    // Ссылка на TG профиль если есть username
+    const userLink = c.username
+      ? `onclick="event.stopPropagation();window.open('https://t.me/${esc(c.username)}','_blank')"`
+      : '';
+    const userCursor = c.username ? 'cursor:pointer;' : '';
+    const userHover  = c.username ? 'active-user' : '';
+
     return `
       <div class="comment-item" data-id="${c.id}" 
            data-name="${esc(c.first_name||'Пользователь')}" 
            data-text="${esc(c.text)}"
            style="${isReply ? 'padding-left:44px;background:rgba(46,166,255,0.03);' : ''}">
-        <div style="flex-shrink:0;${isReply?'display:none;':''}">${ava}</div>
+        <!-- Аватарка — кликабельная -->
+        <div style="flex-shrink:0;${isReply?'display:none;':''}${userCursor}" ${userLink}>${ava}</div>
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
-            ${isReply ? `<div style="flex-shrink:0;">${ava}</div>` : ''}
-            <span style="font-weight:700;font-size:13px;color:var(--text);">${esc(c.first_name||'Пользователь')}</span>
-            ${c.username ? `<span style="font-size:11px;color:var(--muted);">@${esc(c.username)}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;">
+            ${isReply ? `<div style="flex-shrink:0;${userCursor}" ${userLink}>${ava}</div>` : ''}
+            <!-- Имя — кликабельное если есть username -->
+            <span style="font-weight:700;font-size:13px;color:var(--text);${userCursor}${c.username?'text-decoration:none;':''}" ${userLink}>
+              ${esc(c.first_name||'Пользователь')}
+            </span>
+            ${c.username ? `
+              <span style="font-size:11px;color:var(--acc);cursor:pointer;font-weight:500;" ${userLink}>
+                @${esc(c.username)}
+              </span>` : ''}
             <span style="font-size:11px;color:var(--muted);margin-left:auto;">${timeAgo(c.created_at||Date.now())}</span>
           </div>
           ${replyQuote}
@@ -3564,7 +3588,12 @@ function renderPostDetailComments(data) {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
               Ответить
             </span>
-            ${c.replies?.length ? `<span style="font-size:12px;color:var(--acc);">↳ ${c.replies.length} ${c.replies.length===1?'ответ':c.replies.length<5?'ответа':'ответов'}</span>` : ''}
+            ${c.username ? `
+              <span style="font-size:12px;color:var(--acc);cursor:pointer;display:flex;align-items:center;gap:3px;" ${userLink}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z" fill="currentColor" stroke="none"/></svg>
+                Написать
+              </span>` : ''}
+            ${c.replies?.length ? `<span style="font-size:12px;color:var(--sub);">↳ ${c.replies.length} ${c.replies.length===1?'ответ':c.replies.length<5?'ответа':'ответов'}</span>` : ''}
           </div>
         </div>
         <div class="comment-reply-indicator" id="ri-${c.id}">
