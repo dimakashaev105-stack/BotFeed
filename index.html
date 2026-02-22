@@ -365,53 +365,22 @@ html, body {
 .post:active { background: var(--hover); }
 
 /* ══════════════════════════════════════
-   COVERFLOW 3D SCROLL
+   COVERFLOW 3D SCROLL — ultra smooth
 ══════════════════════════════════════ */
 .feed {
-  perspective: 1200px;
-  perspective-origin: 50% 40%;
+  perspective: 900px;
+  perspective-origin: 50% 38%;
 }
 
 .post {
   transform-origin: center center;
   transition:
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    background .12s;
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity   0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.12s;
   will-change: transform, opacity;
-  transform-style: preserve-3d;
   backface-visibility: hidden;
-}
-
-/* Дефолтное состояние — уходящие/приходящие карточки */
-.post.cf-below {
-  opacity: 0.55;
-  transform: rotateX(-12deg) scale(0.94) translateY(6px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.post.cf-above {
-  opacity: 0.55;
-  transform: rotateX(12deg) scale(0.94) translateY(-6px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.post.cf-center {
-  opacity: 1;
-  transform: rotateX(0deg) scale(1) translateY(0);
-  box-shadow:
-    0 16px 48px rgba(0,0,0,0.5),
-    0 0 0 1px rgba(46,166,255,0.08),
-    0 0 32px rgba(46,166,255,0.04);
-  background: var(--card);
-  z-index: 2;
-}
-
-.post.cf-far {
-  opacity: 0.25;
-  transform: rotateX(20deg) scale(0.88) translateY(12px);
-  box-shadow: none;
 }
 
 /* ══════════════════════════════════════
@@ -776,11 +745,12 @@ html, body {
 .feat-scroll { display:flex; gap:10px; padding:0 16px 16px; overflow-x:auto; scrollbar-width:none; }
 .feat-scroll::-webkit-scrollbar { display:none; }
 .feat-card {
-  flex-shrink: 0; width: 168px;
+  flex-shrink: 0; width: 172px;
   background: var(--card);
-  border-radius: 18px; padding: 14px;
+  border-radius: 22px; padding: 16px;
   border: 1px solid rgba(255,255,255,0.07);
   cursor: pointer; position: relative; overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
 .feat-card::before {
   content: ''; position: absolute;
@@ -814,19 +784,20 @@ html, body {
 .bot-rows { padding: 0 12px 90px; }
 .bot-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px;
+  padding: 14px;
   background: var(--card);
-  border-radius: 16px;
-  margin-bottom: 8px;
+  border-radius: 22px;
+  margin-bottom: 10px;
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.05);
-  transition: background .12s, transform .15s, box-shadow .15s;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: background .12s, transform .2s cubic-bezier(0.34,1.56,0.64,1), box-shadow .2s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
 }
-.bot-row:active { transform: scale(0.98); background: var(--hover); box-shadow: none; }
+.bot-row:active { transform: scale(0.97); background: var(--hover); box-shadow: none; }
 .br-ava {
-  width: 50px; height: 50px; border-radius: 14px;
+  width: 52px; height: 52px; border-radius: 16px;
   background: var(--hover); display: flex; align-items: center;
-  justify-content: center; font-size: 24px; flex-shrink: 0; overflow: hidden;
+  justify-content: center; font-size: 26px; flex-shrink: 0; overflow: hidden;
 }
 .br-info { flex:1; min-width:0; }
 .br-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -888,11 +859,12 @@ html, body {
 .trending-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 14px; }
 .trend-item {
   display: flex; align-items: center; gap: 10px;
-  background: var(--card); border-radius: 14px; padding: 13px;
+  background: var(--card); border-radius: 18px; padding: 14px;
   cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
-  transition: transform .15s, background .12s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), background .12s;
 }
-.trend-item:active { transform: scale(0.96); background: var(--hover); }
+.trend-item:active { transform: scale(0.95); background: var(--hover); }
 .tr-ico { font-size: 24px; flex-shrink: 0; }
 .tr-name { font-size: 13px; font-weight: 700; }
 .tr-cnt { font-size: 11px; color: var(--sub); margin-top: 2px; }
@@ -901,118 +873,163 @@ html, body {
 .no-results-txt { font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px; }
 
 /* ══════════════════════════════════════
-   PROFILE
+   PROFILE — redesigned
 ══════════════════════════════════════ */
 
 /* Hero шапка профиля */
 .prof-hero {
   position: relative; overflow: hidden;
-  padding: 36px 18px 24px;
-  background: linear-gradient(170deg, #0c1d30 0%, #0f1923 100%);
-  border-bottom: 1px solid var(--border);
+  padding: 44px 20px 28px;
+  background: linear-gradient(160deg, #0a1828 0%, #0d1f30 40%, #091520 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+/* Mesh gradient blobs */
 .prof-hero::before {
   content: ''; position: absolute;
-  top: -60px; right: -40px; width: 220px; height: 220px;
+  top: -80px; right: -60px; width: 280px; height: 280px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(46,166,255,0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(46,166,255,0.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+.prof-hero::after {
+  content: ''; position: absolute;
+  bottom: -50px; left: -40px; width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(77,205,106,0.1) 0%, transparent 65%);
+  pointer-events: none;
 }
 .prof-hero-row {
   display: flex; align-items: center; gap: 16px;
   position: relative; z-index: 1;
 }
 .prof-ava {
-  width: 72px; height: 72px; border-radius: 22px;
-  background: var(--card); display: flex; align-items: center;
-  justify-content: center; font-size: 34px; flex-shrink: 0; overflow: hidden;
-  border: 2.5px solid rgba(46,166,255,0.3);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  width: 78px; height: 78px; border-radius: 26px;
+  background: linear-gradient(135deg, #1a2d42, #0f1f30);
+  display: flex; align-items: center;
+  justify-content: center; font-size: 36px; flex-shrink: 0; overflow: hidden;
+  border: 2px solid rgba(46,166,255,0.35);
+  box-shadow:
+    0 0 0 4px rgba(46,166,255,0.08),
+    0 12px 32px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.08);
 }
 .prof-info { flex: 1; min-width: 0; }
-.prof-name { font-size: 20px; font-weight: 900; display:flex; align-items:center; gap:7px; letter-spacing: -0.3px; }
-.prof-badge { display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--acc);color:#fff;border-radius:50%;font-size:10px;font-weight:800; }
-.prof-user { font-size: 13px; color: var(--sub); margin-top: 4px; }
+.prof-name {
+  font-size: 22px; font-weight: 900;
+  display:flex; align-items:center; gap:7px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #e8edf2 0%, #aec6e8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.prof-badge {
+  display:inline-flex;align-items:center;justify-content:center;
+  width:18px;height:18px;
+  background: linear-gradient(135deg, #2ea6ff, #0d7fd4);
+  color:#fff;border-radius:50%;font-size:10px;font-weight:800;
+  box-shadow: 0 2px 8px rgba(46,166,255,0.4);
+  -webkit-text-fill-color: #fff;
+}
+.prof-user { font-size: 13px; color: rgba(138,155,176,0.9); margin-top: 5px; font-weight: 500; }
 .prof-add-btn {
   display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; border-radius: 12px;
-  background: rgba(46,166,255,0.12); border: 1px solid rgba(46,166,255,0.25);
-  color: var(--acc); font-size: 20px; cursor: pointer; flex-shrink: 0;
-  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), background .15s;
+  width: 40px; height: 40px; border-radius: 14px;
+  background: rgba(46,166,255,0.1);
+  border: 1px solid rgba(46,166,255,0.22);
+  color: var(--acc); font-size: 22px; cursor: pointer; flex-shrink: 0;
+  transition: transform .2s cubic-bezier(0.34,1.56,0.64,1), background .15s, box-shadow .2s;
+  box-shadow: 0 4px 12px rgba(46,166,255,0.1);
 }
-.prof-add-btn:active { transform: scale(0.88); background: var(--acc-dim); }
+.prof-add-btn:active { transform: scale(0.86); background: rgba(46,166,255,0.2); }
 
-/* Стат-полоса */
+/* Статы — glassmorphism плашки */
 .prof-stats {
   display: grid; grid-template-columns: repeat(3,1fr);
-  gap: 8px; margin-top: 20px; position: relative; z-index: 1;
+  gap: 10px; margin-top: 22px; position: relative; z-index: 1;
 }
 .ps {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px; padding: 12px 8px; text-align: center;
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px; padding: 14px 8px; text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+  transition: transform .2s cubic-bezier(0.34,1.56,0.64,1), border-color .2s;
 }
-.ps-n { font-size: 20px; font-weight: 900; color: var(--text); line-height: 1; }
-.ps-l { font-size: 10px; color: var(--sub); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+.ps:active { transform: scale(0.95); border-color: rgba(46,166,255,0.2); }
+.ps-n { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+.ps-l { font-size: 10px; color: var(--sub); margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
 
-/* Табы */
+/* Табы — pill style */
 .p-tabs {
-  display: flex; padding: 12px 14px 0;
-  gap: 6px;
+  display: flex; padding: 14px 14px 0;
+  gap: 8px;
+  background: var(--bg);
 }
 .p-tab {
-  flex: 1; text-align: center; padding: 9px 10px;
+  flex: 1; text-align: center; padding: 10px 10px;
   font-size: 13px; font-weight: 700; color: var(--sub);
-  cursor: pointer; border-radius: 10px;
+  cursor: pointer; border-radius: 14px;
   background: transparent;
-  transition: all .18s;
+  border: 1px solid transparent;
+  transition: all .22s cubic-bezier(0.34,1.56,0.64,1);
+  letter-spacing: 0.1px;
 }
-.p-tab.on { color: var(--text); background: var(--card); }
+.p-tab:active { transform: scale(0.96); }
+.p-tab.on {
+  color: var(--text);
+  background: var(--card);
+  border-color: rgba(255,255,255,0.07);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06);
+}
 
-#tb-bots, #tb-settings { padding: 12px 14px 90px; }
+#tb-bots, #tb-settings { padding: 14px 14px 90px; }
 
-/* Карточки моих ботов */
+/* Карточки моих ботов — rounder */
 .my-bot {
   display: flex; align-items: center; gap: 12px;
-  padding: 13px; background: var(--card); border-radius: 16px;
-  margin-bottom: 8px; cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.05);
-  transition: background .12s, transform .15s;
+  padding: 14px; background: var(--card); border-radius: 20px;
+  margin-bottom: 10px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  transition: background .12s, transform .2s cubic-bezier(0.34,1.56,0.64,1), box-shadow .2s;
 }
-.my-bot:active { background: var(--hover); transform: scale(0.98); }
-.mb-ava { width:46px; height:46px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden; }
+.my-bot:active { background: var(--hover); transform: scale(0.97); box-shadow: none; }
+.mb-ava { width:48px; height:48px; border-radius:16px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; overflow:hidden; }
 .mb-info { flex:1; min-width:0; }
 .mb-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; }
 .mb-meta { font-size:12px; color:var(--sub); margin-top:3px; }
-.mb-chev { width:28px;height:28px;border-radius:8px;background:var(--hover);display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:16px;flex-shrink:0; }
+.mb-chev { width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:16px;flex-shrink:0; }
 
 /* Добавить бота */
 .add-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 14px;
-  border: 1.5px dashed rgba(46,166,255,0.25);
-  background: rgba(46,166,255,0.04);
-  border-radius: 16px; cursor: pointer; margin-top: 4px;
-  transition: background .15s, border-color .15s;
+  padding: 16px;
+  border: 1.5px dashed rgba(46,166,255,0.22);
+  background: rgba(46,166,255,0.03);
+  border-radius: 20px; cursor: pointer; margin-top: 4px;
+  transition: background .18s, border-color .18s, transform .2s cubic-bezier(0.34,1.56,0.64,1);
 }
-.add-row:active { background: rgba(46,166,255,0.08); }
-.add-ico { width:46px; height:46px; border-radius:13px; background:var(--acc-dim); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--acc); flex-shrink:0; }
+.add-row:active { background: rgba(46,166,255,0.08); transform: scale(0.98); }
+.add-ico { width:48px; height:48px; border-radius:16px; background:var(--acc-dim); display:flex; align-items:center; justify-content:center; font-size:24px; color:var(--acc); flex-shrink:0; }
 .add-lbl { font-size:14px; font-weight:700; color:var(--acc); }
 .add-sub { font-size:12px; color:var(--sub); margin-top:2px; }
 
-/* Настройки */
+/* Настройки — rounder */
 .set-group {
-  background: var(--card); border-radius: 16px;
-  margin-bottom: 10px; overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--card); border-radius: 20px;
+  margin-bottom: 12px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
-.set-row { display:flex; align-items:center; gap:13px; padding:15px 14px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; }
+.set-row { display:flex; align-items:center; gap:14px; padding:15px 16px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04); transition:background .12s; }
 .set-row:last-child { border-bottom:none; }
 .set-row:active { background:var(--hover); }
 .set-ico-wrap {
-  width: 34px; height: 34px; border-radius: 10px;
+  width: 36px; height: 36px; border-radius: 12px;
   background: rgba(255,255,255,0.06);
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; flex-shrink: 0;
+  font-size: 18px; flex-shrink: 0;
 }
 .set-ico { font-size:18px; flex-shrink:0; }
 .set-lbl { flex:1; font-size:14px; font-weight:500; }
@@ -1699,6 +1716,8 @@ html, body {
       <div id="prof-auth">
         <!-- Hero шапка -->
         <div class="prof-hero">
+          <!-- Декоративные точки -->
+          <div style="position:absolute;top:18px;left:20px;width:4px;height:4px;border-radius:50%;background:rgba(46,166,255,0.4);box-shadow:16px 0 0 rgba(46,166,255,0.2),32px 0 0 rgba(46,166,255,0.1);pointer-events:none;z-index:0;"></div>
           <div class="prof-hero-row">
             <div class="prof-ava" id="profAva">👤</div>
             <div class="prof-info">
@@ -1707,7 +1726,9 @@ html, body {
               </div>
               <div class="prof-user" id="profUser"></div>
             </div>
-            <div class="prof-add-btn" onclick="openSheet()" title="Добавить бота">＋</div>
+            <div class="prof-add-btn" onclick="openSheet()" title="Добавить бота">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
           </div>
           <div class="prof-stats">
             <div class="ps"><div class="ps-n" id="statBots">0</div><div class="ps-l">Ботов</div></div>
@@ -4849,48 +4870,62 @@ function appendCommentToDetail(c) {
 }
 
 // ══════════════════════════════════════
-// COVERFLOW 3D SCROLL ENGINE
+// COVERFLOW 3D SCROLL ENGINE — continuous
 // ══════════════════════════════════════
 function initCoverflow(feedEl) {
-  if (!feedEl) return;
+  if (!feedEl || feedEl._cfInit) return;
+  feedEl._cfInit = true;
 
-  // Находим скроллящийся родитель (.screen)
   const scroller = feedEl.closest('.screen') || feedEl;
+  let rafId = null;
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
 
   function update() {
     const posts = feedEl.querySelectorAll('.post');
     if (!posts.length) return;
 
-    const scrollerRect = scroller.getBoundingClientRect();
-    const centerY = scrollerRect.top + scrollerRect.height * 0.42;
+    const sr = scroller.getBoundingClientRect();
+    const cy = sr.top + sr.height * 0.40; // фокусная точка
 
     posts.forEach(post => {
-      const rect = post.getBoundingClientRect();
-      const postMid = rect.top + rect.height / 2;
-      const dist = postMid - centerY;
-      const absDist = Math.abs(dist);
-      const unit = rect.height * 0.5;
+      const r = post.getBoundingClientRect();
+      const mid = r.top + r.height / 2;
+      const dist = mid - cy;
+      const norm = clamp(dist / (sr.height * 0.52), -1, 1); // -1..1
+      const abs = Math.abs(norm);
 
-      post.classList.remove('cf-center', 'cf-above', 'cf-below', 'cf-far');
+      // Непрерывные значения
+      const rotX  = norm * 14;                          // -14..14 deg
+      const sc    = lerp(1, 0.88, abs);                 // 1..0.88
+      const op    = lerp(1, 0.28, abs);                 // 1..0.28
+      const ty    = norm * 8;                           // subtle shift
+      const blur  = lerp(0, 1.5, abs);                  // subtle blur
+      const sh    = abs < 0.18
+        ? `0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(46,166,255,0.09)`
+        : `0 ${lerp(20, 2, abs)}px ${lerp(60, 6, abs)}px rgba(0,0,0,${lerp(0.55, 0.15, abs)})`;
 
-      if (absDist < unit * 0.8) {
-        post.classList.add('cf-center');
-      } else if (absDist < unit * 2.4) {
-        post.classList.add(dist < 0 ? 'cf-above' : 'cf-below');
-      } else {
-        post.classList.add('cf-far');
-      }
+      post.style.transform  = `rotateX(${rotX}deg) scale(${sc}) translateY(${ty}px)`;
+      post.style.opacity    = op;
+      post.style.boxShadow  = sh;
+      post.style.filter     = blur > 0.1 ? `blur(${blur.toFixed(2)}px)` : '';
+      post.style.zIndex     = Math.round(10 - abs * 9);
     });
   }
 
-  scroller.addEventListener('scroll', update, { passive: true });
+  function onScroll() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(update);
+  }
+
+  scroller.addEventListener('scroll', onScroll, { passive: true });
   requestAnimationFrame(update);
 
   const mo = new MutationObserver(() => requestAnimationFrame(update));
-  mo.observe(feedEl, { childList: true, subtree: true });
+  mo.observe(feedEl, { childList: true, subtree: false });
 }
 
-// Инициализируем Coverflow для всех лент
 function setupAllCoverflows() {
   ['feed-subs', 'feed-rec'].forEach(id => {
     const el = document.getElementById(id);
