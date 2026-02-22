@@ -62,37 +62,36 @@ html, body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  padding: 8px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 20px calc(14px + env(safe-area-inset-bottom, 0px));
   background: transparent;
   z-index: 50;
   pointer-events: none;
 }
 
 .nav {
-  height: 60px;
-  background: rgba(28, 39, 51, 0.72);
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 24px;
+  height: 64px;
+  background: rgba(15, 22, 32, 0.55);
+  backdrop-filter: blur(28px) saturate(140%) brightness(0.9);
+  -webkit-backdrop-filter: blur(28px) saturate(140%) brightness(0.9);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 28px;
   display: flex;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
   overflow: hidden;
   pointer-events: all;
 }
 
-/* Sliding indicator under active nav item */
-.nav-indicator {
+/* Одна пилюля — единственный индикатор активного элемента */
+.nav-pill {
   position: absolute;
-  bottom: 6px;
-  height: 3px;
-  background: var(--acc);
-  border-radius: 3px;
-  width: calc(25% - 24px);
-  left: 12px;
-  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 10px rgba(46,166,255,0.6);
+  top: 9px; bottom: 9px;
+  border-radius: 17px;
+  background: rgba(46,166,255,0.14);
+  border: 1px solid rgba(46,166,255,0.22);
+  transition: left 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .nav-item {
@@ -100,15 +99,16 @@ html, body {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 4px; cursor: pointer;
-  transition: opacity .15s;
   position: relative;
+  z-index: 1;
 }
 .nav-item:active { opacity: .6; }
-.nav-ico { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-.nav-ico svg { width:22px; height:22px; stroke: var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition: stroke .2s, transform .3s cubic-bezier(0.34,1.56,0.64,1); }
-.nav-item.active .nav-ico svg { stroke: var(--acc); transform: scale(1.18) translateY(-1px); }
-.nav-lbl { font-size: 10px; font-weight: 600; color: var(--muted); transition: color .2s, transform .2s; }
-.nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.05); }
+.nav-ico { width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.nav-ico svg { width:21px; height:21px; stroke: var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition: stroke .22s, transform .3s cubic-bezier(0.34,1.56,0.64,1); }
+.nav-item.active .nav-ico svg { stroke: var(--acc); transform: scale(1.12); }
+.nav-item:active .nav-ico svg { transform: scale(0.88); }
+.nav-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); transition: color .22s; }
+.nav-item.active .nav-lbl { color: var(--acc); }
 
 /* ══════════════════════════════════════
    SCREEN TRANSITIONS — cinematic slide
@@ -127,25 +127,7 @@ html, body {
 /* ══════════════════════════════════════
    NAV — spring indicator + icon bounce
 ══════════════════════════════════════ */
-.nav-indicator {
-  position: absolute;
-  top: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--acc), transparent);
-  width: 25%; left: 0;
-  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: blur(0.5px);
-}
-.nav-ico svg {
-  transition: stroke .2s, transform .35s cubic-bezier(0.34, 1.56, 0.64, 1), filter .2s;
-}
-.nav-item.active .nav-ico svg {
-  stroke: var(--acc);
-  transform: scale(1.22) translateY(-2px);
-  filter: drop-shadow(0 0 6px rgba(46,166,255,0.5));
-}
-.nav-lbl { transition: color .2s, transform .25s cubic-bezier(0.34,1.56,0.64,1); }
-.nav-item.active .nav-lbl { color: var(--acc); transform: scale(1.08); }
-.nav-item:active .nav-ico svg { transform: scale(0.9); }
+/* (стили перенесены выше в основной блок nav) */
 
 /* ══════════════════════════════════════
    FEED — staggered card entrance
@@ -421,20 +403,6 @@ html, body {
    NAV ITEM — ripple on tap
 ══════════════════════════════════════ */
 .nav-item { position: relative; overflow: hidden; }
-@keyframes ripple {
-  from { transform: scale(0); opacity: 0.4; }
-  to   { transform: scale(2.5); opacity: 0; }
-}
-.nav-ripple {
-  position: absolute;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--acc);
-  pointer-events: none;
-  transform: scale(0);
-  animation: ripple .5s ease-out forwards;
-  margin: auto; inset: 0;
-}
 
 /* ══════════════════════════════════════
    STEP INDICATORS — see full definition below
@@ -821,42 +789,209 @@ html, body {
 .sub-btn.subbed { background:rgba(77,205,106,0.12); color:var(--green); border-color:rgba(77,205,106,0.2); }
 
 /* ══════════════════════════════════════
-   SEARCH
+   DISCOVER — объединённый каталог+поиск
 ══════════════════════════════════════ */
-.search-top { padding: 14px 14px 0; }
-.search-box {
-  display: flex; align-items: center; gap: 10px;
+.disc-header {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg);
+  padding: 12px 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Search bar — новый стиль ── */
+.disc-search-wrap { margin-bottom: 10px; }
+
+.disc-search-box {
+  display: flex; align-items: center; gap: 11px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 13px 16px;
+  transition: border-color .25s, box-shadow .25s, background .25s;
+  position: relative;
+}
+.disc-search-box.focused {
+  border-color: rgba(46,166,255,0.5);
+  box-shadow:
+    0 0 0 3px rgba(46,166,255,0.08),
+    0 8px 24px rgba(0,0,0,0.2);
+  background: rgba(46,166,255,0.04);
+}
+.disc-search-ico {
+  width: 18px; height: 18px; stroke: var(--muted); flex-shrink: 0;
+  transition: stroke .25s, transform .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.disc-search-box.focused .disc-search-ico {
+  stroke: var(--acc);
+  transform: scale(1.1);
+}
+.disc-search-input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-family: 'Inter', sans-serif;
+  font-size: 15px; font-weight: 500; min-width: 0;
+  caret-color: var(--acc);
+}
+.disc-search-input::placeholder {
+  color: var(--muted); font-weight: 400;
+  transition: color .2s;
+}
+.disc-search-box.focused .disc-search-input::placeholder { color: rgba(138,155,176,0.5); }
+
+/* Кнопка очистки */
+.disc-clear {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: background .15s, transform .2s cubic-bezier(0.34,1.56,0.64,1), opacity .2s;
+  opacity: 0;
+}
+.disc-clear.show { display: flex; opacity: 1; }
+.disc-clear:active { transform: scale(0.85); background: rgba(255,255,255,0.18); }
+.disc-clear svg { width: 11px; height: 11px; stroke: var(--sub); }
+
+/* Счётчик результатов внутри строки */
+.disc-search-count {
+  font-size: 11px; font-weight: 700; color: var(--acc);
+  background: rgba(46,166,255,0.12);
+  border-radius: 10px; padding: 2px 8px;
+  white-space: nowrap; flex-shrink: 0;
+  opacity: 0; transition: opacity .2s;
+  pointer-events: none;
+}
+.disc-search-count.show { opacity: 1; }
+
+/* Tabs */
+.disc-tabs-row {
+  display: flex; align-items: center; gap: 0;
+  overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 0;
+}
+.disc-tabs-row::-webkit-scrollbar { display: none; }
+.disc-tab {
+  font-size: 14px; font-weight: 700;
+  color: var(--sub); padding: 10px 14px;
+  cursor: pointer; white-space: nowrap;
+  position: relative; flex-shrink: 0;
+  transition: color .2s;
+  user-select: none;
+}
+.disc-tab::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 8px; right: 8px; height: 2.5px;
+  background: var(--acc); border-radius: 2px 2px 0 0;
+  transform: scaleX(0); transition: transform .28s cubic-bezier(0.34,1.56,0.64,1);
+}
+.disc-tab.active { color: var(--text); }
+.disc-tab.active::after { transform: scaleX(1); }
+.disc-sep {
+  width: 1px; height: 20px; background: var(--border);
+  flex-shrink: 0; margin: 0 4px; align-self: center;
+}
+.disc-cat-scroll {
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  padding: 6px 0 8px; flex: 1;
+}
+.disc-cat-scroll::-webkit-scrollbar { display: none; }
+.disc-cat {
+  padding: 5px 12px; border-radius: 20px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  font-size: 12px; font-weight: 600; color: var(--sub);
+  white-space: nowrap; cursor: pointer; flex-shrink: 0;
+  transition: all .2s cubic-bezier(0.34,1.56,0.64,1);
+  user-select: none;
+}
+.disc-cat:active { transform: scale(0.92); }
+.disc-cat.active {
+  background: var(--acc); border-color: var(--acc);
+  color: #fff; box-shadow: 0 3px 10px rgba(46,166,255,0.35);
+}
+
+/* Content */
+#discContent { padding-bottom: 100px; }
+.disc-section-label {
+  font-size: 11px; font-weight: 700; color: var(--sub);
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 18px 16px 10px;
+}
+
+/* Пустое состояние поиска */
+.disc-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 24px; text-align: center;
+}
+.disc-empty-ico { font-size: 48px; margin-bottom: 16px; }
+.disc-empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.disc-empty-sub { font-size: 13px; color: var(--sub); line-height: 1.5; }
+
+/* Hero stats strip */
+.disc-hero {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; padding: 14px 16px;
+}
+.disc-hero-stat {
+  flex: 1; text-align: center;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.disc-hero-n {
+  font-size: 22px; font-weight: 900; color: var(--text); line-height: 1;
+}
+.disc-hero-l {
+  font-size: 10px; font-weight: 600; color: var(--sub);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.disc-hero-div {
+  width: 1px; height: 28px; background: var(--border); flex-shrink: 0;
+}
+
+/* Featured horizontal cards */
+.disc-featured-scroll {
+  display: flex; gap: 12px;
+  padding: 0 16px 4px; overflow-x: auto; scrollbar-width: none;
+}
+.disc-featured-scroll::-webkit-scrollbar { display: none; }
+.disc-feat-card {
+  flex-shrink: 0; width: 162px;
   background: var(--card);
-  border-radius: 14px; padding: 12px 14px;
-  border: 1.5px solid transparent;
-  margin-bottom: 12px;
-  transition: border-color .2s, box-shadow .2s;
+  border-radius: 22px; padding: 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  cursor: pointer; position: relative; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  transition: transform .22s cubic-bezier(0.34,1.56,0.64,1), box-shadow .22s;
 }
-.search-box:focus-within {
-  border-color: rgba(46,166,255,0.35);
-  box-shadow: 0 0 0 3px rgba(46,166,255,0.07);
+.disc-feat-card::before {
+  content: ''; position: absolute;
+  top: -30px; right: -30px; width: 100px; height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(46,166,255,0.12), transparent 70%);
+  pointer-events: none;
 }
-.search-box svg { width:18px; height:18px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; transition:stroke .2s; }
-.search-box:focus-within svg { stroke: var(--acc); }
-.search-box input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Inter',sans-serif; font-size:15px; min-width:0; }
-.search-box input::placeholder { color:var(--muted); }
-.search-clear { width:20px;height:20px;border-radius:50%;background:var(--muted);color:var(--bg);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;flex-shrink:0;font-weight:700; }
-.search-clear.show { display:flex; }
+.disc-feat-card:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.disc-feat-ava {
+  width: 48px; height: 48px; border-radius: 16px;
+  background: var(--hover); display: flex; align-items: center;
+  justify-content: center; font-size: 24px; margin-bottom: 12px; overflow: hidden;
+}
+.disc-feat-name {
+  font-size: 13px; font-weight: 700; margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.disc-feat-desc {
+  font-size: 11px; color: var(--sub); line-height: 1.45; margin-bottom: 12px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.disc-feat-foot {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.disc-feat-m {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--sub); font-weight: 600;
+}
 
-.cats-bar { display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
-.cats-bar::-webkit-scrollbar { display:none; }
-.cat-chip {
-  padding: 7px 14px;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 20px; font-size: 12px; font-weight: 600;
-  color: var(--sub); white-space: nowrap; cursor: pointer; flex-shrink: 0;
-  transition: all .18s cubic-bezier(0.34,1.56,0.64,1);
-}
-.cat-chip:active { transform: scale(0.92); }
-.cat-chip.on { background:var(--acc); border-color:var(--acc); color:#fff; box-shadow: 0 4px 12px rgba(46,166,255,0.35); }
-
-.s-lbl { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:0.8px; padding:18px 14px 8px; }
-.trending-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 14px; }
+/* Bot list */
+.disc-list { padding: 0 12px; }
 .trend-item {
   display: flex; align-items: center; gap: 10px;
   background: var(--card); border-radius: 18px; padding: 14px;
@@ -1520,84 +1655,106 @@ html, body {
       <div class="feed" id="feed-rec" style="display:none;"></div>
     </div>
 
-    <!-- CATALOG -->
+    <!-- DISCOVER — объединённый каталог + поиск -->
     <div class="screen" id="s-catalog">
-      <div class="cat-banner">
-        <div class="cat-banner-inner">
-          <div class="cat-banner-eyebrow">Каталог</div>
-          <div class="cat-banner-title">Telegram <span>боты</span></div>
-          <div class="cat-banner-sub">Находи, подписывайся, следи за обновлениями</div>
-          <div class="banner-stats">
-            <div class="bstat"><div class="bstat-n" id="catStatBots">—</div><div class="bstat-l">Ботов</div></div>
-            <div class="bstat"><div class="bstat-n" id="catStatMembers">—</div><div class="bstat-l">Участников</div></div>
-            <div class="bstat"><div class="bstat-n" id="catStatPosts">—</div><div class="bstat-l">Постов</div></div>
+
+      <!-- Sticky шапка -->
+      <div class="disc-header">
+
+        <!-- Строка поиска -->
+        <div class="disc-search-wrap">
+          <div class="disc-search-box" id="discSearchBox">
+            <svg class="disc-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="discInput" class="disc-search-input" type="text" placeholder="Поиск по каталогу..." oninput="discSearch()" onfocus="discFocus(true)" onblur="discFocus(false)">
+            <div class="disc-search-count" id="discSearchCount"></div>
+            <div class="disc-clear" id="discClear" onclick="discClearSearch()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Табы: Топ / Новые / Поиск по категории -->
+        <div class="disc-tabs-row" id="discTabsRow">
+          <div class="disc-tab active" id="dtab-top" onclick="switchDiscTab('top',this)">⭐ Топ</div>
+          <div class="disc-tab" id="dtab-new" onclick="switchDiscTab('new',this)">🆕 Новые</div>
+          <div class="disc-tab" id="dtab-subs" onclick="switchDiscTab('subs',this)">❤️ Мои</div>
+          <div class="disc-sep"></div>
+          <div class="disc-cat-scroll" id="discCatScroll">
+            <div class="disc-cat active" data-cat="all" onclick="discSetCat(this)">Все</div>
+            <div class="disc-cat" data-cat="ai" onclick="discSetCat(this)">🤖 ИИ</div>
+            <div class="disc-cat" data-cat="games" onclick="discSetCat(this)">🎮 Игры</div>
+            <div class="disc-cat" data-cat="music" onclick="discSetCat(this)">🎵 Музыка</div>
+            <div class="disc-cat" data-cat="finance" onclick="discSetCat(this)">📈 Финансы</div>
+            <div class="disc-cat" data-cat="news" onclick="discSetCat(this)">📰 Новости</div>
+            <div class="disc-cat" data-cat="utils" onclick="discSetCat(this)">🛠 Утилиты</div>
+            <div class="disc-cat" data-cat="translate" onclick="discSetCat(this)">🌐 Перевод</div>
+            <div class="disc-cat" data-cat="edu" onclick="discSetCat(this)">📚 Обучение</div>
           </div>
         </div>
       </div>
-      <div class="sec-head"><div class="sec-title">Топ боты</div></div>
-      <div class="feat-scroll" id="featuredList">
-        <div class="shimmer feat-card" style="min-width:168px;height:148px;border-radius:18px;"></div>
-        <div class="shimmer feat-card" style="min-width:168px;height:148px;border-radius:18px;"></div>
-        <div class="shimmer feat-card" style="min-width:168px;height:148px;border-radius:18px;"></div>
-      </div>
-      <div class="sec-head" style="padding-top:8px;"><div class="sec-title">Все боты</div></div>
-      <div class="bot-rows" id="catalogList">
-        <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
-        <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
-        <div class="shimmer" style="height:74px;border-radius:16px;"></div>
+
+      <!-- Контент -->
+      <div id="discContent">
+
+        <!-- Топ вкладка -->
+        <div id="disc-top">
+          <!-- Hero stats -->
+          <div class="disc-hero">
+            <div class="disc-hero-stat"><span class="disc-hero-n" id="dStatBots">—</span><span class="disc-hero-l">ботов</span></div>
+            <div class="disc-hero-div"></div>
+            <div class="disc-hero-stat"><span class="disc-hero-n" id="dStatUsers">—</span><span class="disc-hero-l">пользователей</span></div>
+            <div class="disc-hero-div"></div>
+            <div class="disc-hero-stat"><span class="disc-hero-n" id="dStatPosts">—</span><span class="disc-hero-l">постов</span></div>
+          </div>
+
+          <!-- Горизонтальный скролл топ ботов -->
+          <div class="disc-section-label">Самые популярные</div>
+          <div class="disc-featured-scroll" id="discFeatured">
+            <div class="shimmer" style="min-width:160px;height:170px;border-radius:22px;flex-shrink:0;"></div>
+            <div class="shimmer" style="min-width:160px;height:170px;border-radius:22px;flex-shrink:0;"></div>
+            <div class="shimmer" style="min-width:160px;height:170px;border-radius:22px;flex-shrink:0;"></div>
+          </div>
+
+          <!-- Список ботов -->
+          <div class="disc-section-label" id="discAllLabel">Все боты</div>
+          <div class="disc-list" id="discList">
+            <div class="shimmer" style="height:78px;border-radius:22px;margin-bottom:10px;"></div>
+            <div class="shimmer" style="height:78px;border-radius:22px;margin-bottom:10px;"></div>
+            <div class="shimmer" style="height:78px;border-radius:22px;"></div>
+          </div>
+        </div>
+
+        <!-- Новые вкладка -->
+        <div id="disc-new" style="display:none;">
+          <div class="disc-section-label">Недавно добавлены</div>
+          <div class="disc-list" id="discNewList">
+            <div class="shimmer" style="height:78px;border-radius:22px;margin-bottom:10px;"></div>
+            <div class="shimmer" style="height:78px;border-radius:22px;margin-bottom:10px;"></div>
+            <div class="shimmer" style="height:78px;border-radius:22px;"></div>
+          </div>
+        </div>
+
+        <!-- Мои подписки вкладка -->
+        <div id="disc-subs" style="display:none;">
+          <div class="disc-section-label">Мои подписки</div>
+          <div class="disc-list" id="discSubsList">
+            <div style="text-align:center;padding:60px 24px;color:var(--sub);">
+              <div style="font-size:40px;margin-bottom:12px;">❤️</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">Нет подписок</div>
+              <div style="font-size:13px;">Подпишись на ботов и они появятся здесь</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Результаты поиска -->
+        <div id="disc-results" style="display:none;">
+          <div class="disc-section-label" id="discResultsLabel">Результаты</div>
+          <div class="disc-list" id="discResultsList"></div>
+        </div>
+
       </div>
     </div>
 
-    <!-- SEARCH -->
-    <div class="screen" id="s-search">
-      <!-- Встроенный хедер поиска -->
-      <div style="padding:16px 14px 10px;position:sticky;top:0;z-index:10;background:var(--bg);">
-        <div style="font-size:24px;font-weight:900;letter-spacing:-0.5px;margin-bottom:14px;color:var(--text);">
-          Поиск <span style="color:var(--acc);">ботов</span>
-        </div>
-        <div class="search-box">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="searchInput" type="text" placeholder="Найти бота..." oninput="doSearch()">
-          <div class="search-clear" id="searchClear" onclick="clearSearch()">×</div>
-        </div>
-        <div class="cats-bar" id="catsBar">
-          <div class="cat-chip on" data-cat="all" onclick="setCat(this)">✦ Все</div>
-          <div class="cat-chip" data-cat="ai" onclick="setCat(this)">🤖 ИИ</div>
-          <div class="cat-chip" data-cat="games" onclick="setCat(this)">🎮 Игры</div>
-          <div class="cat-chip" data-cat="music" onclick="setCat(this)">🎵 Музыка</div>
-          <div class="cat-chip" data-cat="finance" onclick="setCat(this)">📈 Финансы</div>
-          <div class="cat-chip" data-cat="news" onclick="setCat(this)">📰 Новости</div>
-          <div class="cat-chip" data-cat="utils" onclick="setCat(this)">🛠 Утилиты</div>
-          <div class="cat-chip" data-cat="translate" onclick="setCat(this)">🌐 Перевод</div>
-          <div class="cat-chip" data-cat="edu" onclick="setCat(this)">📚 Обучение</div>
-        </div>
-      </div>
-
-      <!-- Default (shown when no query) -->
-      <div id="searchDefault">
-        <div class="s-lbl">Категории</div>
-        <div class="trending-grid" id="searchCatGrid">
-          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
-          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
-          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
-          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
-          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
-          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
-        </div>
-        <div class="s-lbl" style="padding-top:8px;">Популярные боты</div>
-        <div class="bot-rows" id="popularBotsList">
-          <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
-          <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
-          <div class="shimmer" style="height:74px;border-radius:16px;"></div>
-        </div>
-      </div>
-
-      <!-- Results -->
-      <div id="searchResults" style="display:none;">
-        <div class="s-lbl" id="resultsLabel">Результаты</div>
-        <div class="bot-rows" id="resultsList"></div>
-      </div>
-    </div>
 
     <!-- PROFILE -->
     <div class="screen" id="s-profile">
@@ -1732,7 +1889,7 @@ html, body {
           </div>
           <div class="prof-stats">
             <div class="ps"><div class="ps-n" id="statBots">0</div><div class="ps-l">Ботов</div></div>
-            <div class="ps"><div class="ps-n" id="statMembers">0</div><div class="ps-l">Участников</div></div>
+            <div class="ps"><div class="ps-n" id="statMembers">0</div><div class="ps-l">В каналах</div></div>
             <div class="ps"><div class="ps-n" id="statSubs">0</div><div class="ps-l">Подписок</div></div>
           </div>
         </div>
@@ -2040,18 +2197,14 @@ html, body {
   </div><!-- end .screens -->
   <div class="nav-wrap">
   <div class="nav">
-    <div class="nav-indicator" id="navIndicator"></div>
+    <div class="nav-pill" id="navPill"></div>
     <div class="nav-item active" onclick="go('home',this)">
       <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
       <div class="nav-lbl">Главная</div>
     </div>
     <div class="nav-item" onclick="go('catalog',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
-      <div class="nav-lbl">Каталог</div>
-    </div>
-    <div class="nav-item" onclick="go('search',this)">
       <div class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-      <div class="nav-lbl">Поиск</div>
+      <div class="nav-lbl">Каталог</div>
     </div>
     <div class="nav-item" onclick="go('profile',this)">
       <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
@@ -2705,11 +2858,10 @@ function closeBotPage() {
   prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
   currentScreen = prevScreenBeforeBot;
   // Обновляем nav
-  const navMap = { home:0, catalog:1, search:2, profile:3 };
+  const navMap = { home:0, catalog:1, search:1, profile:2 };
   const idx = navMap[prevScreenBeforeBot] ?? 0;
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = 'calc(' + idx + ' * 25% + 12px)';
+  updateNavPill(idx);
 }
 
 // ════════════════════════════════
@@ -3282,132 +3434,203 @@ function closeComments(e) {
 }
 
 // ════════════════════════════════
-// КАТАЛОГ
+// DISCOVER — объединённый каталог + поиск
 // ════════════════════════════════
 let mySubIds = new Set();
+let discTab = 'top';
+let discCat = 'all';
+let discQ = '';
+let discAllBots = [];
+let discLoaded = false;
 
 async function loadCatalog() {
-  const el = document.getElementById('catalogList');
-  if (!el) return;
-  el.innerHTML = Array(4).fill(0).map(skeletonBotRow).join('');
+  if (discLoaded) return;
+  discLoaded = true;
 
   const [data, subs] = await Promise.all([
-    api('GET', '/bots?limit=50'),
+    api('GET', '/bots?limit=100'),
     TOKEN ? api('GET', '/my/subscriptions') : Promise.resolve([])
   ]);
   mySubIds = new Set((subs||[]).map(s => Number(s.id)));
+  discAllBots = data || [];
 
-  // Ошибка сети / сервер не ответил
-  if (data === null) {
-    el.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--sub);">
-      <div style="font-size:40px;margin-bottom:12px;">📡</div>
-      <div style="font-weight:600;color:var(--text);margin-bottom:8px;">Не удалось загрузить</div>
-      <div style="margin-bottom:16px;">Сервер не отвечает. Попробуйте ещё раз.</div>
-      <div onclick="loadCatalog()" style="display:inline-block;padding:10px 24px;background:var(--acc);color:#fff;border-radius:20px;cursor:pointer;font-weight:600;">Обновить</div>
-    </div>`;
-    return;
+  renderDiscHero();
+  renderDiscFeatured();
+  renderDiscTab();
+}
+
+async function renderDiscHero() {
+  const fmt = n => n >= 1000000 ? (n/1000000).toFixed(1).replace('.0','') + 'M'
+    : n >= 1000 ? (n/1000).toFixed(1).replace('.0','') + 'K' : String(n)
+
+  // Грузим реальную статистику
+  const stats = await api('GET', '/stats')
+  if (stats) {
+    document.getElementById('dStatBots').textContent  = fmt(stats.bots  || 0)
+    document.getElementById('dStatUsers').textContent = fmt(stats.users || 0)
+    document.getElementById('dStatPosts').textContent = fmt(stats.posts || 0)
+  } else {
+    // fallback из локальных данных
+    const b = discAllBots
+    document.getElementById('dStatBots').textContent  = fmt(b.length)
+    document.getElementById('dStatUsers').textContent = '—'
+    document.getElementById('dStatPosts').textContent = fmt(b.reduce((s,x) => s + Number(x.posts_count||0), 0))
   }
+}
 
-  if (!data?.length) {
-    el.innerHTML = '<div style="text-align:center;padding:48px 24px;color:var(--sub);"><div style="font-size:40px;margin-bottom:12px;">🤖</div><div style="font-weight:600;color:var(--text);">Ботов пока нет</div></div>';
-    // Обнуляем статистику
-    document.getElementById('catStatBots').textContent = '0';
-    document.getElementById('catStatMembers').textContent = '0';
-    document.getElementById('catStatPosts').textContent = '0';
-    document.getElementById('featuredList').innerHTML = '';
-    return;
-  }
+function renderDiscFeatured() {
+  const el = document.getElementById('discFeatured');
+  if (!el) return;
+  const top = [...discAllBots]
+    .sort((a,b) => Number(b.members||0) - Number(a.members||0))
+    .slice(0, 6);
 
-  // Статистика из реальных данных
-  const totalBots = data.length;
-  const totalMembers = data.reduce((s, b) => s + Number(b.members||0), 0);
-  const totalPosts = data.reduce((s, b) => s + Number(b.posts_count||0), 0);
-  document.getElementById('catStatBots').textContent = totalBots;
-  document.getElementById('catStatMembers').textContent = totalMembers > 1000 ? Math.floor(totalMembers/1000)+'K' : totalMembers;
-  document.getElementById('catStatPosts').textContent = totalPosts > 1000 ? Math.floor(totalPosts/1000)+'K' : totalPosts;
+  if (!top.length) { el.innerHTML = ''; return; }
 
-  // Топ боты (featured) — сортируем по участникам
-  const top = [...data].sort((a,b) => Number(b.members||0) - Number(a.members||0)).slice(0, 5);
-  document.getElementById('featuredList').innerHTML = top.map(b => {
+  el.innerHTML = top.map(b => {
     const isSub = mySubIds.has(Number(b.id));
-    const avaHtml = botAvatarHTML(b.username, 48, 14);
-    return `<div class="feat-card" onclick="openBotPage(${b.id}, event)">
-      <div class="feat-ava" style="overflow:hidden;">${avaHtml}</div>
-      <div class="feat-name">${esc(b.name)}${b.verified ? ' <div class="p-badge" style="display:inline-flex;font-size:9px;">✓</div>' : ''}</div>
-      <div class="feat-desc">${esc(b.description||'')}</div>
-      <div class="feat-foot">
-        <div class="feat-m"><div class="gdot"></div>${Number(b.members||0) > 1000 ? Math.floor(Number(b.members)/1000)+'K' : b.members||0}</div>
-        <div class="${isSub?'sub-btn subbed':'sub-btn'}" onclick="event.stopPropagation();subBot(${b.id},this)">${isSub?'✓ Подписан':'Подписаться'}</div>
+    const ava = botAvatarHTML(b.username, 48, 16);
+    const badge = b.verified ? '<div class="p-badge" style="display:inline-flex;font-size:9px;width:15px;height:15px;">✓</div>' : '';
+    const m = Number(b.members||0);
+    return `<div class="disc-feat-card" onclick="openBotPage(${b.id}, event)">
+      <div class="disc-feat-ava" style="overflow:hidden;">${ava}</div>
+      <div class="disc-feat-name">${esc(b.name)} ${badge}</div>
+      <div class="disc-feat-desc">${esc(b.description||'')}</div>
+      <div class="disc-feat-foot">
+        <div class="disc-feat-m"><div class="gdot"></div>${m>1000?Math.floor(m/1000)+'K':m}</div>
+        <div class="${isSub?'sub-btn subbed':'sub-btn'}" style="font-size:11px;padding:5px 10px;" onclick="event.stopPropagation();subBot(${b.id},this)">${isSub?'✓':'+'}</div>
       </div>
     </div>`;
   }).join('');
-
-  // Список всех ботов
-  el.innerHTML = data.map(b => botRowHTML(b)).join('');
 }
 
-// ════════════════════════════════
-// ПОИСК — реальные данные по умолчанию
-// ════════════════════════════════
-const CAT_META = {
-  ai:       { ico: '🤖', name: 'ИИ боты',  key: 'ai' },
-  games:    { ico: '🎮', name: 'Игры',     key: 'games' },
-  music:    { ico: '🎵', name: 'Музыка',   key: 'music' },
-  finance:  { ico: '📈', name: 'Финансы',  key: 'finance' },
-  news:     { ico: '📰', name: 'Новости',  key: 'news' },
-  utils:    { ico: '🛠', name: 'Утилиты', key: 'utils' },
-  translate:{ ico: '🌐', name: 'Перевод',  key: 'translate' },
-  edu:      { ico: '📚', name: 'Обучение', key: 'edu' },
-};
+function filterBots(bots) {
+  let list = bots;
+  if (discCat !== 'all') {
+    list = list.filter(b => (b.categories||[]).some(c =>
+      c.toLowerCase().includes(discCat) ||
+      (discCat==='ai' && c.toLowerCase().includes('ии')) ||
+      (discCat==='utils' && c.toLowerCase().includes('утил'))
+    ));
+  }
+  if (discQ) {
+    const q = discQ.toLowerCase();
+    list = list.filter(b =>
+      b.name?.toLowerCase().includes(q) ||
+      b.username?.toLowerCase().includes(q) ||
+      b.description?.toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
 
-async function loadSearchDefault() {
-  const catGrid = document.getElementById('searchCatGrid');
-  const popularEl = document.getElementById('popularBotsList');
-  if (!catGrid || !popularEl) return;
+function renderDiscTab() {
+  ['disc-top','disc-new','disc-subs','disc-results'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 
-  const data = await api('GET', '/bots?limit=100');
-  if (!data?.length) {
-    catGrid.innerHTML = Object.values(CAT_META).map(c =>
-      `<div class="trend-item" onclick="tapCat('${c.key}','${c.ico} ${c.name}')">
-        <div class="tr-ico">${c.ico}</div>
-        <div><div class="tr-name">${c.name}</div><div class="tr-cnt">0 ботов</div></div>
-      </div>`
-    ).join('');
-    popularEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub);">Ботов пока нет</div>';
+  const countEl = document.getElementById('discSearchCount');
+
+  if (discQ) {
+    document.getElementById('disc-results').style.display = 'block';
+    const results = filterBots(discAllBots);
+
+    // Счётчик в строке поиска
+    if (countEl) {
+      countEl.textContent = results.length ? results.length : '0';
+      countEl.classList.toggle('show', true);
+    }
+
+    document.getElementById('discResultsList').innerHTML = results.length
+      ? results.map(b => botRowHTML(b)).join('')
+      : `<div class="disc-empty">
+          <div class="disc-empty-ico">🔍</div>
+          <div class="disc-empty-title">Ничего не найдено</div>
+          <div class="disc-empty-sub">Попробуй другое название<br>или выбери другую категорию</div>
+        </div>`;
     return;
   }
 
-  // Считаем реальное кол-во ботов по категориям
-  const counts = {};
-  data.forEach(b => (b.categories||[]).forEach(c => {
-    const key = c.replace(/[🤖🎮🎵📈📰🛠🌐📚\s]/g,'').toLowerCase();
-    // Нормализуем ключ
-    const mapped = Object.keys(CAT_META).find(k =>
-      c.toLowerCase().includes(k) ||
-      (k==='ai' && c.toLowerCase().includes('и')) ||
-      (k==='utils' && c.toLowerCase().includes('утил'))
-    );
-    if (mapped) counts[mapped] = (counts[mapped]||0) + 1;
-  }));
+  // Скрываем счётчик когда нет запроса
+  if (countEl) countEl.classList.remove('show');
 
-  // Сортируем категории по количеству
-  const sorted = Object.values(CAT_META)
-    .map(c => ({ ...c, cnt: counts[c.key]||0 }))
-    .sort((a,b) => b.cnt - a.cnt);
+  if (discTab === 'top') {
+    document.getElementById('disc-top').style.display = 'block';
+    const sorted = filterBots([...discAllBots].sort((a,b) => Number(b.members||0)-Number(a.members||0)));
+    const label = discCat === 'all' ? 'Все боты' : `Категория · ${sorted.length} бот${sorted.length===1?'':sorted.length<5?'а':'ов'}`;
+    document.getElementById('discAllLabel').textContent = label;
+    document.getElementById('discList').innerHTML = sorted.length
+      ? sorted.map(b => botRowHTML(b)).join('')
+      : `<div class="disc-empty"><div class="disc-empty-ico">🤖</div><div class="disc-empty-title">Нет ботов</div><div class="disc-empty-sub">В этой категории пока пусто</div></div>`;
+  } else if (discTab === 'new') {
+    document.getElementById('disc-new').style.display = 'block';
+    const sorted = filterBots([...discAllBots].sort((a,b) => new Date(b.created_at||0)-new Date(a.created_at||0)));
+    document.getElementById('discNewList').innerHTML = sorted.length
+      ? sorted.map(b => botRowHTML(b)).join('')
+      : `<div class="disc-empty"><div class="disc-empty-ico">🆕</div><div class="disc-empty-title">Нет ботов</div><div class="disc-empty-sub">Новые боты появятся здесь</div></div>`;
+  } else if (discTab === 'subs') {
+    document.getElementById('disc-subs').style.display = 'block';
+    if (!TOKEN) {
+      document.getElementById('discSubsList').innerHTML = `<div class="disc-empty">
+        <div class="disc-empty-ico">👤</div>
+        <div class="disc-empty-title">Нужен вход</div>
+        <div class="disc-empty-sub">Войди через Telegram чтобы видеть свои подписки</div>
+      </div>`;
+    } else {
+      const subBots = discAllBots.filter(b => mySubIds.has(Number(b.id)));
+      const filtered = filterBots(subBots);
+      document.getElementById('discSubsList').innerHTML = filtered.length
+        ? filtered.map(b => botRowHTML(b)).join('')
+        : `<div class="disc-empty"><div class="disc-empty-ico">❤️</div><div class="disc-empty-title">Нет подписок</div><div class="disc-empty-sub">Подпишись на ботов из каталога — они появятся здесь</div></div>`;
+    }
+  }
+}
 
-  catGrid.innerHTML = sorted.map(c =>
-    `<div class="trend-item" onclick="tapCat('${c.key}','${c.ico} ${c.name}')">
-      <div class="tr-ico">${c.ico}</div>
-      <div>
-        <div class="tr-name">${c.name}</div>
-        <div class="tr-cnt">${c.cnt} бот${c.cnt===1?'':c.cnt>=2&&c.cnt<=4?'а':'ов'}</div>
-      </div>
-    </div>`
-  ).join('');
+function switchDiscTab(tab, el) {
+  discTab = tab;
+  document.querySelectorAll('.disc-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDiscTab();
+  window.Telegram?.WebApp?.HapticFeedback?.selectionChanged();
+}
 
-  // Топ-5 популярных ботов
-  const top = [...data].sort((a,b) => Number(b.members||0) - Number(a.members||0)).slice(0, 5);
-  popularEl.innerHTML = top.map(b => botRowHTML(b)).join('');
+function discSetCat(el) {
+  discCat = el.dataset.cat;
+  document.querySelectorAll('.disc-cat').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderDiscTab();
+}
+
+function discSearch() {
+  discQ = document.getElementById('discInput').value.trim();
+  document.getElementById('discClear').classList.toggle('show', discQ.length > 0);
+  renderDiscTab();
+}
+
+function discFocus(on) {
+  document.getElementById('discSearchBox').classList.toggle('focused', on);
+}
+
+function discClearSearch() {
+  document.getElementById('discInput').value = '';
+  discQ = '';
+  document.getElementById('discClear').classList.remove('show');
+  const countEl = document.getElementById('discSearchCount');
+  if (countEl) countEl.classList.remove('show');
+  renderDiscTab();
+}
+
+// ════════════════════════════════
+// ПОИСК (старые функции — алиасы для совместимости)
+// ════════════════════════════════
+function loadSearchDefault() {} // теперь не нужна
+function doSearch() { discSearch(); }
+function clearSearch() { discClearSearch(); }
+function setCat(el) { discSetCat(el); }
+function tapCat(cat) {
+  const el = document.querySelector(`.disc-cat[data-cat="${cat}"]`);
+  if (el) discSetCat(el);
 }
 
 function botRowHTML(b) {
@@ -3449,55 +3672,6 @@ async function subBot(botId, el) {
     toast(on ? '✓' : '—', on ? 'Подписка оформлена' : 'Отписка выполнена');
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred(on ? 'success' : 'warning');
   }
-}
-
-// ════════════════════════════════
-// ПОИСК
-// ════════════════════════════════
-let activeCat = 'all';
-let searchQ = '';
-
-async function doSearch() {
-  searchQ = document.getElementById('searchInput').value;
-  document.getElementById('searchClear').classList.toggle('show', searchQ.length > 0);
-  if (!searchQ && activeCat === 'all') { renderSearchState(false); return; }
-  renderSearchState(true, null); // показать загрузку
-  const params = new URLSearchParams();
-  if (searchQ) params.set('q', searchQ);
-  if (activeCat !== 'all') params.set('category', activeCat);
-  const data = await api('GET', '/bots?' + params);
-  renderSearchState(true, data || []);
-}
-
-function renderSearchState(hasQuery, data) {
-  document.getElementById('searchDefault').style.display = hasQuery ? 'none' : 'block';
-  document.getElementById('searchResults').style.display = hasQuery ? 'block' : 'none';
-  if (!hasQuery || data === null) return;
-  document.getElementById('resultsLabel').textContent =
-    data.length ? `Найдено: ${data.length} ${data.length===1?'бот':data.length<5?'бота':'ботов'}` : 'Ничего не найдено';
-  document.getElementById('resultsList').innerHTML = data.length
-    ? data.map(botRowHTML).join('')
-    : `<div class="no-results"><div class="no-results-ico">🔍</div><div class="no-results-txt">Ботов не найдено</div><div>Попробуй другой запрос</div></div>`;
-}
-
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  searchQ = '';
-  document.getElementById('searchClear').classList.remove('show');
-  renderSearchState(false);
-}
-
-function setCat(el) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('on'));
-  el.classList.add('on');
-  activeCat = el.dataset.cat;
-  doSearch();
-}
-
-function tapCat(cat) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === cat));
-  activeCat = cat;
-  doSearch();
 }
 
 // ════════════════════════════════
@@ -3908,8 +4082,7 @@ function goBack() {
   profileScreen.addEventListener('animationend', () => profileScreen.classList.remove('anim-left'), { once: true });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector('.nav-item:last-child').classList.add('active');
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = 'calc(75% + 12px)';
+  updateNavPill(2);
   currentScreen = 'profile';
 }
 
@@ -4473,41 +4646,28 @@ function closePostDetail() {
   prev.classList.add('active','anim-left');
   prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
   currentScreen = prevScreenBeforePost;
-  const navMap = { home:0, catalog:1, search:2, profile:3 };
+  const navMap = { home:0, catalog:1, search:1, profile:2 };
   const idx = navMap[prevScreenBeforePost] ?? 0;
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = 'calc(' + idx + ' * 25% + 12px)';
+  updateNavPill(idx);
 }
 
 
 let currentScreen = 'home';
-
-function navRipple(el) {
-  // Remove existing ripples
-  el.querySelectorAll('.nav-ripple').forEach(r => r.remove());
-  const r = document.createElement('div');
-  r.className = 'nav-ripple';
-  el.appendChild(r);
-  r.addEventListener('animationend', () => r.remove());
-}
 
 function go(id, el) {
   if (id === currentScreen) {
     // Tap same tab — scroll to top
     const screen = document.getElementById('s-' + id);
     if (screen) screen.scrollTo({ top: 0, behavior: 'smooth' });
-    navRipple(el);
     return;
   }
 
-  navRipple(el);
   window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
 
-  const NAV_TABS = ['home', 'catalog', 'search', 'profile'];
+  const NAV_TABS = ['home', 'catalog', 'profile'];
   const prevIdx = NAV_TABS.indexOf(currentScreen);
   const nextIdx = NAV_TABS.indexOf(id);
-  // Если переходим из sub-screen (botpage, postdetail, etc.) — анимация всегда влево
   const dir = (prevIdx === -1 || nextIdx > prevIdx) ? 'right' : 'left';
 
   // Hide current screen
@@ -4525,21 +4685,31 @@ function go(id, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
 
-  // Slide indicator — always based on 4-item nav
-  const indicator = document.getElementById('navIndicator');
-  if (indicator) indicator.style.left = 'calc(' + nextIdx + ' * 25% + 12px)';
+  // Nav pill
+  updateNavPill(nextIdx);
 
   currentScreen = id;
   if (id === 'home')    loadFeed();
   if (id === 'catalog') loadCatalog();
-  if (id === 'search')  loadSearchDefault();
   if (id === 'profile') showProfile();
 }
 
-// Init nav indicator
+function updateNavPill(idx) {
+  const pill = document.getElementById('navPill');
+  if (!pill) return;
+  const navEl = pill.closest('.nav');
+  if (!navEl) return;
+  const items = navEl.querySelectorAll('.nav-item');
+  if (!items[idx]) return;
+  const navRect = navEl.getBoundingClientRect();
+  const itemRect = items[idx].getBoundingClientRect();
+  pill.style.left = (itemRect.left - navRect.left + 8) + 'px';
+  pill.style.width = (itemRect.width - 16) + 'px';
+}
+
+// Init nav
 document.addEventListener('DOMContentLoaded', () => {
-  const ind = document.getElementById('navIndicator');
-  if (ind) ind.style.left = '0%';
+  setTimeout(() => updateNavPill(0), 60);
 
   // Будим Render сразу при открытии страницы (free tier засыпает)
   const wakeServer = async () => {
@@ -4870,7 +5040,7 @@ function appendCommentToDetail(c) {
 }
 
 // ══════════════════════════════════════
-// COVERFLOW 3D SCROLL ENGINE — continuous
+// COVERFLOW 3D SCROLL ENGINE — continuous, edge-aware
 // ══════════════════════════════════════
 function initCoverflow(feedEl) {
   if (!feedEl || feedEl._cfInit) return;
@@ -4883,34 +5053,47 @@ function initCoverflow(feedEl) {
   function lerp(a, b, t) { return a + (b - a) * t; }
 
   function update() {
-    const posts = feedEl.querySelectorAll('.post');
+    const posts = Array.from(feedEl.querySelectorAll('.post'));
     if (!posts.length) return;
 
     const sr = scroller.getBoundingClientRect();
-    const cy = sr.top + sr.height * 0.40; // фокусная точка
+    const cy = sr.top + sr.height * 0.42;
 
-    posts.forEach(post => {
-      const r = post.getBoundingClientRect();
+    // Определяем граничные условия скролла
+    const scrollTop    = scroller.scrollTop;
+    const scrollMax    = scroller.scrollHeight - scroller.clientHeight;
+    const atTop        = scrollTop <= 4;
+    const atBottom     = scrollMax > 0 && scrollTop >= scrollMax - 4;
+    const lastIdx      = posts.length - 1;
+
+    posts.forEach((post, idx) => {
+      const r   = post.getBoundingClientRect();
       const mid = r.top + r.height / 2;
       const dist = mid - cy;
-      const norm = clamp(dist / (sr.height * 0.52), -1, 1); // -1..1
+      let norm = clamp(dist / (sr.height * 0.54), -1, 1);
+
+      // Если скролл у верха — первый пост полностью нормальный
+      if (atTop && idx === 0) norm = 0;
+      // Если скролл у низа — последний пост полностью нормальный
+      if (atBottom && idx === lastIdx) norm = 0;
+
       const abs = Math.abs(norm);
 
-      // Непрерывные значения
-      const rotX  = norm * 14;                          // -14..14 deg
-      const sc    = lerp(1, 0.88, abs);                 // 1..0.88
-      const op    = lerp(1, 0.28, abs);                 // 1..0.28
-      const ty    = norm * 8;                           // subtle shift
-      const blur  = lerp(0, 1.5, abs);                  // subtle blur
-      const sh    = abs < 0.18
-        ? `0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(46,166,255,0.09)`
-        : `0 ${lerp(20, 2, abs)}px ${lerp(60, 6, abs)}px rgba(0,0,0,${lerp(0.55, 0.15, abs)})`;
+      // Плавные значения — менее агрессивные
+      const rotX = norm * 10;               // ±10° (было 14)
+      const sc   = lerp(1, 0.91, abs);      // 1→0.91 (было 0.88)
+      const op   = lerp(1, 0.42, abs);      // 1→0.42 (было 0.28 — слишком темно)
+      const ty   = norm * 6;                // subtle vertical shift
+      // БЕЗ blur — он делает текст нечитаемым
+      const sh   = abs < 0.15
+        ? `0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(46,166,255,0.08)`
+        : `0 ${lerp(16,2,abs).toFixed(0)}px ${lerp(48,6,abs).toFixed(0)}px rgba(0,0,0,${lerp(0.5,0.12,abs).toFixed(2)})`;
 
-      post.style.transform  = `rotateX(${rotX}deg) scale(${sc}) translateY(${ty}px)`;
-      post.style.opacity    = op;
-      post.style.boxShadow  = sh;
-      post.style.filter     = blur > 0.1 ? `blur(${blur.toFixed(2)}px)` : '';
-      post.style.zIndex     = Math.round(10 - abs * 9);
+      post.style.transform = `rotateX(${rotX.toFixed(2)}deg) scale(${sc.toFixed(3)}) translateY(${ty.toFixed(1)}px)`;
+      post.style.opacity   = op.toFixed(3);
+      post.style.boxShadow = sh;
+      post.style.filter    = '';            // никакого blur
+      post.style.zIndex    = Math.round(10 - abs * 9);
     });
   }
 
@@ -4936,7 +5119,6 @@ function setupAllCoverflows() {
 async function initApp() {
   loadFeed();
   showProfile();
-  loadSearchDefault();
   // Запускаем Coverflow 3D скролл
   setTimeout(setupAllCoverflows, 300);
   // Запускаем SSE соединение
