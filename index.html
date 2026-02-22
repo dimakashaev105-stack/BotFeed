@@ -4356,14 +4356,12 @@ async function openPostDetail(postId, event) {
   document.getElementById('postDetailComments').innerHTML = '<div style="text-align:center;padding:24px;color:var(--sub)">Загрузка...</div>';
 
   // Параллельно грузим пост и комментарии
-  const [commentsData, feedData, postData] = await Promise.all([
+  const [commentsData, p] = await Promise.all([
     api('GET', `/posts/${postId}/comments`),
-    api('GET', '/feed?limit=50'),
     api('GET', `/posts/${postId}`)
   ]);
 
-  const p = (feedData || []).find(x => x.id == postId) || postData;
-  if (p) {
+  if (p && !p.error) {
     const avaHtml = botAvatarHTML(p.bot_username, 44, 14);
     const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
     const reacts = (p.reactions || []).map(r =>
