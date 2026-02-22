@@ -1862,8 +1862,8 @@ function esc(str) {
 // Тоггл реакций для статичных демо-постов
 function tap(el) {
   const on = el.classList.toggle('on');
-  const sp = el.querySelector('span');
-  if (sp) sp.textContent = parseInt(sp.textContent) + (on ? 1 : -1);
+  const sp = el.querySelector('span:not(.react-emoji)');
+  if (sp) sp.textContent = (parseInt(sp.textContent?.trim()) || 0) + (on ? 1 : -1);
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
 }
 
@@ -2668,8 +2668,9 @@ async function reactPost(postId, emoji, el) {
   reactQueue[key] = true;
 
   const wasOn = el.classList.contains('on');
-  const sp = el.querySelector('span');
-  const currentCount = parseInt(sp?.textContent || '0');
+  // Ищем именно span со счётчиком (не .react-emoji)
+  const sp = el.querySelector('span:not(.react-emoji)');
+  const currentCount = parseInt(sp?.textContent?.trim() || '0') || 0;
   const newOn = !wasOn;
 
   // ── МГНОВЕННЫЙ optimistic update ──
