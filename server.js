@@ -599,6 +599,30 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
     } catch (e) { console.error('Notify error:', e.message) }
   })()
 
+  // SSE — разослать всем подписчикам + гостям
+  ;(async () => {
+    try {
+      const { rows: subs } = await db.query(
+        'SELECT user_id FROM subscriptions WHERE bot_id=$1 AND notify IS NOT false', [req.params.botId]
+      )
+      const payload = {
+        ...post,
+        bot_id: b[0].id,
+        bot_name: b[0].name,
+        bot_username: b[0].username,
+        reactions: [], comments_count: 0, views_count: 0
+      }
+      ssePublish('new_post', payload, subs.map(r => String(r.user_id)))
+      // Гостям тоже
+      for (const [uid, clients] of sseClients.entries()) {
+        if (uid.startsWith('guest_')) {
+          const msg = `event: new_post\ndata: ${JSON.stringify(payload)}\n\n`
+          clients.forEach(r => { try { r.raw.write(msg) } catch {} })
+        }
+      }
+    } catch(e) { console.error('SSE post err:', e.message) }
+  })()
+
   return post
 })
 
@@ -609,39 +633,27 @@ app.delete('/api/posts/:id', { preHandler: auth }, async (req, reply) => {
   } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
-app.get('/api/posts/:id', { preHandler: optAuth }, async (req, reply) => {
-  try {
-    const myReactsCond = req.user?.id
-      ? `COALESCE(json_agg(DISTINCT mr.emoji) FILTER (WHERE mr.emoji IS NOT NULL), '[]') as my_reactions`
-      : `'[]'::json as my_reactions`
-    const myReactsJoin = req.user?.id
-      ? `LEFT JOIN reactions mr ON p.id=mr.post_id AND mr.user_id=${req.user.id}`
-      : ''
-    const { rows } = await db.query(`
-      SELECT p.*, b.name as bot_name, b.username as bot_username, b.id as bot_id,
-        b.photo_url as bot_photo, b.verified as bot_verified,
-        COALESCE(json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt)) FILTER (WHERE r.emoji IS NOT NULL), '[]') as reactions,
-        COUNT(DISTINCT c.id) as comments_count,
-        ${myReactsCond}
-      FROM posts p JOIN bots b ON p.bot_id=b.id
-      LEFT JOIN (SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji) r ON p.id=r.post_id
-      LEFT JOIN comments c ON p.id=c.post_id
-      ${myReactsJoin}
-      WHERE p.id=$1
-      GROUP BY p.id, b.name, b.username, b.id, b.photo_url, b.verified
-    `, [req.params.id])
-    if (!rows[0]) return reply.code(404).send({ error: 'Пост не найден' })
-    return rows[0]
-  } catch (e) { return reply.code(500).send({ error: e.message }) }
-})
-
 app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
   const { emoji } = req.body
   if (!['🔥', '👍', '❤️', '😂', '👏', '🎉'].includes(emoji)) return reply.code(400).send({ error: 'Неверный эмодзи' })
   const { rows } = await db.query('SELECT id FROM reactions WHERE post_id=$1 AND user_id=$2 AND emoji=$3', [req.params.id, req.user.id, emoji])
-  if (rows[0]) { await db.query('DELETE FROM reactions WHERE id=$1', [rows[0].id]); return { action: 'removed' } }
-  await db.query('INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1,$2,$3)', [req.params.id, req.user.id, emoji])
-  return { action: 'added' }
+  let action
+  if (rows[0]) {
+    await db.query('DELETE FROM reactions WHERE id=$1', [rows[0].id])
+    action = 'removed'
+  } else {
+    await db.query('INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1,$2,$3)', [req.params.id, req.user.id, emoji])
+    action = 'added'
+  }
+
+  // SSE — счётчик реакций всем кто смотрит этот пост
+  const { rows: cnt } = await db.query(
+    'SELECT emoji, COUNT(*) as count FROM reactions WHERE post_id=$1 GROUP BY emoji',
+    [req.params.id]
+  )
+  ssePublish('reaction_update', { post_id: parseInt(req.params.id), emoji, action, reactions: cnt })
+
+  return { action }
 })
 
 app.get('/api/posts/:id/comments', async (req) => {
@@ -660,20 +672,86 @@ app.get('/api/posts/:id/comments', async (req) => {
 app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => {
   if (!req.body.text?.trim()) return reply.code(400).send({ error: 'Пустой комментарий' })
   const replyToId = req.body.reply_to_id ? parseInt(req.body.reply_to_id) : null
+  const postId = parseInt(req.params.id)
+
+  let comment
   try {
     const { rows } = await db.query(
       'INSERT INTO comments (post_id, user_id, text, reply_to_id) VALUES ($1,$2,$3,$4) RETURNING *',
-      [req.params.id, req.user.id, req.body.text.trim(), replyToId]
+      [postId, req.user.id, req.body.text.trim(), replyToId]
     )
-    return rows[0]
+    comment = rows[0]
   } catch {
     // Fallback без reply_to_id если колонки ещё нет
     const { rows } = await db.query(
       'INSERT INTO comments (post_id, user_id, text) VALUES ($1,$2,$3) RETURNING *',
-      [req.params.id, req.user.id, req.body.text.trim()]
+      [postId, req.user.id, req.body.text.trim()]
     )
-    return rows[0]
+    comment = rows[0]
   }
+
+  // Обогащаем данными автора нового комментария
+  const { rows: uRows } = await db.query(
+    'SELECT first_name, username, photo_url FROM users WHERE id=$1',
+    [req.user.id]
+  )
+  const enriched = { ...comment, ...uRows[0] }
+
+  // SSE — всем кто смотрит этот пост
+  ssePublish('new_comment', { post_id: postId, comment: enriched })
+
+  // ════════════════════════════════════════
+  // TG УВЕДОМЛЕНИЕ — если это ответ на чужой комментарий
+  // ════════════════════════════════════════
+  if (replyToId) {
+    ;(async () => {
+      try {
+        // Получаем оригинальный комментарий + telegram_id его автора
+        const { rows: origRows } = await db.query(`
+          SELECT c.text, c.user_id, u.telegram_id, u.first_name
+          FROM comments c
+          JOIN users u ON c.user_id = u.id
+          WHERE c.id = $1
+        `, [replyToId])
+
+        const orig = origRows[0]
+        if (!orig) return
+        // Не уведомляем если отвечают самому себе
+        if (orig.user_id === req.user.id) return
+        // Не уведомляем если нет telegram_id (вошёл через email)
+        if (!orig.telegram_id) return
+
+        const senderName = uRows[0]?.first_name || 'Кто-то'
+        const senderUsername = uRows[0]?.username ? `@${uRows[0].username}` : ''
+        const origPreview = orig.text.length > 60 ? orig.text.slice(0, 60) + '…' : orig.text
+        const replyPreview = req.body.text.trim().length > 120
+          ? req.body.text.trim().slice(0, 120) + '…'
+          : req.body.text.trim()
+        const postUrl = `https://botfeed.vercel.app?post=${postId}`
+
+        await tgSend(
+          orig.telegram_id,
+          `💬 <b>${senderName}</b>${senderUsername ? ` (${senderUsername})` : ''} ответил на твой комментарий:
+
+` +
+          `<i>«${origPreview}»</i>
+
+` +
+          `➤ ${replyPreview}
+
+` +
+          `<a href="${postUrl}">Открыть пост →</a>`,
+          {
+            inline_keyboard: [[
+              { text: '💬 Открыть пост', url: postUrl }
+            ]]
+          }
+        )
+      } catch (e) { console.error('Reply notify error:', e.message) }
+    })()
+  }
+
+  return enriched
 })
 
 // ════════════════════════════════
@@ -715,6 +793,71 @@ app.get('/api/my/subscriptions', { preHandler: auth }, async (req) => {
   `, [req.user.id])
   return rows
 })
+
+
+// ════════════════════════════════════════
+// SSE — Server-Sent Events (real-time)
+// ════════════════════════════════════════
+const sseClients = new Map() // userId (or 'guest_N') -> Set<Reply>
+let guestCounter = 0
+
+function ssePublish(event, data, targetUserIds = null) {
+  const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+  if (targetUserIds) {
+    // Конкретным пользователям
+    for (const uid of targetUserIds) {
+      const clients = sseClients.get(String(uid))
+      if (clients) clients.forEach(r => { try { r.raw.write(msg) } catch {} })
+    }
+  } else {
+    // Всем подключённым
+    for (const clients of sseClients.values()) {
+      clients.forEach(r => { try { r.raw.write(msg) } catch {} })
+    }
+  }
+}
+
+// SSE подключение
+app.get('/api/sse', { preHandler: optAuth }, async (req, reply) => {
+  const userId = req.user?.id ? String(req.user.id) : `guest_${++guestCounter}`
+
+  reply.raw.setHeader('Content-Type', 'text/event-stream')
+  reply.raw.setHeader('Cache-Control', 'no-cache')
+  reply.raw.setHeader('Connection', 'keep-alive')
+  reply.raw.setHeader('X-Accel-Buffering', 'no')
+  reply.raw.flushHeaders()
+
+  // Регистрируем клиента
+  if (!sseClients.has(userId)) sseClients.set(userId, new Set())
+  sseClients.get(userId).add(reply)
+
+  // Приветствие
+  reply.raw.write(`event: connected\ndata: {"userId":"${userId}"}\n\n`)
+
+  // Heartbeat каждые 25 сек чтобы не дропало соединение
+  const heartbeat = setInterval(() => {
+    try { reply.raw.write(': heartbeat\n\n') } catch { clearInterval(heartbeat) }
+  }, 25000)
+
+  // Cleanup при дисконнекте
+  req.socket.on('close', () => {
+    clearInterval(heartbeat)
+    const clients = sseClients.get(userId)
+    if (clients) {
+      clients.delete(reply)
+      if (clients.size === 0) sseClients.delete(userId)
+    }
+  })
+
+  // Висим — не отвечаем
+  await new Promise(() => {})
+})
+
+// SSE stats endpoint
+app.get('/api/sse/stats', async () => ({
+  connections: [...sseClients.values()].reduce((n, s) => n + s.size, 0),
+  users: sseClients.size
+}))
 
 // Health check
 app.get('/health', () => ({ status: 'ok', time: new Date().toISOString() }))
