@@ -514,13 +514,13 @@ app.get('/api/feed/discover', async (req) => {
   try {
     const { limit = 20, offset = 0 } = req.query
     const { rows } = await db.query(`
-      SELECT p.*, b.name as bot_name, b.username as bot_username, b.photo_url as bot_photo, b.verified as bot_verified,
+      SELECT p.*, b.id as bot_id, b.name as bot_name, b.username as bot_username, b.photo_url as bot_photo, b.verified as bot_verified,
         COALESCE(json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt)) FILTER (WHERE r.emoji IS NOT NULL), '[]') as reactions,
         COUNT(DISTINCT c.id) as comments_count
       FROM posts p JOIN bots b ON p.bot_id=b.id
       LEFT JOIN (SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji) r ON p.id=r.post_id
       LEFT JOIN comments c ON p.id=c.post_id
-      GROUP BY p.id, b.name, b.username, b.photo_url, b.verified
+      GROUP BY p.id, b.id, b.name, b.username, b.photo_url, b.verified
       ORDER BY p.created_at DESC LIMIT $1 OFFSET $2
     `, [Number(limit), Number(offset)])
     return rows
@@ -686,6 +686,29 @@ app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
   ssePublish('reaction_update', { post_id: parseInt(req.params.id), emoji, action, reactions: cnt })
 
   return { action }
+})
+
+// Один пост по id — со всеми данными бота
+app.get('/api/posts/:id', { preHandler: optAuth }, async (req, reply) => {
+  try {
+    const userId = req.user?.id
+    const { rows } = await db.query(`
+      SELECT p.*, b.id as bot_id, b.name as bot_name, b.username as bot_username,
+             b.photo_url as bot_photo, b.verified as bot_verified,
+        COALESCE(json_agg(DISTINCT jsonb_build_object('emoji', r.emoji, 'count', r.cnt)) FILTER (WHERE r.emoji IS NOT NULL), '[]') as reactions,
+        COUNT(DISTINCT c.id) as comments_count,
+        COALESCE(json_agg(DISTINCT mr.emoji) FILTER (WHERE mr.emoji IS NOT NULL), '[]') as my_reactions
+      FROM posts p
+      JOIN bots b ON p.bot_id = b.id
+      LEFT JOIN (SELECT post_id, emoji, COUNT(*) as cnt FROM reactions GROUP BY post_id, emoji) r ON p.id=r.post_id
+      LEFT JOIN comments c ON p.id=c.post_id
+      LEFT JOIN reactions mr ON p.id=mr.post_id AND mr.user_id=$2
+      WHERE p.id = $1
+      GROUP BY p.id, b.id, b.name, b.username, b.photo_url, b.verified
+    `, [parseInt(req.params.id), userId || null])
+    if (!rows[0]) return reply.code(404).send({ error: 'Пост не найден' })
+    return rows[0]
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
 app.get('/api/posts/:id/comments', async (req) => {
@@ -1007,4 +1030,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-                                   }
+  }
