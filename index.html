@@ -365,6 +365,56 @@ html, body {
 .post:active { background: var(--hover); }
 
 /* ══════════════════════════════════════
+   COVERFLOW 3D SCROLL
+══════════════════════════════════════ */
+.feed {
+  perspective: 1200px;
+  perspective-origin: 50% 40%;
+}
+
+.post {
+  transform-origin: center center;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    background .12s;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* Дефолтное состояние — уходящие/приходящие карточки */
+.post.cf-below {
+  opacity: 0.55;
+  transform: rotateX(-12deg) scale(0.94) translateY(6px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.post.cf-above {
+  opacity: 0.55;
+  transform: rotateX(12deg) scale(0.94) translateY(-6px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.post.cf-center {
+  opacity: 1;
+  transform: rotateX(0deg) scale(1) translateY(0);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(46,166,255,0.08),
+    0 0 32px rgba(46,166,255,0.04);
+  background: var(--card);
+  z-index: 2;
+}
+
+.post.cf-far {
+  opacity: 0.25;
+  transform: rotateX(20deg) scale(0.88) translateY(12px);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════
    PROFILE AVATAR — glow pulse on load
 ══════════════════════════════════════ */
 @keyframes avatarIn {
@@ -4798,10 +4848,62 @@ function appendCommentToDetail(c) {
   node.scrollIntoView({ behavior: 'smooth', block: 'end' })
 }
 
+// ══════════════════════════════════════
+// COVERFLOW 3D SCROLL ENGINE
+// ══════════════════════════════════════
+function initCoverflow(feedEl) {
+  if (!feedEl) return;
+
+  // Находим скроллящийся родитель (.screen)
+  const scroller = feedEl.closest('.screen') || feedEl;
+
+  function update() {
+    const posts = feedEl.querySelectorAll('.post');
+    if (!posts.length) return;
+
+    const scrollerRect = scroller.getBoundingClientRect();
+    const centerY = scrollerRect.top + scrollerRect.height * 0.42;
+
+    posts.forEach(post => {
+      const rect = post.getBoundingClientRect();
+      const postMid = rect.top + rect.height / 2;
+      const dist = postMid - centerY;
+      const absDist = Math.abs(dist);
+      const unit = rect.height * 0.5;
+
+      post.classList.remove('cf-center', 'cf-above', 'cf-below', 'cf-far');
+
+      if (absDist < unit * 0.8) {
+        post.classList.add('cf-center');
+      } else if (absDist < unit * 2.4) {
+        post.classList.add(dist < 0 ? 'cf-above' : 'cf-below');
+      } else {
+        post.classList.add('cf-far');
+      }
+    });
+  }
+
+  scroller.addEventListener('scroll', update, { passive: true });
+  requestAnimationFrame(update);
+
+  const mo = new MutationObserver(() => requestAnimationFrame(update));
+  mo.observe(feedEl, { childList: true, subtree: true });
+}
+
+// Инициализируем Coverflow для всех лент
+function setupAllCoverflows() {
+  ['feed-subs', 'feed-rec'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) initCoverflow(el);
+  });
+}
+
 async function initApp() {
   loadFeed();
   showProfile();
   loadSearchDefault();
+  // Запускаем Coverflow 3D скролл
+  setTimeout(setupAllCoverflows, 300);
   // Запускаем SSE соединение
   setTimeout(sseConnect, 800)
 
