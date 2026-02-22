@@ -1159,6 +1159,9 @@ html, body {
     <div class="screen active" id="s-home">
       <div class="home-topbar">
         <div class="home-tabs-row">
+          <div style="position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:5px;">
+            <div id="onlineDot" style="width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .6s,box-shadow .6s;" title="Подключение..."></div>
+          </div>
           <div class="home-tabs">
             <div class="home-tab active" id="tab-subs" onclick="switchFeedTab('subs')">Подписки</div>
             <div class="home-tab" id="tab-rec" onclick="switchFeedTab('rec')">Рекомендации</div>
@@ -4105,10 +4108,195 @@ document.getElementById('s-botpage').addEventListener('scroll', function() {
   this.classList.toggle('scrolled', scrolled);
 }, { passive: true });
 
+
+// ════════════════════════════════════════
+// SSE — реальное время
+// ════════════════════════════════════════
+let sseSource = null
+let sseReconnectTimer = null
+let sseReconnectDelay = 2000
+
+function sseConnect() {
+  if (sseSource) sseSource.close()
+  clearTimeout(sseReconnectTimer)
+
+  const url = API + '/sse' + (TOKEN ? '' : '')
+  sseSource = new EventSource(url + (TOKEN ? `?token=${TOKEN}` : ''))
+
+  sseSource.addEventListener('connected', (e) => {
+    console.log('[SSE] connected', JSON.parse(e.data))
+    sseReconnectDelay = 2000 // сбрасываем задержку
+    updateOnlineIndicator(true)
+  })
+
+  // ── Новый пост ──
+  sseSource.addEventListener('new_post', (e) => {
+    const post = JSON.parse(e.data)
+
+    // Добавляем в ленту Подписок если подписан на этого бота
+    if (mySubIds.has(Number(post.bot_id))) {
+      prependPostToFeed('feed-subs', post)
+    }
+    // В рекомендации тоже
+    prependPostToFeed('feed-rec', post)
+
+    // Тост уведомление
+    const ava = `https://t.me/i/userpic/320/${(post.bot_username||'').replace('@','')}.jpg`
+    showSSEToast(ava, post.bot_name, post.text)
+
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
+  })
+
+  // ── Обновление реакций ──
+  sseSource.addEventListener('reaction_update', (e) => {
+    const { post_id, emoji, action, reactions } = JSON.parse(e.data)
+    // Обновляем счётчики реакций во всех местах где показан этот пост
+    document.querySelectorAll(`.post[data-id="${post_id}"] .post-foot, #postDetailContent .post-foot`).forEach(foot => {
+      reactions.forEach(r => {
+        const btn = [...foot.querySelectorAll('.react')].find(el => el.textContent.includes(r.emoji))
+        if (btn) {
+          const sp = btn.querySelector('span:not(.react-emoji)')
+          if (sp && !btn.classList.contains('on')) { // не трогаем если это сам пользователь (уже optimistic)
+            sp.textContent = r.count
+          }
+        }
+      })
+    })
+  })
+
+  // ── Новый комментарий ──
+  sseSource.addEventListener('new_comment', (e) => {
+    const { post_id, comment } = JSON.parse(e.data)
+
+    // Обновляем счётчик комментариев везде
+    document.querySelectorAll(`.post[data-id="${post_id}"] .react`).forEach(el => {
+      if (el.textContent.includes('💬')) {
+        const sp = el.querySelector('span:not(.react-emoji)')
+        if (sp) sp.textContent = parseInt(sp.textContent || '0') + 1
+      }
+    })
+
+    // Если открыт этот пост — добавляем комментарий в список
+    if (String(currentPostDetailId) === String(post_id)) {
+      // Не добавляем свой (уже есть optimistic)
+      if (String(comment.user_id) !== String(ME?.id)) {
+        appendCommentToDetail(comment)
+      }
+    }
+  })
+
+  sseSource.onerror = () => {
+    updateOnlineIndicator(false)
+    sseSource.close()
+    // Переподключаемся с экспоненциальной задержкой
+    sseReconnectTimer = setTimeout(() => {
+      sseReconnectDelay = Math.min(sseReconnectDelay * 1.5, 30000)
+      sseConnect()
+    }, sseReconnectDelay)
+  }
+}
+
+// Индикатор онлайн
+function updateOnlineIndicator(online) {
+  const dot = document.getElementById('onlineDot')
+  if (!dot) return
+  dot.style.background = online ? 'var(--green)' : 'var(--muted)'
+  dot.style.boxShadow = online ? '0 0 6px rgba(77,205,106,0.8)' : 'none'
+  dot.title = online ? 'В сети — обновляется в реальном времени' : 'Переподключение...'
+}
+
+// Добавляем пост в начало ленты с анимацией
+function prependPostToFeed(feedId, post) {
+  const el = document.getElementById(feedId)
+  if (!el) return
+  const html = postHTML(post)
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+  const postEl = tmp.firstElementChild
+  if (!postEl) return
+
+  postEl.style.cssText = 'opacity:0;transform:translateY(-16px) scale(0.97);transition:opacity .4s ease,transform .4s cubic-bezier(0.22,1,0.36,1);'
+  el.prepend(postEl)
+  // Анимация появления
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    postEl.style.opacity = '1'
+    postEl.style.transform = 'none'
+  }))
+}
+
+// SSE-тост — красивое уведомление о новом посте
+function showSSEToast(avatarUrl, botName, text) {
+  const existing = document.getElementById('sseToast')
+  if (existing) existing.remove()
+
+  const t = document.createElement('div')
+  t.id = 'sseToast'
+  t.style.cssText = `
+    position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-80px);
+    max-width:340px;width:calc(100% - 32px);
+    background:rgba(30,42,58,0.96);backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.1);border-radius:16px;
+    padding:12px 14px;display:flex;align-items:center;gap:10px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999;
+    transition:transform .4s cubic-bezier(0.34,1.56,0.64,1);cursor:pointer;
+  `
+  t.innerHTML = `
+    <img src="${avatarUrl}" style="width:38px;height:38px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--card);" onerror="this.style.display='none'">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;">${esc(botName)}</div>
+      <div style="font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(text.slice(0,60))}${text.length>60?'…':''}</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);flex-shrink:0;">сейчас</div>
+  `
+  document.body.appendChild(t)
+
+  // Анимация появления
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    t.style.transform = 'translateX(-50%) translateY(0)'
+  }))
+
+  // Автоскрытие через 4 сек
+  const hide = () => {
+    t.style.transform = 'translateX(-50%) translateY(-100px)'
+    setTimeout(() => t.remove(), 400)
+  }
+  t.addEventListener('click', hide)
+  setTimeout(hide, 4000)
+}
+
+// Добавляем комментарий в открытый пост (от другого пользователя)
+function appendCommentToDetail(c) {
+  const el = document.getElementById('postDetailComments')
+  if (!el) return
+  // Убираем "нет комментариев"
+  el.querySelector('[style*="color:var(--sub)"]')?.remove()
+
+  const tmp = document.createElement('div')
+  // Простой HTML для нового комментария
+  tmp.innerHTML = `<div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;opacity:0;transform:translateX(10px);transition:all .3s ease;">
+    <div style="width:34px;height:34px;border-radius:50%;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">
+      ${(c.first_name||'?')[0]}
+    </div>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:var(--text);">${esc(c.first_name||'Пользователь')} ${c.username ? `<span style="font-size:11px;color:var(--acc);">@${esc(c.username)}</span>` : ''}</div>
+      <div style="font-size:14px;margin-top:4px;">${esc(c.text)}</div>
+    </div>
+  </div>`
+  const node = tmp.firstElementChild
+  el.appendChild(node)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    node.style.opacity = '1'
+    node.style.transform = 'none'
+  }))
+  node.scrollIntoView({ behavior: 'smooth', block: 'end' })
+}
+
 async function initApp() {
   loadFeed();
   showProfile();
   loadSearchDefault();
+  // Запускаем SSE соединение
+  setTimeout(sseConnect, 800)
 
   // Deep links
   const urlParams = new URLSearchParams(window.location.search);
