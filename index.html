@@ -389,6 +389,10 @@ html, body {
 }
 #prof-guest > *:nth-child(1) { animation-delay:.05s; }
 #prof-guest > *:nth-child(2) { animation-delay:.12s; }
+/* Анимация prof-hero при появлении */
+.prof-hero { animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) both; }
+.p-tabs    { animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) .08s both; }
+#tb-bots, #tb-settings { animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) .14s both; }
 .prof-ava {
   animation: avatarIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both,
              glowPulse 2s ease-in-out 0.8s 2;
@@ -663,48 +667,132 @@ html, body {
 /* ══════════════════════════════════════
    CATALOG
 ══════════════════════════════════════ */
-.cat-banner { margin:12px 14px; padding:18px; background:linear-gradient(135deg,#1e3a5f,#0d2137); border-radius:16px; border:1px solid rgba(46,166,255,0.15); }
-.cat-banner-title { font-size:16px; font-weight:800; margin-bottom:4px; }
-.cat-banner-sub { font-size:12px; color:var(--sub); margin-bottom:14px; }
-.banner-stats { display:flex; gap:16px; }
-.bstat-n { font-size:18px; font-weight:800; color:var(--acc); }
-.bstat-l { font-size:11px; color:var(--sub); margin-top:2px; }
-.sec-head { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 6px; }
-.sec-title { font-size:15px; font-weight:700; }
+.cat-banner {
+  margin: 0; padding: 0;
+  background: linear-gradient(170deg, #0c1d30 0%, #0f1923 100%);
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.cat-banner-inner {
+  padding: 28px 18px 24px;
+  position: relative; z-index: 1;
+}
+.cat-banner::before {
+  content: ''; position: absolute;
+  top: -80px; right: -60px;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(46,166,255,0.14) 0%, transparent 70%);
+}
+.cat-banner::after {
+  content: ''; position: absolute;
+  bottom: -40px; left: -20px;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(77,205,106,0.09) 0%, transparent 70%);
+}
+.cat-banner-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--acc); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cat-banner-eyebrow::before {
+  content: ''; width: 16px; height: 2px;
+  background: var(--acc); border-radius: 2px; display: block;
+}
+.cat-banner-title {
+  font-size: 26px; font-weight: 900; letter-spacing: -1px;
+  line-height: 1.1; margin-bottom: 6px; color: var(--text);
+}
+.cat-banner-title span { color: var(--acc); }
+.cat-banner-sub { font-size: 13px; color: var(--sub); margin-bottom: 20px; line-height: 1.5; }
+.banner-stats {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px; overflow: hidden;
+}
+.bstat { padding: 14px 10px; text-align: center; border-right: 1px solid rgba(255,255,255,0.06); }
+.bstat:last-child { border-right: none; }
+.bstat-n { font-size: 20px; font-weight: 900; color: var(--text); line-height: 1; }
+.bstat-l { font-size: 10px; color: var(--sub); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.sec-head { display:flex; align-items:center; justify-content:space-between; padding:20px 16px 10px; }
+.sec-title {
+  font-size: 11px; font-weight: 700; color: var(--sub);
+  text-transform: uppercase; letter-spacing: 1px;
+}
 .sec-more { font-size:12px; color:var(--acc); cursor:pointer; }
-.feat-scroll { display:flex; gap:10px; padding:4px 14px 12px; overflow-x:auto; scrollbar-width:none; }
+
+/* Featured horizontal scroll */
+.feat-scroll { display:flex; gap:10px; padding:0 16px 16px; overflow-x:auto; scrollbar-width:none; }
 .feat-scroll::-webkit-scrollbar { display:none; }
-.feat-card { flex-shrink:0; width:160px; background:var(--card); border-radius:14px; padding:14px; border:1px solid var(--border); cursor:pointer; }
-.feat-ava { width:44px; height:44px; border-radius:12px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:10px; }
-.feat-name { font-size:13px; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.feat-desc { font-size:11px; color:var(--sub); line-height:1.4; margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.feat-card {
+  flex-shrink: 0; width: 168px;
+  background: var(--card);
+  border-radius: 18px; padding: 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.feat-card::before {
+  content: ''; position: absolute;
+  top: -20px; right: -20px; width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(46,166,255,0.1), transparent 70%);
+  pointer-events: none;
+}
+.feat-ava {
+  width: 46px; height: 46px; border-radius: 14px;
+  background: var(--hover); display: flex; align-items: center;
+  justify-content: center; font-size: 22px; margin-bottom: 12px;
+  overflow: hidden;
+}
+.feat-name {
+  font-size: 13px; font-weight: 700; margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.feat-desc {
+  font-size: 11px; color: var(--sub); line-height: 1.45; margin-bottom: 14px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .feat-foot { display:flex; align-items:center; justify-content:space-between; }
 .feat-m { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); font-weight:600; }
-.divider { height:1px; background:var(--border); margin:4px 0; }
+.divider { height:1px; background:var(--border); }
 
 /* ══════════════════════════════════════
    BOT ROWS
 ══════════════════════════════════════ */
-.bot-rows { padding:0 0 80px; }
-.bot-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--border); cursor:pointer; }
-.br-ava { width:48px; height:48px; border-radius:13px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; overflow:hidden; }
+.bot-rows { padding: 0 12px 90px; }
+.bot-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  background: var(--card);
+  border-radius: 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background .12s, transform .15s, box-shadow .15s;
+}
+.bot-row:active { transform: scale(0.98); background: var(--hover); box-shadow: none; }
+.br-ava {
+  width: 50px; height: 50px; border-radius: 14px;
+  background: var(--hover); display: flex; align-items: center;
+  justify-content: center; font-size: 24px; flex-shrink: 0; overflow: hidden;
+}
 .br-info { flex:1; min-width:0; }
 .br-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.br-desc { font-size:12px; color:var(--sub); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.br-tags { display:flex; gap:4px; margin-top:5px; flex-wrap:wrap; }
+.br-desc { font-size:12px; color:var(--sub); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.br-tags { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
 .br-right { display:flex; flex-direction:column; align-items:flex-end; gap:7px; flex-shrink:0; }
 .br-count { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); font-weight:600; }
-.gdot { width:6px; height:6px; border-radius:50%; background:var(--green); }
-.tag { padding:3px 8px; background:var(--card); border-radius:6px; font-size:11px; color:var(--sub); font-weight:600; }
-.sub-btn { 
-  padding:6px 14px; 
-  background:var(--acc-dim); 
-  color:var(--acc); 
-  border-radius:10px; 
-  font-size:12px; 
-  font-weight:700; 
-  cursor:pointer; 
-  white-space:nowrap; 
+.gdot { width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow: 0 0 5px rgba(77,205,106,0.6); }
+.tag { padding:3px 8px; background:rgba(46,166,255,0.08); border:1px solid rgba(46,166,255,0.15); border-radius:6px; font-size:11px; color:var(--acc); font-weight:600; }
+.sub-btn {
+  padding: 7px 14px;
+  background: var(--acc-dim);
+  color: var(--acc);
+  border-radius: 10px;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
   border: 1px solid rgba(46,166,255,0.2);
   transition: all .2s cubic-bezier(0.34,1.56,0.64,1);
 }
@@ -714,68 +802,174 @@ html, body {
 /* ══════════════════════════════════════
    SEARCH
 ══════════════════════════════════════ */
-.search-top { padding:10px 14px; }
-.search-box { display:flex; align-items:center; gap:8px; background:var(--card); border-radius:12px; padding:10px 12px; border:1px solid var(--border); margin-bottom:10px; }
-.search-box svg { width:17px; height:17px; stroke:var(--muted); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
-.search-box input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Inter',sans-serif; font-size:14px; min-width:0; }
+.search-top { padding: 14px 14px 0; }
+.search-box {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card);
+  border-radius: 14px; padding: 12px 14px;
+  border: 1.5px solid transparent;
+  margin-bottom: 12px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-box:focus-within {
+  border-color: rgba(46,166,255,0.35);
+  box-shadow: 0 0 0 3px rgba(46,166,255,0.07);
+}
+.search-box svg { width:18px; height:18px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; transition:stroke .2s; }
+.search-box:focus-within svg { stroke: var(--acc); }
+.search-box input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Inter',sans-serif; font-size:15px; min-width:0; }
 .search-box input::placeholder { color:var(--muted); }
-.search-clear { font-size:18px; color:var(--muted); cursor:pointer; display:none; line-height:1; }
-.search-clear.show { display:block; }
-.cats-bar { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; }
+.search-clear { width:20px;height:20px;border-radius:50%;background:var(--muted);color:var(--bg);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;flex-shrink:0;font-weight:700; }
+.search-clear.show { display:flex; }
+
+.cats-bar { display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
 .cats-bar::-webkit-scrollbar { display:none; }
-.cat-chip { padding:6px 12px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:12px; font-weight:600; color:var(--sub); white-space:nowrap; cursor:pointer; flex-shrink:0; transition:all .15s; }
-.cat-chip.on { background:var(--acc-dim); border-color:rgba(46,166,255,.25); color:var(--acc); }
-.s-lbl { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:0.6px; padding:12px 14px 6px; }
+.cat-chip {
+  padding: 7px 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; font-size: 12px; font-weight: 600;
+  color: var(--sub); white-space: nowrap; cursor: pointer; flex-shrink: 0;
+  transition: all .18s cubic-bezier(0.34,1.56,0.64,1);
+}
+.cat-chip:active { transform: scale(0.92); }
+.cat-chip.on { background:var(--acc); border-color:var(--acc); color:#fff; box-shadow: 0 4px 12px rgba(46,166,255,0.35); }
+
+.s-lbl { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:0.8px; padding:18px 14px 8px; }
 .trending-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 14px; }
-.trend-item { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:12px; padding:12px; cursor:pointer; }
-.tr-ico { font-size:22px; flex-shrink:0; }
-.tr-name { font-size:13px; font-weight:700; }
-.tr-cnt { font-size:11px; color:var(--sub); margin-top:2px; }
-.no-results { text-align:center; padding:48px 24px; color:var(--sub); }
-.no-results-ico { font-size:40px; margin-bottom:12px; }
-.no-results-txt { font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px; }
+.trend-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border-radius: 14px; padding: 13px;
+  cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+  transition: transform .15s, background .12s;
+}
+.trend-item:active { transform: scale(0.96); background: var(--hover); }
+.tr-ico { font-size: 24px; flex-shrink: 0; }
+.tr-name { font-size: 13px; font-weight: 700; }
+.tr-cnt { font-size: 11px; color: var(--sub); margin-top: 2px; }
+.no-results { text-align:center; padding:60px 24px; color:var(--sub); }
+.no-results-ico { font-size:44px; margin-bottom:14px; }
+.no-results-txt { font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px; }
 
 /* ══════════════════════════════════════
    PROFILE
 ══════════════════════════════════════ */
-.prof-head { padding:20px 14px 0; }
-.prof-top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
-.prof-ava { width:64px; height:64px; border-radius:20px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; overflow:hidden; }
-.prof-info { flex:1; min-width:0; }
-.prof-name { font-size:18px; font-weight:800; display:flex; align-items:center; gap:6px; }
-.prof-badge { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:var(--acc); color:#fff; border-radius:50%; font-size:10px; font-weight:800; }
-.prof-user { font-size:13px; color:var(--sub); margin-top:3px; }
-.prof-actions { margin-bottom:16px; }
-.prof-btn { display:inline-flex; align-items:center; justify-content:center; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; }
-.prof-btn-sec { background:var(--card); color:var(--text); border:1px solid var(--border); }
-.prof-stats { display:flex; gap:0; margin-bottom:16px; background:var(--card); border-radius:14px; overflow:hidden; }
-.ps { flex:1; padding:14px; text-align:center; position:relative; }
-.ps + .ps::before { content:''; position:absolute; left:0; top:25%; height:50%; width:1px; background:var(--border); }
-.ps-n { font-size:18px; font-weight:800; }
-.ps-l { font-size:11px; color:var(--sub); margin-top:3px; }
-.p-tabs { display:flex; border-bottom:1px solid var(--border); margin:0 14px; }
-.p-tab { flex:1; text-align:center; padding:10px; font-size:13px; font-weight:600; color:var(--sub); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
-.p-tab.on { color:var(--acc); border-bottom-color:var(--acc); }
-#tb-bots, #tb-settings { padding:8px 14px 80px; }
-.my-bot { display:flex; align-items:center; gap:12px; padding:12px; background:var(--card); border-radius:12px; margin-bottom:8px; cursor:pointer; transition:background .12s; }
-.my-bot:active { background:var(--hover); }
-.mb-ava { width:44px; height:44px; border-radius:12px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+
+/* Hero шапка профиля */
+.prof-hero {
+  position: relative; overflow: hidden;
+  padding: 36px 18px 24px;
+  background: linear-gradient(170deg, #0c1d30 0%, #0f1923 100%);
+  border-bottom: 1px solid var(--border);
+}
+.prof-hero::before {
+  content: ''; position: absolute;
+  top: -60px; right: -40px; width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(46,166,255,0.15) 0%, transparent 70%);
+}
+.prof-hero-row {
+  display: flex; align-items: center; gap: 16px;
+  position: relative; z-index: 1;
+}
+.prof-ava {
+  width: 72px; height: 72px; border-radius: 22px;
+  background: var(--card); display: flex; align-items: center;
+  justify-content: center; font-size: 34px; flex-shrink: 0; overflow: hidden;
+  border: 2.5px solid rgba(46,166,255,0.3);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.prof-info { flex: 1; min-width: 0; }
+.prof-name { font-size: 20px; font-weight: 900; display:flex; align-items:center; gap:7px; letter-spacing: -0.3px; }
+.prof-badge { display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--acc);color:#fff;border-radius:50%;font-size:10px;font-weight:800; }
+.prof-user { font-size: 13px; color: var(--sub); margin-top: 4px; }
+.prof-add-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 12px;
+  background: rgba(46,166,255,0.12); border: 1px solid rgba(46,166,255,0.25);
+  color: var(--acc); font-size: 20px; cursor: pointer; flex-shrink: 0;
+  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), background .15s;
+}
+.prof-add-btn:active { transform: scale(0.88); background: var(--acc-dim); }
+
+/* Стат-полоса */
+.prof-stats {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 8px; margin-top: 20px; position: relative; z-index: 1;
+}
+.ps {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 12px 8px; text-align: center;
+}
+.ps-n { font-size: 20px; font-weight: 900; color: var(--text); line-height: 1; }
+.ps-l { font-size: 10px; color: var(--sub); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* Табы */
+.p-tabs {
+  display: flex; padding: 12px 14px 0;
+  gap: 6px;
+}
+.p-tab {
+  flex: 1; text-align: center; padding: 9px 10px;
+  font-size: 13px; font-weight: 700; color: var(--sub);
+  cursor: pointer; border-radius: 10px;
+  background: transparent;
+  transition: all .18s;
+}
+.p-tab.on { color: var(--text); background: var(--card); }
+
+#tb-bots, #tb-settings { padding: 12px 14px 90px; }
+
+/* Карточки моих ботов */
+.my-bot {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px; background: var(--card); border-radius: 16px;
+  margin-bottom: 8px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background .12s, transform .15s;
+}
+.my-bot:active { background: var(--hover); transform: scale(0.98); }
+.mb-ava { width:46px; height:46px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden; }
 .mb-info { flex:1; min-width:0; }
 .mb-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; }
 .mb-meta { font-size:12px; color:var(--sub); margin-top:3px; }
-.mb-chev { font-size:20px; color:var(--muted); }
-.add-row { display:flex; align-items:center; gap:12px; padding:12px; border:1px dashed var(--border); border-radius:12px; cursor:pointer; margin-top:4px; }
-.add-ico { width:44px; height:44px; border-radius:12px; background:var(--acc-dim); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--acc); flex-shrink:0; }
-.add-lbl { font-size:14px; font-weight:700; }
+.mb-chev { width:28px;height:28px;border-radius:8px;background:var(--hover);display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:16px;flex-shrink:0; }
+
+/* Добавить бота */
+.add-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px;
+  border: 1.5px dashed rgba(46,166,255,0.25);
+  background: rgba(46,166,255,0.04);
+  border-radius: 16px; cursor: pointer; margin-top: 4px;
+  transition: background .15s, border-color .15s;
+}
+.add-row:active { background: rgba(46,166,255,0.08); }
+.add-ico { width:46px; height:46px; border-radius:13px; background:var(--acc-dim); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--acc); flex-shrink:0; }
+.add-lbl { font-size:14px; font-weight:700; color:var(--acc); }
 .add-sub { font-size:12px; color:var(--sub); margin-top:2px; }
-.set-group { background:var(--card); border-radius:14px; margin-bottom:10px; overflow:hidden; }
-.set-row { display:flex; align-items:center; gap:12px; padding:14px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; }
+
+/* Настройки */
+.set-group {
+  background: var(--card); border-radius: 16px;
+  margin-bottom: 10px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.set-row { display:flex; align-items:center; gap:13px; padding:15px 14px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; }
 .set-row:last-child { border-bottom:none; }
 .set-row:active { background:var(--hover); }
+.set-ico-wrap {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
 .set-ico { font-size:18px; flex-shrink:0; }
-.set-lbl { flex:1; font-size:14px; }
-.set-chev { font-size:18px; color:var(--muted); }
+.set-lbl { flex:1; font-size:14px; font-weight:500; }
+.set-chev { color: var(--muted); flex-shrink: 0; }
+.set-chev svg { width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
 .set-row.danger .set-lbl { color:var(--red); }
+.set-row.danger .set-ico-wrap { background: rgba(240,64,64,0.1); }
 
 
 /* ══════════════════════════════════════
@@ -1261,44 +1455,46 @@ html, body {
 
     <!-- CATALOG -->
     <div class="screen" id="s-catalog">
-      <div class="topbar">
-        <div class="topbar-title">Каталог</div>
-        <div class="tb-btn"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
-      </div>
       <div class="cat-banner">
-        <div class="cat-banner-title">Каталог ботов</div>
-        <div class="cat-banner-sub">Находи, подписывайся, следи за обновлениями</div>
-        <div class="banner-stats">
-          <div class="bstat"><div class="bstat-n" id="catStatBots">—</div><div class="bstat-l">Ботов</div></div>
-          <div class="bstat"><div class="bstat-n" id="catStatMembers">—</div><div class="bstat-l">Участников</div></div>
-          <div class="bstat"><div class="bstat-n" id="catStatPosts">—</div><div class="bstat-l">Постов</div></div>
+        <div class="cat-banner-inner">
+          <div class="cat-banner-eyebrow">Каталог</div>
+          <div class="cat-banner-title">Telegram <span>боты</span></div>
+          <div class="cat-banner-sub">Находи, подписывайся, следи за обновлениями</div>
+          <div class="banner-stats">
+            <div class="bstat"><div class="bstat-n" id="catStatBots">—</div><div class="bstat-l">Ботов</div></div>
+            <div class="bstat"><div class="bstat-n" id="catStatMembers">—</div><div class="bstat-l">Участников</div></div>
+            <div class="bstat"><div class="bstat-n" id="catStatPosts">—</div><div class="bstat-l">Постов</div></div>
+          </div>
         </div>
       </div>
       <div class="sec-head"><div class="sec-title">Топ боты</div></div>
       <div class="feat-scroll" id="featuredList">
-        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
-        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
-        <div class="shimmer feat-card" style="min-width:180px;height:140px;"></div>
+        <div class="shimmer feat-card" style="min-width:168px;height:148px;border-radius:18px;"></div>
+        <div class="shimmer feat-card" style="min-width:168px;height:148px;border-radius:18px;"></div>
+        <div class="shimmer feat-card" style="min-width:168px;height:148px;border-radius:18px;"></div>
       </div>
-      <div class="divider"></div>
-      <div class="sec-head"><div class="sec-title">Все боты</div></div>
+      <div class="sec-head" style="padding-top:8px;"><div class="sec-title">Все боты</div></div>
       <div class="bot-rows" id="catalogList">
-        <div style="text-align:center;padding:32px;color:var(--sub)">Загрузка...</div>
+        <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:74px;border-radius:16px;"></div>
       </div>
     </div>
 
     <!-- SEARCH -->
     <div class="screen" id="s-search">
-      <div class="topbar"><div class="topbar-title">Поиск</div></div>
-
-      <div class="search-top">
+      <!-- Встроенный хедер поиска -->
+      <div style="padding:16px 14px 10px;position:sticky;top:0;z-index:10;background:var(--bg);">
+        <div style="font-size:24px;font-weight:900;letter-spacing:-0.5px;margin-bottom:14px;color:var(--text);">
+          Поиск <span style="color:var(--acc);">ботов</span>
+        </div>
         <div class="search-box">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="searchInput" type="text" placeholder="Бот, категория, тег..." oninput="doSearch()">
-          <span class="search-clear" id="searchClear" onclick="clearSearch()">×</span>
+          <input id="searchInput" type="text" placeholder="Найти бота..." oninput="doSearch()">
+          <div class="search-clear" id="searchClear" onclick="clearSearch()">×</div>
         </div>
         <div class="cats-bar" id="catsBar">
-          <div class="cat-chip on" data-cat="all" onclick="setCat(this)">Все</div>
+          <div class="cat-chip on" data-cat="all" onclick="setCat(this)">✦ Все</div>
           <div class="cat-chip" data-cat="ai" onclick="setCat(this)">🤖 ИИ</div>
           <div class="cat-chip" data-cat="games" onclick="setCat(this)">🎮 Игры</div>
           <div class="cat-chip" data-cat="music" onclick="setCat(this)">🎵 Музыка</div>
@@ -1314,22 +1510,22 @@ html, body {
       <div id="searchDefault">
         <div class="s-lbl">Категории</div>
         <div class="trending-grid" id="searchCatGrid">
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
-          <div class="shimmer" style="height:56px;border-radius:12px;"></div>
+          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
+          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
+          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
+          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
+          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
+          <div class="shimmer" style="height:64px;border-radius:14px;"></div>
         </div>
-        <div class="s-lbl" style="padding-top:14px;">Популярные боты</div>
+        <div class="s-lbl" style="padding-top:8px;">Популярные боты</div>
         <div class="bot-rows" id="popularBotsList">
-          <div class="shimmer" style="height:72px;border-radius:14px;margin-bottom:8px;"></div>
-          <div class="shimmer" style="height:72px;border-radius:14px;margin-bottom:8px;"></div>
-          <div class="shimmer" style="height:72px;border-radius:14px;"></div>
+          <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
+          <div class="shimmer" style="height:74px;border-radius:16px;margin-bottom:8px;"></div>
+          <div class="shimmer" style="height:74px;border-radius:16px;"></div>
         </div>
       </div>
 
-      <!-- Results (shown when query or cat selected) -->
+      <!-- Results -->
       <div id="searchResults" style="display:none;">
         <div class="s-lbl" id="resultsLabel">Результаты</div>
         <div class="bot-rows" id="resultsList"></div>
@@ -1451,16 +1647,17 @@ html, body {
 
       <!-- Авторизован -->
       <div id="prof-auth">
-        <div class="prof-head">
-          <div class="prof-top">
+        <!-- Hero шапка -->
+        <div class="prof-hero">
+          <div class="prof-hero-row">
             <div class="prof-ava" id="profAva">👤</div>
             <div class="prof-info">
-              <div class="prof-name" id="profName">— <div class="prof-badge" id="profBadge" style="display:none">✓</div></div>
+              <div class="prof-name" id="profName">—
+                <div class="prof-badge" id="profBadge" style="display:none">✓</div>
+              </div>
               <div class="prof-user" id="profUser"></div>
             </div>
-          </div>
-          <div class="prof-actions">
-            <div class="prof-btn prof-btn-sec" onclick="openSheet()">+ Добавить бота</div>
+            <div class="prof-add-btn" onclick="openSheet()" title="Добавить бота">＋</div>
           </div>
           <div class="prof-stats">
             <div class="ps"><div class="ps-n" id="statBots">0</div><div class="ps-l">Ботов</div></div>
@@ -1468,26 +1665,55 @@ html, body {
             <div class="ps"><div class="ps-n" id="statSubs">0</div><div class="ps-l">Подписок</div></div>
           </div>
         </div>
+
         <div class="p-tabs">
           <div class="p-tab on" onclick="profTab(this,'tb-bots')">Мои боты</div>
           <div class="p-tab" onclick="profTab(this,'tb-settings')">Настройки</div>
         </div>
+
         <div id="tb-bots">
           <div id="myBotsList"></div>
-          <div class="add-row" onclick="openSheet()"><div class="add-ico">＋</div><div><div class="add-lbl">Добавить бота</div><div class="add-sub">Страничка в каталоге за 2 минуты</div></div></div>
+          <div class="add-row" onclick="openSheet()">
+            <div class="add-ico">＋</div>
+            <div><div class="add-lbl">Добавить бота</div><div class="add-sub">Страничка в каталоге за 2 минуты</div></div>
+          </div>
         </div>
-        <div id="tb-settings" style="display:none; padding-top:8px;">
+
+        <div id="tb-settings" style="display:none;">
           <div class="set-group">
-            <div class="set-row" onclick="toast('🔔','Скоро')"><div class="set-ico">🔔</div><div class="set-lbl">Уведомления</div><div class="set-chev">›</div></div>
-            <div class="set-row" onclick="toast('🔑','Скоро')"><div class="set-ico">🔑</div><div class="set-lbl">API ключи</div><div class="set-chev">›</div></div>
-            <div class="set-row" onclick="toast('📊','Скоро')"><div class="set-ico">📊</div><div class="set-lbl">Аналитика</div><div class="set-chev">›</div></div>
+            <div class="set-row" onclick="toast('🔔','Скоро')">
+              <div class="set-ico-wrap">🔔</div>
+              <div class="set-lbl">Уведомления</div>
+              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="set-row" onclick="toast('🔑','Скоро')">
+              <div class="set-ico-wrap">🔑</div>
+              <div class="set-lbl">API ключи</div>
+              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="set-row" onclick="toast('📊','Скоро')">
+              <div class="set-ico-wrap">📊</div>
+              <div class="set-lbl">Аналитика</div>
+              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
           </div>
           <div class="set-group">
-            <div class="set-row" onclick="toast('📋','Скоро')"><div class="set-ico">📋</div><div class="set-lbl">Документация</div><div class="set-chev">›</div></div>
-            <div class="set-row" onclick="toast('💬','Скоро')"><div class="set-ico">💬</div><div class="set-lbl">Поддержка</div><div class="set-chev">›</div></div>
+            <div class="set-row" onclick="toast('📋','Скоро')">
+              <div class="set-ico-wrap">📋</div>
+              <div class="set-lbl">Документация</div>
+              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="set-row" onclick="toast('💬','Скоро')">
+              <div class="set-ico-wrap">💬</div>
+              <div class="set-lbl">Поддержка</div>
+              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
           </div>
           <div class="set-group">
-            <div class="set-row danger" onclick="logout()"><div class="set-ico">🚪</div><div class="set-lbl">Выйти</div></div>
+            <div class="set-row danger" onclick="logout()">
+              <div class="set-ico-wrap">🚪</div>
+              <div class="set-lbl">Выйти</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2168,7 +2394,7 @@ async function loadMyBots() {
         <div class="mb-name">${esc(b.name)} ${badge}</div>
         <div class="mb-meta">${b.members||0} участников · ${b.posts_count||0} постов</div>
       </div>
-      <div class="mb-chev">›</div>
+      <div class="mb-chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
     </div>`;
   }).join('');
   statMembers.textContent = total > 1000 ? Math.floor(total/1000)+'K' : total;
