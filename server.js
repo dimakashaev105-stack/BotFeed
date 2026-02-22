@@ -29,18 +29,6 @@ db.query(`
   CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email) WHERE email IS NOT NULL;
 `).catch(e => console.log('Migration note:', e.message))
 
-// Миграция комментариев — создаём таблицу если нет
-db.query(`
-  CREATE TABLE IF NOT EXISTS comments (
-    id SERIAL PRIMARY KEY,
-    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    reply_to_id INTEGER REFERENCES comments(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-  )
-`).catch(e => console.log('Comments table note:', e.message))
-
 // Миграция комментариев — reply_to_id
 db.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFERENCES comments(id) ON DELETE SET NULL`)
   .catch(e => console.log('Comments migration note:', e.message))
@@ -392,6 +380,27 @@ app.get('/api/bots', async (req) => {
     `, params)
     return rows
   } catch (e) { console.error('GET /bots error:', e.message); return [] }
+})
+
+// Один бот по id — без фильтра верификации
+app.get('/api/bots/:botId', async (req, reply) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT b.id, b.username, b.name, b.description, b.long_desc, b.photo_url,
+             b.members, b.categories, b.verified, b.created_at,
+             u.first_name as owner_name,
+             COUNT(DISTINCT s.id) as subscribers,
+             COUNT(DISTINCT p.id) as posts_count
+      FROM bots b
+      JOIN users u ON b.owner_id = u.id
+      LEFT JOIN subscriptions s ON b.id = s.bot_id
+      LEFT JOIN posts p ON b.id = p.bot_id
+      WHERE b.id = $1
+      GROUP BY b.id, u.first_name
+    `, [parseInt(req.params.botId)])
+    if (!rows[0]) return reply.code(404).send({ error: 'Бот не найден' })
+    return rows[0]
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
 app.get('/api/my/bots', { preHandler: auth }, async (req) => {
@@ -801,36 +810,24 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
   return enriched
 })
 
-// Удаление комментария — автор комментария ИЛИ владелец бота
+// Удаление комментария — только автор
 app.delete('/api/comments/:id', { preHandler: auth }, async (req, reply) => {
   try {
-    const commentId = parseInt(req.params.id)
-    const userId = req.user.id
-
-    // Проверяем: либо автор комментария, либо владелец бота у которого этот пост
-    const { rows } = await db.query(`
-      SELECT c.id, c.post_id
-      FROM comments c
-      JOIN posts p ON c.post_id = p.id
-      JOIN bots b ON p.bot_id = b.id
-      WHERE c.id = $1
-        AND (c.user_id = $2 OR b.owner_id = $2)
-    `, [commentId, userId])
-
+    const { rows } = await db.query(
+      'SELECT id, post_id FROM comments WHERE id=$1 AND user_id=$2',
+      [req.params.id, req.user.id]
+    )
     if (!rows[0]) return reply.code(403).send({ error: 'Нет доступа или комментарий не найден' })
 
-    await db.query('DELETE FROM comments WHERE id=$1', [commentId])
+    // Удаляем комментарий (replies через CASCADE или SET NULL)
+    await db.query('DELETE FROM comments WHERE id=$1', [req.params.id])
 
-    // SSE — обновляем счётчик
+    // SSE — обновляем счётчик комментариев
     const { rows: cnt } = await db.query(
       'SELECT COUNT(*) as count FROM comments WHERE post_id=$1',
       [rows[0].post_id]
     )
-    ssePublish('comment_deleted', {
-      post_id: rows[0].post_id,
-      comment_id: commentId,
-      comments_count: parseInt(cnt[0].count)
-    })
+    ssePublish('comment_deleted', { post_id: rows[0].post_id, comment_id: parseInt(req.params.id), comments_count: parseInt(cnt[0].count) })
 
     return { ok: true }
   } catch (e) { return reply.code(500).send({ error: e.message }) }
