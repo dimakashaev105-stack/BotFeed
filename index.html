@@ -2375,8 +2375,9 @@ async function api(method, path, body, _retry = 0) {
       await new Promise(res => setTimeout(res, 2000 * (_retry + 1)));
       return api(method, path, body, _retry + 1);
     }
-    if (r.status === 401 || r.status === 404) {
-      return { error: r.status === 401 ? 'Unauthorized' : 'Not Found', status: r.status };
+    if (r.status === 401 || r.status === 403 || r.status === 404) {
+      const json = await r.json().catch(() => ({}))
+      return { error: json.error || (r.status === 401 ? 'Unauthorized' : r.status === 403 ? 'Forbidden' : 'Not Found'), status: r.status }
     }
     return await r.json();
   } catch (e) {
