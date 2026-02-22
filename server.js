@@ -2,8 +2,15 @@ import 'dotenv/config'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
+import multipart from '@fastify/multipart'
 import pg from 'pg'
 import crypto from 'crypto'
+import { createClient } from '@supabase/supabase-js'
+
+// Supabase Storage для загрузки изображений
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+  : null
 
 const { Pool } = pg
 const app = Fastify({ logger: true })
@@ -123,6 +130,10 @@ await app.register(cors, {
 
 await app.register(jwt, {
   secret: process.env.JWT_SECRET || 'botfeed_secret_key_32_chars_min!'
+})
+
+await app.register(multipart, {
+  limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
 })
 
 // JSON parser (разрешаем пустое тело)
@@ -589,7 +600,7 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
         WHERE s.bot_id = $1 AND s.notify = true AND u.telegram_id IS NOT NULL
       `, [req.params.botId])
       const preview = text.trim().length > 200 ? text.trim().slice(0, 200) + '…' : text.trim()
-      const postUrl = `https://botfeed.vercel.app?post=${post.id}`
+      const postUrl = `${process.env.SITE_URL || 'https://botfeed.vercel.app'}?post=${post.id}`
       for (const sub of subs) {
         await tgSend(sub.telegram_id,
           `🔔 <b>${b[0].name}</b> опубликовал новый пост!\n\n${preview}\n\n<a href="${postUrl}">Открыть →</a>`
@@ -706,7 +717,6 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
   if (replyToId) {
     ;(async () => {
       try {
-        // Получаем оригинальный комментарий + telegram_id его автора
         const { rows: origRows } = await db.query(`
           SELECT c.text, c.user_id, u.telegram_id, u.first_name
           FROM comments c
@@ -716,9 +726,7 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
 
         const orig = origRows[0]
         if (!orig) return
-        // Не уведомляем если отвечают самому себе
         if (orig.user_id === req.user.id) return
-        // Не уведомляем если нет telegram_id (вошёл через email)
         if (!orig.telegram_id) return
 
         const senderName = uRows[0]?.first_name || 'Кто-то'
@@ -727,31 +735,81 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
         const replyPreview = req.body.text.trim().length > 120
           ? req.body.text.trim().slice(0, 120) + '…'
           : req.body.text.trim()
-        const postUrl = `https://botfeed.vercel.app?post=${postId}`
+        const postUrl = `${process.env.SITE_URL || 'https://botfeed.vercel.app'}?post=${postId}`
 
         await tgSend(
           orig.telegram_id,
-          `💬 <b>${senderName}</b>${senderUsername ? ` (${senderUsername})` : ''} ответил на твой комментарий:
-
-` +
-          `<i>«${origPreview}»</i>
-
-` +
-          `➤ ${replyPreview}
-
-` +
+          `💬 <b>${senderName}</b>${senderUsername ? ` (${senderUsername})` : ''} ответил на твой комментарий:\n\n` +
+          `<i>«${origPreview}»</i>\n\n` +
+          `➤ ${replyPreview}\n\n` +
           `<a href="${postUrl}">Открыть пост →</a>`,
-          {
-            inline_keyboard: [[
-              { text: '💬 Открыть пост', url: postUrl }
-            ]]
-          }
+          { inline_keyboard: [[{ text: '💬 Открыть пост', url: postUrl }]] }
         )
       } catch (e) { console.error('Reply notify error:', e.message) }
     })()
   }
 
+  // ════════════════════════════════════════
+  // TG УВЕДОМЛЕНИЕ — автору поста о новом комментарии
+  // ════════════════════════════════════════
+  ;(async () => {
+    try {
+      // Находим владельца бота (автора поста)
+      const { rows: postOwnerRows } = await db.query(`
+        SELECT u.id, u.telegram_id, u.first_name
+        FROM posts p
+        JOIN bots b ON p.bot_id = b.id
+        JOIN users u ON b.owner_id = u.id
+        WHERE p.id = $1
+      `, [postId])
+
+      const owner = postOwnerRows[0]
+      if (!owner) return
+      // Не уведомляем если автор сам себе написал
+      if (owner.id === req.user.id) return
+      if (!owner.telegram_id) return
+
+      const senderName = uRows[0]?.first_name || 'Кто-то'
+      const senderUsername = uRows[0]?.username ? ` (@${uRows[0].username})` : ''
+      const textPreview = req.body.text.trim().length > 120
+        ? req.body.text.trim().slice(0, 120) + '…'
+        : req.body.text.trim()
+      const postUrl = `${process.env.SITE_URL || 'https://botfeed.vercel.app'}?post=${postId}`
+
+      await tgSend(
+        owner.telegram_id,
+        `🗨 <b>${senderName}</b>${senderUsername} прокомментировал твой пост:\n\n` +
+        `${textPreview}\n\n` +
+        `<a href="${postUrl}">Открыть пост →</a>`,
+        { inline_keyboard: [[{ text: '💬 Открыть', url: postUrl }]] }
+      )
+    } catch (e) { console.error('Post owner comment notify error:', e.message) }
+  })()
+
   return enriched
+})
+
+// Удаление комментария — только автор
+app.delete('/api/comments/:id', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT id, post_id FROM comments WHERE id=$1 AND user_id=$2',
+      [req.params.id, req.user.id]
+    )
+    if (!rows[0]) return reply.code(403).send({ error: 'Нет доступа или комментарий не найден' })
+
+    // Удаляем комментарий (replies через CASCADE или SET NULL)
+    await db.query('DELETE FROM comments WHERE id=$1', [req.params.id])
+
+    // SSE — обновляем счётчик комментариев
+    const { rows: cnt } = await db.query(
+      'SELECT COUNT(*) as count FROM comments WHERE post_id=$1',
+      [rows[0].post_id]
+    )
+    ssePublish('comment_deleted', { post_id: rows[0].post_id, comment_id: parseInt(req.params.id), comments_count: parseInt(cnt[0].count) })
+
+    return { ok: true }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
 // ════════════════════════════════
@@ -859,6 +917,45 @@ app.get('/api/sse/stats', async () => ({
   users: sseClients.size
 }))
 
+// ════════════════════════════════
+// ЗАГРУЗКА ИЗОБРАЖЕНИЙ
+// ════════════════════════════════
+app.post('/api/upload/image', { preHandler: auth }, async (req, reply) => {
+  try {
+    if (!supabase) {
+      return reply.code(503).send({ error: 'Загрузка изображений не настроена (нет SUPABASE_URL/SUPABASE_SERVICE_KEY)' })
+    }
+
+    const data = await req.file()
+    if (!data) return reply.code(400).send({ error: 'Файл не найден' })
+
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowed.includes(data.mimetype)) {
+      return reply.code(400).send({ error: 'Только JPEG, PNG, GIF, WebP' })
+    }
+
+    const ext = data.mimetype.split('/')[1].replace('jpeg', 'jpg')
+    const filename = `posts/${req.user.id}_${Date.now()}.${ext}`
+
+    const buf = await data.toBuffer()
+
+    const { error: upErr } = await supabase.storage
+      .from('botfeed')
+      .upload(filename, buf, { contentType: data.mimetype, upsert: false })
+
+    if (upErr) {
+      console.error('Supabase upload error:', upErr)
+      return reply.code(500).send({ error: 'Ошибка загрузки: ' + upErr.message })
+    }
+
+    const { data: urlData } = supabase.storage.from('botfeed').getPublicUrl(filename)
+    return { ok: true, url: urlData.publicUrl }
+  } catch (e) {
+    console.error('Upload error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
 // Health check
 app.get('/health', () => ({ status: 'ok', time: new Date().toISOString() }))
 
@@ -868,4 +965,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-}
+                                   }
