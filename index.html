@@ -578,10 +578,33 @@ html, body {
   box-shadow: 0 2px 12px rgba(0,0,0,0.35);
   cursor: pointer;
   margin-bottom: 14px;
-  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), box-shadow .15s, background .12s;
+  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), box-shadow .15s, background .12s, opacity .4s;
 }
 .post:last-child { margin-bottom: 0; }
 .post:active { transform: scale(0.982); box-shadow: 0 1px 4px rgba(0,0,0,0.2); background: #1e2a38; }
+
+/* Прочитанный пост — немного тусклее */
+.post.post-read {
+  opacity: 0.52;
+  border-color: rgba(255,255,255,0.05);
+}
+.post.post-read:hover,
+.post.post-read:active {
+  opacity: 0.85;
+}
+/* Плашка "Новый" на непрочитанных */
+.post-new-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--acc);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(46,166,255,0.7);
+  animation: newDotPulse 2s ease-in-out infinite;
+}
+@keyframes newDotPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(46,166,255,0.6); transform: scale(1); }
+  50%       { box-shadow: 0 0 10px rgba(46,166,255,0.9); transform: scale(1.2); }
+}
 
 .post-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .p-ava { width:42px; height:42px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; }
@@ -2600,7 +2623,10 @@ function postHTML(p) {
     ${p.views_count >= 1000 ? (p.views_count/1000).toFixed(1)+'k' : p.views_count}
   </div>` : '';
 
-  return `<div class="post" data-id="${p.id}" data-type="${p.post_type||''}" ${hidden} onclick="openPostDetail(${p.id}, event)">
+  const readClass = isPostRead(p.id) ? ' post-read' : '';
+  const newDot = !isPostRead(p.id) ? '<div class="post-new-dot"></div>' : '';
+
+  return `<div class="post${readClass}" data-id="${p.id}" data-type="${p.post_type||''}" ${hidden} onclick="openPostDetail(${p.id}, event)">
     <div class="post-head">
       <div class="p-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="p-meta">
@@ -2608,6 +2634,7 @@ function postHTML(p) {
         <div class="p-cat">@${esc(p.bot_username||'')}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        ${newDot}
         ${views}
         <div class="p-time">${timeAgo(p.created_at)}</div>
       </div>
@@ -2645,6 +2672,37 @@ function timeAgo(ts) {
 // ════════════════════════════════
 // РЕАКЦИИ
 // ════════════════════════════════
+// ════════════════════════════════
+// ПРОЧИТАННЫЕ ПОСТЫ
+// ════════════════════════════════
+const READ_KEY = 'bf_read_posts';
+const MAX_READ = 500; // не храним больше 500 ID
+
+function getReadPosts() {
+  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+
+function markPostRead(postId) {
+  const read = getReadPosts();
+  if (read.has(String(postId))) return; // уже прочитан
+  read.add(String(postId));
+  // Обрезаем если много
+  const arr = [...read];
+  const trimmed = arr.slice(-MAX_READ);
+  localStorage.setItem(READ_KEY, JSON.stringify(trimmed));
+  // Применяем к DOM сразу
+  document.querySelectorAll(`.post[data-id="${postId}"]`).forEach(el => {
+    el.classList.add('post-read');
+    // Убираем синюю точку
+    el.querySelector('.post-new-dot')?.remove();
+  });
+}
+
+function isPostRead(postId) {
+  return getReadPosts().has(String(postId));
+}
+
 // ════════════════════════════════
 // РЕАКЦИИ — полный optimistic update + анимации
 // ════════════════════════════════
@@ -3586,6 +3644,7 @@ let prevScreenBeforePost = 'home';
 
 async function openPostDetail(postId, event) {
   if (event) event.stopPropagation();
+  markPostRead(postId);
   prevScreenBeforePost = currentScreen;
   currentPostDetailId = postId;
 
@@ -4051,11 +4110,26 @@ async function initApp() {
   showProfile();
   loadSearchDefault();
 
-  // Deep link: ?post=ID — сразу открываем пост
+  // Deep links
   const urlParams = new URLSearchParams(window.location.search);
   const deepPostId = urlParams.get('post');
-  if (deepPostId) {
-    // Небольшая задержка чтобы фид успел инициализироваться
+  const deepBotName = urlParams.get('bot');
+
+  if (deepBotName) {
+    // ?bot=username — открываем страницу бота
+    setTimeout(async () => {
+      // Получаем список ботов и ищем по username
+      const bots = await api('GET', '/bots?limit=100');
+      const clean = deepBotName.replace('@', '').toLowerCase();
+      const found = (bots||[]).find(b => (b.username||'').replace('@','').toLowerCase() === clean);
+      if (found) {
+        openBotPage(found.id, null);
+      } else {
+        toast('❌', 'Бот не найден');
+      }
+    }, 400);
+  } else if (deepPostId) {
+    // ?post=ID — сразу открываем пост
     setTimeout(() => openPostDetail(deepPostId, null), 300);
   }
 
