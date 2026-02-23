@@ -2373,18 +2373,31 @@ function botAvatarHTML(username, size = 40, radius = 12, name = '', photoUrl = '
   const color = colors[(label.charCodeAt(0) || 0) % colors.length];
   const fontSize = Math.round(size * 0.42);
 
-  const fallback = `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;">${letter}</div>`;
+  const fallbackHtml = `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;">${letter}</div>`;
 
-  if (!photoUrl) return fallback;
+  // Всегда пробуем t.me/i/userpic — работает для публичных ботов без авторизации
+  const cleanUsername = (username||'').replace('@','');
+  const tgUrl = cleanUsername ? `https://t.me/i/userpic/320/${cleanUsername}.jpg` : null;
 
-  // Относительный путь (/api/bots/...) → добавляем базовый хост сервера
-  const fullUrl = photoUrl.startsWith('/') ? API.replace('/api', '') + photoUrl : photoUrl;
+  // Если есть сохранённое фото в БД — оно приоритетнее
+  let primaryUrl = null;
+  if (photoUrl) {
+    primaryUrl = photoUrl.startsWith('/') ? API.replace('/api', '') + photoUrl : photoUrl;
+  }
+
+  const imgSrc = primaryUrl || tgUrl;
+  if (!imgSrc) return fallbackHtml;
+
+  // Если primary не загрузится — пробуем tgUrl, потом fallback буква
+  const onError = primaryUrl && tgUrl && primaryUrl !== tgUrl
+    ? `this.src='${tgUrl}';this.onerror=function(){this.remove();}`
+    : `this.remove()`;
 
   return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;position:relative;overflow:hidden;">
     ${letter}
-    <img src="${fullUrl}" loading="lazy"
+    <img src="${imgSrc}" loading="lazy"
       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
-      onerror="this.remove()">
+      onerror="${onError}">
   </div>`;
 }
 
