@@ -44,6 +44,10 @@ db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notify BOOLEAN DEFA
   .then(() => db.query(`UPDATE subscriptions SET notify = true WHERE notify IS NULL`))
   .catch(e => console.log('Notify migration note:', e.message))
 
+// Миграция — хранение фото бота в БД
+db.query(`ALTER TABLE bots ADD COLUMN IF NOT EXISTS photo_data BYTEA`)
+  .catch(e => console.log('Bot photo_data migration note:', e.message))
+
 // OTP таблицы
 try {
   await db.query(`
@@ -448,19 +452,50 @@ app.post('/api/bots/:id/photo', { preHandler: auth }, async (req, reply) => {
     const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
     if (!allowed.includes(data.mimetype)) return reply.code(400).send({ error: 'Недопустимый тип файла' })
 
-    if (!supabase) return reply.code(500).send({ error: 'Хранилище не настроено' })
-
     const buf = await data.toBuffer()
-    const ext = data.filename.split('.').pop() || 'jpg'
-    const fileName = `bots/${req.params.id}_${Date.now()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('posts').upload(fileName, buf, {
-      contentType: data.mimetype, upsert: true
-    })
-    if (upErr) return reply.code(500).send({ error: upErr.message })
+    if (buf.length > 5 * 1024 * 1024) return reply.code(400).send({ error: 'Файл больше 5 МБ' })
 
-    const { data: { publicUrl } } = supabase.storage.from('posts').getPublicUrl(fileName)
-    await db.query('UPDATE bots SET photo_url=$1 WHERE id=$2', [publicUrl, req.params.id])
-    return { url: publicUrl }
+    // Пробуем Supabase если настроен
+    if (supabase) {
+      const ext = (data.filename || 'photo').split('.').pop() || 'jpg'
+      const fileName = `bots/${req.params.id}_${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('posts').upload(fileName, buf, {
+        contentType: data.mimetype, upsert: true
+      })
+      if (!upErr) {
+        const { data: { publicUrl } } = supabase.storage.from('posts').getPublicUrl(fileName)
+        await db.query('UPDATE bots SET photo_url=$1, photo_data=NULL WHERE id=$2', [publicUrl, req.params.id])
+        return { url: publicUrl }
+      }
+    }
+
+    // Fallback — сохраняем байты прямо в БД, отдаём через /avatar
+    await db.query('UPDATE bots SET photo_data=$1, photo_url=NULL WHERE id=$2', [buf, req.params.id])
+    return { url: `/api/bots/${req.params.id}/avatar` }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
+})
+
+
+// Проксирование фото бота (чтобы избежать проблем с CORS и истечением TG-ссылок)
+app.get('/api/bots/:id/avatar', async (req, reply) => {
+  try {
+    const { rows } = await db.query('SELECT photo_url, photo_data FROM bots WHERE id=$1', [req.params.id])
+    if (!rows[0]) return reply.code(404).send('Not found')
+
+    // Если есть сохранённые байты — отдаём их
+    if (rows[0].photo_data) {
+      const buf = rows[0].photo_data
+      reply.header('Content-Type', 'image/jpeg')
+      reply.header('Cache-Control', 'public, max-age=86400')
+      return reply.send(buf)
+    }
+
+    // Иначе редиректим на внешний URL
+    if (rows[0].photo_url) {
+      return reply.redirect(rows[0].photo_url)
+    }
+
+    return reply.code(404).send('No photo')
   } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
@@ -474,16 +509,36 @@ app.post('/api/bots/:id/fetch-photo', { preHandler: auth }, async (req, reply) =
 
     const tgRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getChat?chat_id=@${b.username}`)
     const tgData = await tgRes.json()
-    const fileId = tgData?.result?.photo?.small_file_id || tgData?.result?.photo?.big_file_id
-    if (!fileId) return reply.code(404).send({ error: 'У бота нет фото в Telegram' })
+
+    // Пробуем big_file_id первым (лучшее качество)
+    const fileId = tgData?.result?.photo?.big_file_id || tgData?.result?.photo?.small_file_id
+    if (!fileId) return reply.code(404).send({ error: 'У бота нет фото профиля в Telegram' })
 
     const fRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`)
     const fData = await fRes.json()
-    if (!fData?.result?.file_path) return reply.code(404).send({ error: 'Не удалось получить файл' })
+    if (!fData?.result?.file_path) return reply.code(404).send({ error: 'Не удалось получить ссылку на файл' })
 
-    const photoUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${fData.result.file_path}`
-    await db.query('UPDATE bots SET photo_url=$1 WHERE id=$2', [photoUrl, req.params.id])
-    return { url: photoUrl }
+    const tgFileUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${fData.result.file_path}`
+
+    // Скачиваем файл и сохраняем байты в БД чтобы не зависеть от истечения TG-ссылок
+    try {
+      const imgRes = await fetch(tgFileUrl)
+      if (imgRes.ok) {
+        const buf = Buffer.from(await imgRes.arrayBuffer())
+        // Сохраняем и байты и URL
+        await db.query('UPDATE bots SET photo_url=$1, photo_data=$2 WHERE id=$3',
+          [tgFileUrl, buf, req.params.id])
+        // Возвращаем проксированный URL
+        const proxyUrl = `/api/bots/${req.params.id}/avatar`
+        return { url: proxyUrl }
+      }
+    } catch (downloadErr) {
+      console.error('Photo download error:', downloadErr.message)
+    }
+
+    // Fallback — просто сохраняем TG URL как есть
+    await db.query('UPDATE bots SET photo_url=$1 WHERE id=$2', [tgFileUrl, req.params.id])
+    return { url: tgFileUrl }
   } catch (e) { return reply.code(500).send({ error: e.message }) }
 })
 
