@@ -437,6 +437,56 @@ app.post('/api/bots', { preHandler: auth }, async (req, reply) => {
   }
 })
 
+// Загрузка фото бота
+app.post('/api/bots/:id/photo', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query('SELECT id FROM bots WHERE id=$1 AND owner_id=$2', [req.params.id, req.user.id])
+    if (!rows[0]) return reply.code(403).send({ error: 'Нет доступа' })
+
+    const data = await req.file()
+    if (!data) return reply.code(400).send({ error: 'Файл не найден' })
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowed.includes(data.mimetype)) return reply.code(400).send({ error: 'Недопустимый тип файла' })
+
+    if (!supabase) return reply.code(500).send({ error: 'Хранилище не настроено' })
+
+    const buf = await data.toBuffer()
+    const ext = data.filename.split('.').pop() || 'jpg'
+    const fileName = `bots/${req.params.id}_${Date.now()}.${ext}`
+    const { error: upErr } = await supabase.storage.from('posts').upload(fileName, buf, {
+      contentType: data.mimetype, upsert: true
+    })
+    if (upErr) return reply.code(500).send({ error: upErr.message })
+
+    const { data: { publicUrl } } = supabase.storage.from('posts').getPublicUrl(fileName)
+    await db.query('UPDATE bots SET photo_url=$1 WHERE id=$2', [publicUrl, req.params.id])
+    return { url: publicUrl }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
+})
+
+// Авто-подтягивание фото бота из Telegram
+app.post('/api/bots/:id/fetch-photo', { preHandler: auth }, async (req, reply) => {
+  try {
+    const { rows } = await db.query('SELECT b.*, u.telegram_id FROM bots b JOIN users u ON b.owner_id=u.id WHERE b.id=$1 AND b.owner_id=$2', [req.params.id, req.user.id])
+    if (!rows[0]) return reply.code(403).send({ error: 'Нет доступа' })
+    const b = rows[0]
+    if (!TG_TOKEN) return reply.code(400).send({ error: 'TG_TOKEN не настроен' })
+
+    const tgRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getChat?chat_id=@${b.username}`)
+    const tgData = await tgRes.json()
+    const fileId = tgData?.result?.photo?.small_file_id || tgData?.result?.photo?.big_file_id
+    if (!fileId) return reply.code(404).send({ error: 'У бота нет фото в Telegram' })
+
+    const fRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`)
+    const fData = await fRes.json()
+    if (!fData?.result?.file_path) return reply.code(404).send({ error: 'Не удалось получить файл' })
+
+    const photoUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${fData.result.file_path}`
+    await db.query('UPDATE bots SET photo_url=$1 WHERE id=$2', [photoUrl, req.params.id])
+    return { url: photoUrl }
+  } catch (e) { return reply.code(500).send({ error: e.message }) }
+})
+
 app.put('/api/bots/:id', { preHandler: auth }, async (req, reply) => {
   try {
     const { name, description, long_desc, categories } = req.body
@@ -499,7 +549,22 @@ app.post('/api/bots/:id/verify/confirm', { preHandler: auth }, async (req, reply
       const tgRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getChat?chat_id=@${b.username}`)
       const tgData = await tgRes.json()
       if ((tgData?.result?.description || '').includes(b.verify_token)) {
-        await db.query('UPDATE bots SET verified=true WHERE id=$1', [req.params.id])
+        // Подтягиваем фото бота из Telegram
+        let botPhotoUrl = null
+        try {
+          const chatPhoto = tgData?.result?.photo?.small_file_id || tgData?.result?.photo?.big_file_id
+          if (chatPhoto && TG_TOKEN) {
+            const fRes  = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${chatPhoto}`)
+            const fData = await fRes.json()
+            if (fData?.result?.file_path) {
+              botPhotoUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${fData.result.file_path}`
+            }
+          }
+        } catch {}
+        await db.query(
+          `UPDATE bots SET verified=true${botPhotoUrl ? ', photo_url=$2' : ''} WHERE id=$1`,
+          botPhotoUrl ? [req.params.id, botPhotoUrl] : [req.params.id]
+        )
         return { ok: true, verified: true, message: 'Бот верифицирован!' }
       }
       return { ok: false, verified: false, message: 'Токен не найден. Заявка ожидает ручной проверки.' }
@@ -1030,4 +1095,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-  }
+                                   }
