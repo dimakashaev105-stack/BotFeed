@@ -621,7 +621,7 @@ html, body {
   inset: 0;
   background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.4) 100%);
 }
-.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); }
+.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); white-space: pre-wrap; word-break: break-word; }
 
 /* Разделитель перед реакциями */
 .post-divider { height:1px; background:var(--border); margin:0 0 10px; }
@@ -2333,13 +2333,26 @@ try { ME = JSON.parse(localStorage.getItem('bf_me')); } catch {}
 // ════════════════════════════════
 // АВАТАР БОТА ИЗ TELEGRAM
 // ════════════════════════════════
-function botAvatarHTML(username, size = 40, radius = 12) {
-  if (!username) return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${size*0.55}px;">🤖</div>`;
+function botAvatarHTML(username, size = 40, radius = 12, name = '') {
+  const colors = ['#1a6fa8','#1a7a4a','#7a3a9a','#a85a1a','#1a5a7a','#6a1a3a'];
+  const letter = (name || username || '?').replace('@','')[0]?.toUpperCase() || '🤖';
+  const color = colors[((name || username || '').charCodeAt(0) || 0) % colors.length];
+  const fontSize = letter === '🤖' ? Math.round(size * 0.5) : Math.round(size * 0.42);
+
+  if (!username) {
+    return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;">🤖</div>`;
+  }
+
   const clean = username.replace('@','');
-  return `<img src="https://t.me/i/userpic/320/${clean}.jpg" 
-    style="width:${size}px;height:${size}px;border-radius:${radius}px;object-fit:cover;display:block;"
-    onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.55)}px;\\'>🤖</div>'"
-  >`;
+  // Показываем инициаль сразу, картинка грузится поверх
+  return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;position:relative;overflow:hidden;">
+    ${letter}
+    <img src="https://t.me/i/userpic/320/${clean}.jpg"
+      style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:${radius}px;"
+      loading="lazy"
+      onerror="this.remove()"
+    >
+  </div>`;
 }
 
 function esc(str) {
@@ -2629,7 +2642,7 @@ async function loadMyBots() {
   list.innerHTML = res.map(b => {
     total += Number(b.members || 0);
     const badge = b.verified ? '<div class="p-badge">✓</div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
-    const avaHtml = botAvatarHTML(b.username, 44, 14);
+    const avaHtml = botAvatarHTML(b.username, 44, 14, b.name);
     return `<div class="my-bot" data-bot-id="${b.id}" data-bot-name="${esc(b.name)}" data-members="${b.members||0}" data-posts="${b.posts_count||0}" data-subs="${b.subscribers||0}">
       <div class="mb-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="mb-info">
@@ -2758,7 +2771,7 @@ async function openBotPage(botId, event) {
 }
 
 function botPostHTML(p, b) {
-  const avaHtml = botAvatarHTML(b.username, 38, 12);
+  const avaHtml = botAvatarHTML(b.username, 38, 12, b.name);
   const imgHtml = p.image_url ? `<div class="post-media" style="background:url('${esc(p.image_url)}') center/cover;height:160px;margin-bottom:10px;"><div class="post-media-overlay"></div></div>` : '';
   const typeBadge = postTypeBadge(p.post_type);
   const reacts = (p.reactions||[]).map(r =>
@@ -3203,7 +3216,7 @@ function postHTML(p) {
   }
 
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
-  const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
+  const avaHtml = botAvatarHTML(p.bot_username, 40, 12, p.bot_name);
   const typeBadge = postTypeBadge(p.post_type);
   const buttons = renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]));
   
@@ -3494,7 +3507,7 @@ function renderDiscFeatured() {
 
   el.innerHTML = top.map(b => {
     const isSub = mySubIds.has(Number(b.id));
-    const ava = botAvatarHTML(b.username, 48, 16);
+    const ava = botAvatarHTML(b.username, 48, 16, b.name);
     const badge = b.verified ? '<div class="p-badge" style="display:inline-flex;font-size:9px;width:15px;height:15px;">✓</div>' : '';
     const m = Number(b.members||0);
     return `<div class="disc-feat-card" onclick="openBotPage(${b.id}, event)">
@@ -3644,7 +3657,7 @@ function botRowHTML(b) {
   const isSub = mySubIds.has(Number(b.id));
   const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
   const subText = isSub ? '✓ Подписан' : 'Подписаться';
-  const avaHtml = botAvatarHTML(b.username, 44, 14);
+  const avaHtml = botAvatarHTML(b.username, 44, 14, b.name);
   return `<div class="bot-row" onclick="openBotPage(${b.id}, event)">
     <div class="br-ava" style="overflow:hidden;">${avaHtml}</div>
     <div class="br-info">
@@ -4365,7 +4378,7 @@ async function openPostDetail(postId, event) {
   ]);
 
   if (p && !p.error) {
-    const avaHtml = botAvatarHTML(p.bot_username, 44, 14);
+    const avaHtml = botAvatarHTML(p.bot_username, 44, 14, p.bot_name);
     const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
     const reacts = (p.reactions || []).map(r =>
       `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)"><span class="react-emoji">${r.emoji}</span> <span>${r.count}</span></div>`
@@ -4381,7 +4394,7 @@ async function openPostDetail(postId, event) {
           </div>
           <div class="p-time">${timeAgo(p.created_at)}</div>
         </div>
-        <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;">${esc(p.text)}</div>
+        <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;word-break:break-word;">${esc(p.text)}</div>
         ${p.image_url ? `<div style="border-radius:14px;overflow:hidden;margin-bottom:12px;"><img src="${esc(p.image_url)}" style="width:100%;display:block;max-height:320px;object-fit:cover;"></div>` : ''}
         ${renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]))}
         <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:12px;">
