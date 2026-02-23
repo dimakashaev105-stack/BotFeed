@@ -333,6 +333,77 @@ app.post('/api/auth/telegram', async (req, reply) => {
   }
 })
 
+// ════════════════════════════════
+// AUTH — Telegram Mini App (initData)
+// Верифицируем подпись от Telegram автоматически
+// ════════════════════════════════
+app.post('/api/auth/webapp', async (req, reply) => {
+  try {
+    const { initData } = req.body
+    if (!initData) return reply.code(400).send({ error: 'Нет initData' })
+
+    // Верифицируем HMAC подпись
+    const botToken = process.env.TELEGRAM_BOT_TOKEN
+    if (!botToken) return reply.code(500).send({ error: 'Бот не настроен' })
+
+    const params = new URLSearchParams(initData)
+    const hash = params.get('hash')
+    if (!hash) return reply.code(400).send({ error: 'Нет hash' })
+
+    // Строим data-check-string
+    params.delete('hash')
+    const dataCheckArr = []
+    for (const [key, val] of [...params.entries()].sort()) {
+      dataCheckArr.push(`${key}=${val}`)
+    }
+    const dataCheckString = dataCheckArr.join('\n')
+
+    // HMAC-SHA256: key = HMAC("WebAppData", botToken), data = dataCheckString
+    const secretKey = crypto.createHmac('sha256', 'WebAppData')
+      .update(botToken)
+      .digest()
+    const expectedHash = crypto.createHmac('sha256', secretKey)
+      .update(dataCheckString)
+      .digest('hex')
+
+    if (expectedHash !== hash) {
+      return reply.code(401).send({ error: 'Невалидная подпись Telegram' })
+    }
+
+    // Проверяем свежесть (не старше 24 часов)
+    const authDate = parseInt(params.get('auth_date') || '0')
+    if (Date.now() / 1000 - authDate > 86400) {
+      return reply.code(401).send({ error: 'initData устарел' })
+    }
+
+    // Парсим пользователя
+    const userJson = params.get('user')
+    if (!userJson) return reply.code(400).send({ error: 'Нет данных пользователя' })
+    const tgUser = JSON.parse(userJson)
+
+    // Сохраняем/обновляем в БД
+    const photoUrl = tgUser.photo_url || await getTgPhoto(tgUser.id).catch(() => null)
+    const { rows } = await db.query(`
+      INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (telegram_id) DO UPDATE SET
+        username   = COALESCE(EXCLUDED.username, users.username),
+        first_name = EXCLUDED.first_name,
+        last_name  = COALESCE(EXCLUDED.last_name, users.last_name),
+        photo_url  = COALESCE(EXCLUDED.photo_url, users.photo_url)
+      RETURNING *
+    `, [tgUser.id, tgUser.username || null, tgUser.first_name, tgUser.last_name || null, photoUrl])
+
+    const user  = rows[0]
+    const token = app.jwt.sign({ id: user.id, telegram_id: user.telegram_id }, { expiresIn: '90d' })
+    console.log('✅ WebApp auth:', user.first_name, user.telegram_id)
+    return { token, user: { id: user.id, first_name: user.first_name, last_name: user.last_name, username: user.username, photo_url: user.photo_url } }
+  } catch (e) {
+    console.error('WebApp auth error:', e.message)
+    return reply.code(500).send({ error: e.message })
+  }
+})
+
 // Текущий пользователь
 app.get('/api/auth/me', { preHandler: auth }, async (req) => {
   try {
