@@ -278,6 +278,12 @@ html, body {
   100% { transform: translateX(0); }
 }
 
+@keyframes onlinePulse {
+  0%   { box-shadow: 0 0 0 0   rgba(77,205,106,0.6); }
+  60%  { box-shadow: 0 0 0 5px rgba(77,205,106,0); }
+  100% { box-shadow: 0 0 0 0   rgba(77,205,106,0); }
+}
+
 /* ══════════════════════════════════════
    SUBSCRIBE — elastic confirmation
 ══════════════════════════════════════ */
@@ -580,7 +586,7 @@ html, body {
 
 /* Карточка поста */
 .post {
-  background: linear-gradient(145deg, #2a3850, #243144);
+  background: linear-gradient(145deg, #232f40, #1e2a39);
   border-radius: 20px;
   padding: 16px;
   border: 1px solid rgba(255,255,255,0.07);
@@ -1721,6 +1727,8 @@ html, body {
           <div class="tb-btn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);" onclick="loadFeed()">
             <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           </div>
+          <!-- SSE онлайн-индикатор -->
+          <div id="onlineDot" title="Подключение..." style="position:absolute;right:52px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .4s,box-shadow .4s;"></div>
         </div>
         <div class="feed-filters" id="feedFilters">
           <div class="feed-chip on" data-filter="all" onclick="setFeedFilter(this,'all')">✨ Все</div>
@@ -3538,61 +3546,10 @@ async function reactPost(postId, emoji, el) {
   const currentCount = parseInt(sp?.textContent?.trim() || '0') || 0;
   const newOn = !wasOn;
 
-  // ── Если добавляем реакцию — снимаем предыдущую (одна реакция на пост) ──
-  if (newOn) {
-    const postEl = el.closest('.post') || document.querySelector(`.post[data-id="${postId}"]`);
-    if (postEl) {
-      postEl.querySelectorAll('.react.on').forEach(otherEl => {
-        if (otherEl === el) return;
-        const otherEmoji = otherEl.querySelector('.react-emoji')?.textContent?.trim();
-        const otherSp = otherEl.querySelector('span:not(.react-emoji)');
-        const otherCount = parseInt(otherSp?.textContent?.trim() || '0') || 0;
-        const newCount = otherCount - 1;
-        otherEl.classList.remove('on');
-        otherEl.classList.remove('anim-add', 'anim-remove');
-        void otherEl.offsetWidth;
-        otherEl.classList.add('anim-remove');
-        setTimeout(() => otherEl.classList.remove('anim-remove'), 600);
-        if (newCount <= 0) {
-          // Плавно убираем кнопку
-          otherEl.style.transition = 'opacity .3s ease, transform .3s ease, max-width .35s ease, padding .35s ease, margin .35s ease';
-          setTimeout(() => {
-            otherEl.style.opacity = '0';
-            otherEl.style.transform = 'scale(0.7)';
-            otherEl.style.maxWidth = '0';
-            otherEl.style.padding = '0';
-            otherEl.style.margin = '0';
-            otherEl.style.border = 'none';
-            setTimeout(() => otherEl.remove(), 360);
-          }, 50);
-        } else {
-          if (otherSp) otherSp.textContent = newCount;
-        }
-        // отправляем снятие старой реакции серверу
-        api('POST', `/posts/${postId}/react`, { emoji: otherEmoji });
-      });
-    }
-  }
-
   // ── МГНОВЕННЫЙ optimistic update ──
   el.classList.toggle('on', newOn);
   if (sp) {
-    const updatedCount = currentCount + (newOn ? 1 : -1);
-    if (!newOn && updatedCount <= 0) {
-      // Плавно убираем кнопку реакции
-      el.style.transition = 'opacity .3s ease, transform .3s ease, max-width .35s ease, padding .35s ease, margin .35s ease';
-      setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transform = 'scale(0.7)';
-        el.style.maxWidth = '0';
-        el.style.padding = '0';
-        el.style.margin = '0';
-        el.style.border = 'none';
-        setTimeout(() => el.remove(), 360);
-      }, 50);
-    } else {
-      sp.textContent = updatedCount;
-    }
+    sp.textContent = currentCount + (newOn ? 1 : -1);
   }
 
   // ── Анимация эмодзи ──
@@ -3618,7 +3575,11 @@ async function reactPost(postId, emoji, el) {
     const res = await api('POST', `/posts/${postId}/react`, { emoji });
     if (res?.action) {
       const serverOn = res.action === 'added';
-      // Если сервер вернул другой результат — просто дебаунс, не трогаем UI
+      // Корректируем если сервер не совпал с optimistic
+      if (serverOn !== newOn) {
+        el.classList.toggle('on', serverOn);
+        if (sp) sp.textContent = currentCount + (serverOn ? 1 : -1);
+      }
     }
   } catch(e) {
     // Откатываем если ошибка
@@ -5261,20 +5222,83 @@ function sseConnect() {
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
   })
 
-  // ── Обновление реакций ──
+  // ── Обновление реакций (от других пользователей) ──
   sseSource.addEventListener('reaction_update', (e) => {
-    const { post_id, emoji, action, reactions } = JSON.parse(e.data)
-    // Обновляем счётчики реакций во всех местах где показан этот пост
+    const { post_id, emoji, action, removed_emoji, reactions } = JSON.parse(e.data)
+
+    // Обновляем все карточки и открытый детейл этого поста
     document.querySelectorAll(`.post[data-id="${post_id}"] .post-foot, #postDetailContent .post-foot`).forEach(foot => {
-      reactions.forEach(r => {
-        const btn = [...foot.querySelectorAll('.react')].find(el => el.textContent.includes(r.emoji))
-        if (btn) {
-          const sp = btn.querySelector('span:not(.react-emoji)')
-          if (sp && !btn.classList.contains('on')) { // не трогаем если это сам пользователь (уже optimistic)
-            sp.textContent = r.count
+      // Если была удалена другая реакция (смена реакции) — убираем старую кнопку или уменьшаем счётчик
+      if (removed_emoji) {
+        const oldBtn = [...foot.querySelectorAll('.react')].find(el => {
+          const sp = el.querySelector('.react-emoji')
+          return sp && sp.textContent.trim() === removed_emoji
+        })
+        if (oldBtn && !oldBtn.classList.contains('on')) {
+          // Не наша кнопка — обновляем счётчик из server data
+          const serverR = reactions.find(r => r.emoji === removed_emoji)
+          const oldSp = oldBtn.querySelector('span:not(.react-emoji)')
+          if (!serverR || serverR.count <= 0) {
+            // Плавно убираем если 0
+            oldBtn.style.transition = 'opacity .3s, transform .3s, max-width .35s, padding .35s'
+            oldBtn.style.opacity = '0'
+            oldBtn.style.transform = 'scale(0.7)'
+            oldBtn.style.maxWidth = '0'
+            oldBtn.style.padding = '0'
+            setTimeout(() => oldBtn.remove(), 360)
+          } else if (oldSp) {
+            oldSp.textContent = serverR.count
           }
         }
+      }
+
+      // Обновляем/добавляем кнопку для текущего emoji
+      const serverR = reactions.find(r => r.emoji === emoji)
+      const existingBtn = [...foot.querySelectorAll('.react')].find(el => {
+        const sp = el.querySelector('.react-emoji')
+        return sp && sp.textContent.trim() === emoji
       })
+
+      if (action === 'removed' && !existingBtn?.classList.contains('on')) {
+        if (!serverR || serverR.count <= 0) {
+          // Убираем кнопку плавно
+          if (existingBtn) {
+            existingBtn.style.transition = 'opacity .3s, transform .3s, max-width .35s, padding .35s'
+            existingBtn.style.opacity = '0'
+            existingBtn.style.transform = 'scale(0.7)'
+            existingBtn.style.maxWidth = '0'
+            existingBtn.style.padding = '0'
+            setTimeout(() => existingBtn.remove(), 360)
+          }
+        } else if (existingBtn) {
+          const sp = existingBtn.querySelector('span:not(.react-emoji)')
+          if (sp && !existingBtn.classList.contains('on')) sp.textContent = serverR.count
+        }
+      } else if (action === 'added') {
+        if (existingBtn) {
+          // Обновляем счётчик если это не наша кнопка (не optimistic)
+          if (!existingBtn.classList.contains('on')) {
+            const sp = existingBtn.querySelector('span:not(.react-emoji)')
+            if (sp && serverR) sp.textContent = serverR.count
+          }
+        } else if (serverR && serverR.count > 0) {
+          // Добавляем новую кнопку реакции которой ещё не было
+          const newBtn = document.createElement('div')
+          newBtn.className = 'react'
+          const postIdForBtn = foot.closest('.post')?.dataset?.id || post_id
+          newBtn.setAttribute('onclick', `event.stopPropagation();reactPost(${postIdForBtn},'${emoji}',this)`)
+          newBtn.innerHTML = `<span class="react-emoji">${emoji}</span><span>${serverR.count}</span>`
+          newBtn.style.cssText = 'opacity:0;transform:scale(0.7);transition:opacity .3s,transform .3s'
+          // Вставляем перед кнопкой комментариев и share
+          const shareSep = foot.querySelector('.react-sep') || foot.querySelector('.share')
+          if (shareSep) foot.insertBefore(newBtn, shareSep)
+          else foot.appendChild(newBtn)
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            newBtn.style.opacity = '1'
+            newBtn.style.transform = 'scale(1)'
+          }))
+        }
+      }
     })
   })
 
@@ -5325,9 +5349,9 @@ function sseConnect() {
   sseSource.onerror = () => {
     updateOnlineIndicator(false)
     sseSource.close()
-    // Переподключаемся с экспоненциальной задержкой
+    // Переподключаемся быстро — макс 5 сек
     sseReconnectTimer = setTimeout(() => {
-      sseReconnectDelay = Math.min(sseReconnectDelay * 1.5, 30000)
+      sseReconnectDelay = Math.min(sseReconnectDelay * 1.3, 5000)
       sseConnect()
     }, sseReconnectDelay)
   }
@@ -5337,9 +5361,10 @@ function sseConnect() {
 function updateOnlineIndicator(online) {
   const dot = document.getElementById('onlineDot')
   if (!dot) return
-  dot.style.background = online ? 'var(--green)' : 'var(--muted)'
-  dot.style.boxShadow = online ? '0 0 6px rgba(77,205,106,0.8)' : 'none'
-  dot.title = online ? 'В сети — обновляется в реальном времени' : 'Переподключение...'
+  dot.style.background = online ? '#4dcd6a' : 'var(--muted)'
+  dot.style.boxShadow = online ? '0 0 0 0 rgba(77,205,106,0.6)' : 'none'
+  dot.style.animation = online ? 'onlinePulse 2s ease-in-out infinite' : 'none'
+  dot.title = online ? '🟢 Реалтайм подключён' : '🔴 Переподключение...'
 }
 
 // Добавляем пост в начало ленты с анимацией
