@@ -2377,9 +2377,12 @@ function botAvatarHTML(username, size = 40, radius = 12, name = '', photoUrl = '
 
   if (!photoUrl) return fallback;
 
+  // Относительный путь (/api/bots/...) → добавляем базовый хост сервера
+  const fullUrl = photoUrl.startsWith('/') ? API.replace('/api', '') + photoUrl : photoUrl;
+
   return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;position:relative;overflow:hidden;">
     ${letter}
-    <img src="${photoUrl}" loading="lazy"
+    <img src="${fullUrl}" loading="lazy"
       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
       onerror="this.remove()">
   </div>`;
@@ -4429,8 +4432,9 @@ async function uploadBotPhoto(input) {
 }
 
 function updateBotAvaPreview(url) {
+  const fullUrl = url.startsWith('/') ? API.replace('/api', '') + url : url;
   const el = document.getElementById('mngBotAva');
-  if (el) el.innerHTML = `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover;">`;
+  if (el) el.innerHTML = `<img src="${esc(fullUrl)}" style="width:100%;height:100%;object-fit:cover;">`;
 }
 
 // ════════════════════════════════
