@@ -580,7 +580,7 @@ html, body {
 
 /* Карточка поста */
 .post {
-  background: linear-gradient(145deg, #232f40, #1e2a39);
+  background: linear-gradient(145deg, #2a3850, #243144);
   border-radius: 20px;
   padding: 16px;
   border: 1px solid rgba(255,255,255,0.07);
@@ -3538,10 +3538,61 @@ async function reactPost(postId, emoji, el) {
   const currentCount = parseInt(sp?.textContent?.trim() || '0') || 0;
   const newOn = !wasOn;
 
+  // ── Если добавляем реакцию — снимаем предыдущую (одна реакция на пост) ──
+  if (newOn) {
+    const postEl = el.closest('.post') || document.querySelector(`.post[data-id="${postId}"]`);
+    if (postEl) {
+      postEl.querySelectorAll('.react.on').forEach(otherEl => {
+        if (otherEl === el) return;
+        const otherEmoji = otherEl.querySelector('.react-emoji')?.textContent?.trim();
+        const otherSp = otherEl.querySelector('span:not(.react-emoji)');
+        const otherCount = parseInt(otherSp?.textContent?.trim() || '0') || 0;
+        const newCount = otherCount - 1;
+        otherEl.classList.remove('on');
+        otherEl.classList.remove('anim-add', 'anim-remove');
+        void otherEl.offsetWidth;
+        otherEl.classList.add('anim-remove');
+        setTimeout(() => otherEl.classList.remove('anim-remove'), 600);
+        if (newCount <= 0) {
+          // Плавно убираем кнопку
+          otherEl.style.transition = 'opacity .3s ease, transform .3s ease, max-width .35s ease, padding .35s ease, margin .35s ease';
+          setTimeout(() => {
+            otherEl.style.opacity = '0';
+            otherEl.style.transform = 'scale(0.7)';
+            otherEl.style.maxWidth = '0';
+            otherEl.style.padding = '0';
+            otherEl.style.margin = '0';
+            otherEl.style.border = 'none';
+            setTimeout(() => otherEl.remove(), 360);
+          }, 50);
+        } else {
+          if (otherSp) otherSp.textContent = newCount;
+        }
+        // отправляем снятие старой реакции серверу
+        api('POST', `/posts/${postId}/react`, { emoji: otherEmoji });
+      });
+    }
+  }
+
   // ── МГНОВЕННЫЙ optimistic update ──
   el.classList.toggle('on', newOn);
   if (sp) {
-    sp.textContent = currentCount + (newOn ? 1 : -1);
+    const updatedCount = currentCount + (newOn ? 1 : -1);
+    if (!newOn && updatedCount <= 0) {
+      // Плавно убираем кнопку реакции
+      el.style.transition = 'opacity .3s ease, transform .3s ease, max-width .35s ease, padding .35s ease, margin .35s ease';
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'scale(0.7)';
+        el.style.maxWidth = '0';
+        el.style.padding = '0';
+        el.style.margin = '0';
+        el.style.border = 'none';
+        setTimeout(() => el.remove(), 360);
+      }, 50);
+    } else {
+      sp.textContent = updatedCount;
+    }
   }
 
   // ── Анимация эмодзи ──
@@ -3567,11 +3618,7 @@ async function reactPost(postId, emoji, el) {
     const res = await api('POST', `/posts/${postId}/react`, { emoji });
     if (res?.action) {
       const serverOn = res.action === 'added';
-      // Корректируем если сервер не совпал с optimistic
-      if (serverOn !== newOn) {
-        el.classList.toggle('on', serverOn);
-        if (sp) sp.textContent = currentCount + (serverOn ? 1 : -1);
-      }
+      // Если сервер вернул другой результат — просто дебаунс, не трогаем UI
     }
   } catch(e) {
     // Откатываем если ошибка
