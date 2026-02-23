@@ -48,6 +48,9 @@ html, body {
   overflow-y: auto; overflow-x: hidden;
   scrollbar-width: none;
   display: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+  overscroll-behavior-y: contain;
 }
 .screen::-webkit-scrollbar { display: none; }
 .screen.active { display: block; }
@@ -357,12 +360,12 @@ html, body {
 .post {
   transform-origin: center center;
   transition:
-    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity   0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity   0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     background 0.12s;
   will-change: transform, opacity;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* ══════════════════════════════════════
@@ -558,7 +561,7 @@ html, body {
 /* ══════════════════════════════════════
    FEED & POSTS — стильные карточки
 ══════════════════════════════════════ */
-.feed { padding:8px 12px 80px; display:flex; flex-direction:column; gap:16px; }
+.feed { padding:8px 12px 90px; display:flex; flex-direction:column; gap:0; }
 
 /* Карточка поста */
 .post {
@@ -568,10 +571,9 @@ html, body {
   border: 1px solid rgba(255,255,255,0.07);
   box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   cursor: pointer;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
   transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), box-shadow .15s, background .12s, opacity .4s;
 }
-.post:last-child { margin-bottom: 0; }
 .post:active { transform: scale(0.984); box-shadow: 0 1px 6px rgba(0,0,0,0.25); }
 
 /* Прочитанный пост — немного тусклее */
@@ -621,7 +623,9 @@ html, body {
   inset: 0;
   background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.4) 100%);
 }
-.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); white-space: pre-wrap; word-break: break-word; }
+.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); word-break: break-word; }
+.post-text-clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.post-read-more { font-size:13px; color:var(--acc); cursor:pointer; margin-bottom:12px; display:inline-block; }
 
 /* Разделитель перед реакциями */
 .post-divider { height:1px; background:var(--border); margin:0 0 10px; }
@@ -2225,7 +2229,7 @@ html, body {
           <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." 
             style="margin:0;flex:1;font-size:14px;border-radius:22px;padding:10px 16px;"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPostDetailComment();}">
-          <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(46,166,255,0.35);transition:transform .15s,box-shadow .15s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform=''">↑</button>
+          <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:30px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(46,166,255,0.35);transition:transform .15s,box-shadow .15s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform=''">↑</button>
         </div>
       </div>
     </div>
@@ -2849,7 +2853,7 @@ function botPostHTML(p, b) {
     </div>
     ${imgHtml}
     ${typeBadge}
-    <div class="post-text">${escText(p.text)}</div>
+    <div class="post-text post-text-clamp">${escText(p.text)}</div>
     <div class="post-divider"></div>
     <div class="post-foot">
       ${reacts}
@@ -3299,7 +3303,7 @@ function postHTML(p) {
     </div>
     ${imgHtml}
     ${typeBadge}
-    <div class="post-text">${escText(p.text)}</div>
+    <div class="post-text post-text-clamp">${escText(p.text)}</div>
     ${buttons}
     <div class="post-divider"></div>
     <div class="post-foot">
@@ -5243,58 +5247,51 @@ function initCoverflow(feedEl) {
 
   const scroller = feedEl.closest('.screen') || feedEl;
   let rafId = null;
+  let ticking = false;
 
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
   function lerp(a, b, t) { return a + (b - a) * t; }
 
   function update() {
+    ticking = false;
     const posts = Array.from(feedEl.querySelectorAll('.post'));
     if (!posts.length) return;
 
-    const sr = scroller.getBoundingClientRect();
-    const cy = sr.top + sr.height * 0.42;
+    const srTop    = scroller.getBoundingClientRect().top;
+    const srHeight = scroller.clientHeight;
+    const cy       = srTop + srHeight * 0.44;
 
-    // Определяем граничные условия скролла
-    const scrollTop    = scroller.scrollTop;
-    const scrollMax    = scroller.scrollHeight - scroller.clientHeight;
-    const atTop        = scrollTop <= 4;
-    const atBottom     = scrollMax > 0 && scrollTop >= scrollMax - 4;
-    const lastIdx      = posts.length - 1;
+    const scrollTop = scroller.scrollTop;
+    const scrollMax = scroller.scrollHeight - srHeight;
+    const atTop     = scrollTop <= 4;
+    const atBottom  = scrollMax > 0 && scrollTop >= scrollMax - 4;
+    const lastIdx   = posts.length - 1;
 
     posts.forEach((post, idx) => {
       const r   = post.getBoundingClientRect();
-      const mid = r.top + r.height / 2;
-      const dist = mid - cy;
-      let norm = clamp(dist / (sr.height * 0.54), -1, 1);
+      const mid = r.top + r.height * 0.5;
+      let norm  = clamp((mid - cy) / (srHeight * 0.52), -1, 1);
 
-      // Если скролл у верха — первый пост полностью нормальный
-      if (atTop && idx === 0) norm = 0;
-      // Если скролл у низа — последний пост полностью нормальный
-      if (atBottom && idx === lastIdx) norm = 0;
+      if (atTop    && idx === 0)       norm = lerp(norm, 0, 0.9);
+      if (atBottom && idx === lastIdx) norm = lerp(norm, 0, 0.9);
 
-      const abs = Math.abs(norm);
+      const abs  = Math.abs(norm);
+      const rotX = (norm * 6).toFixed(2);
+      const sc   = lerp(1, 0.94, abs).toFixed(3);
+      const op   = lerp(1, 0.28, abs).toFixed(3);
 
-      // Плавные значения — менее агрессивные
-      const rotX = norm * 10;               // ±10° (было 14)
-      const sc   = lerp(1, 0.91, abs);      // 1→0.91 (было 0.88)
-      const op   = lerp(1, 0.42, abs);      // 1→0.42 (было 0.28 — слишком темно)
-      const ty   = norm * 6;                // subtle vertical shift
-      // БЕЗ blur — он делает текст нечитаемым
-      const sh   = abs < 0.15
-        ? `0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(46,166,255,0.08)`
-        : `0 ${lerp(16,2,abs).toFixed(0)}px ${lerp(48,6,abs).toFixed(0)}px rgba(0,0,0,${lerp(0.5,0.12,abs).toFixed(2)})`;
-
-      post.style.transform = `rotateX(${rotX.toFixed(2)}deg) scale(${sc.toFixed(3)}) translateY(${ty.toFixed(1)}px)`;
-      post.style.opacity   = op.toFixed(3);
-      post.style.boxShadow = sh;
-      post.style.filter    = '';            // никакого blur
+      // Применяем только transform и opacity — GPU-слои, без repaint
+      post.style.transform = `rotateX(${rotX}deg) scale(${sc})`;
+      post.style.opacity   = op;
       post.style.zIndex    = Math.round(10 - abs * 9);
     });
   }
 
   function onScroll() {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(update);
+    if (!ticking) {
+      ticking = true;
+      rafId = requestAnimationFrame(update);
+    }
   }
 
   scroller.addEventListener('scroll', onScroll, { passive: true });
