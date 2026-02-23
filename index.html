@@ -5401,10 +5401,12 @@ function sseConnect() {
     sseAlive = false
     sseSource.close()
     startPolling() // включаем polling пока SSE не восстановится
+    // Первый reconnect — мгновенно, потом нарастающий
+    const delay = sseReconnectDelay === 1500 ? 0 : sseReconnectDelay
     sseReconnectTimer = setTimeout(() => {
       sseReconnectDelay = Math.min(sseReconnectDelay * 1.5, 10000)
       sseConnect()
-    }, sseReconnectDelay)
+    }, delay)
   }
 }
 
