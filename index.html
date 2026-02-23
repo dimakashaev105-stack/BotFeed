@@ -2079,6 +2079,25 @@ html, body {
 
       <!-- ── НАСТРОЙКИ ── -->
       <div id="mng-settings" style="display:none;padding:16px;">
+        <!-- Фото бота -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Фото бота</div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div id="mngBotAva" style="width:60px;height:60px;border-radius:16px;background:var(--hover);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0;">🤖</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+              <button onclick="fetchBotPhotoFromTg()" id="fetchPhotoBtn" style="width:100%;padding:10px;background:rgba(46,166,255,0.1);color:var(--acc);border:1px solid rgba(46,166,255,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg>
+                Подтянуть из Telegram
+              </button>
+              <label style="width:100%;padding:10px;background:rgba(255,255,255,0.05);color:var(--sub);border:1px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Загрузить своё фото
+                <input type="file" accept="image/*" style="display:none" onchange="uploadBotPhoto(this)">
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div style="background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:16px;">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">О боте</div>
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
@@ -4105,6 +4124,19 @@ async function openBotManage(botId, botName, members, posts, subs) {
     if (vEl)  vEl.innerHTML = myBot.verified
       ? '<span style="color:var(--green);">✓ Верифицирован</span>'
       : '<span style="color:var(--red);">✗ Не верифицирован</span>';
+    // Показываем текущее фото бота в настройках
+    const avaEl = document.getElementById('mngBotAva');
+    if (avaEl) {
+      if (myBot.photo_url) {
+        avaEl.innerHTML = `<img src="${esc(myBot.photo_url)}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else {
+        const colors = ['#1a6fa8','#1a7a4a','#7a3a9a','#a85a1a','#1a5a7a','#6a1a3a'];
+        const label = (myBot.name||myBot.username||'').replace('@','');
+        const letter = label[0]?.toUpperCase() || '🤖';
+        const color = colors[(label.charCodeAt(0)||0) % colors.length];
+        avaEl.innerHTML = `<div style="width:100%;height:100%;background:${color};display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;">${letter}</div>`;
+      }
+    }
     renderGrowthTips(myBot, analyticsPostsData);
   }
 }
@@ -4352,6 +4384,53 @@ async function deleteBot() {
     if (btn) { btn.textContent = 'Удалить'; btn.disabled = false; }
     toast('❌', res?.error || 'Ошибка удаления — обнови server.js на сервере');
   }
+}
+
+// ════════════════════════════════
+// ФОТО БОТА
+// ════════════════════════════════
+async function fetchBotPhotoFromTg() {
+  const btn = document.getElementById('fetchPhotoBtn');
+  if (btn) { btn.textContent = '⏳ Загружаем...'; btn.disabled = true; }
+  const res = await api('POST', `/bots/${currentBotId}/fetch-photo`);
+  if (btn) { btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg> Подтянуть из Telegram`; btn.disabled = false; }
+  if (res?.url) {
+    updateBotAvaPreview(res.url);
+    toast('✅', 'Фото обновлено!');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+  } else {
+    toast('❌', res?.error || 'Не удалось получить фото');
+  }
+}
+
+async function uploadBotPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('⚠️', 'Файл больше 5 МБ'); return; }
+  toast('⏳', 'Загружаем фото...');
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const r = await fetch(API + `/bots/${currentBotId}/photo`, {
+      method: 'POST',
+      headers: { ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}) },
+      body: formData
+    });
+    const res = await r.json();
+    if (res?.url) {
+      updateBotAvaPreview(res.url);
+      toast('✅', 'Фото загружено!');
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+    } else {
+      toast('❌', res?.error || 'Ошибка загрузки');
+    }
+  } catch { toast('❌', 'Нет связи с сервером'); }
+  input.value = '';
+}
+
+function updateBotAvaPreview(url) {
+  const el = document.getElementById('mngBotAva');
+  if (el) el.innerHTML = `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover;">`;
 }
 
 // ════════════════════════════════
