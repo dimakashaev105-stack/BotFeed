@@ -1031,18 +1031,34 @@ app.get('/api/my/subscriptions', { preHandler: auth }, async (req) => {
 const sseClients = new Map() // userId (or 'guest_N') -> Set<Reply>
 let guestCounter = 0
 
+// ════════════════════════════════════════
+// KEEP-ALIVE — не даём Render засыпать
+// ════════════════════════════════════════
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || process.env.SITE_URL || 'http://localhost:3000'
+setInterval(async () => {
+  try {
+    await fetch(`${SELF_URL}/health`)
+    console.log('[keep-alive] ping ok')
+  } catch(e) {
+    console.warn('[keep-alive] ping failed:', e.message)
+  }
+}, 10 * 60 * 1000) // каждые 10 минут
+
 function ssePublish(event, data, targetUserIds = null) {
   const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+  const send = (r) => {
+    try {
+      if (r.raw.socket?.writable) r.raw.write(msg)
+    } catch {}
+  }
   if (targetUserIds) {
-    // Конкретным пользователям
     for (const uid of targetUserIds) {
       const clients = sseClients.get(String(uid))
-      if (clients) clients.forEach(r => { try { r.raw.write(msg) } catch {} })
+      if (clients) clients.forEach(send)
     }
   } else {
-    // Всем подключённым
     for (const clients of sseClients.values()) {
-      clients.forEach(r => { try { r.raw.write(msg) } catch {} })
+      clients.forEach(send)
     }
   }
 }
