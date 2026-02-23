@@ -548,12 +548,12 @@ html, body {
 /* ══════════════════════════════════════
    TOPBAR
 ══════════════════════════════════════ */
-.topbar { display:flex; align-items:center; padding:12px 14px 8px; gap:10px; position:sticky; top:0; z-index:10; background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0; }
+.topbar { display:flex; align-items:center; padding:13px 16px 9px; gap:10px; position:sticky; top:0; z-index:10; background:rgba(15,25,35,0.85); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
 .topbar-logo { font-size:18px; font-weight:800; color:var(--acc); flex:1; letter-spacing:-0.3px; }
 .topbar-title { font-size:17px; font-weight:700; flex:1; }
-.tb-btn { width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; flex-shrink:0; }
+.tb-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:12px; cursor:pointer; flex-shrink:0; transition: background .15s; }
 .tb-btn svg { width:20px; height:20px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.tb-btn:active { background:var(--card); }
+.tb-btn:active { background:rgba(255,255,255,0.08); }
 
 /* ══════════════════════════════════════
    FEED & POSTS — стильные карточки
@@ -562,17 +562,17 @@ html, body {
 
 /* Карточка поста */
 .post {
-  background: #222e3e;
-  border-radius: 18px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,0.09);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  background: linear-gradient(145deg, #232f40, #1e2a39);
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   cursor: pointer;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), box-shadow .15s, background .12s, opacity .4s;
 }
 .post:last-child { margin-bottom: 0; }
-.post:active { transform: scale(0.982); box-shadow: 0 1px 4px rgba(0,0,0,0.2); background: #1e2a38; }
+.post:active { transform: scale(0.984); box-shadow: 0 1px 6px rgba(0,0,0,0.25); }
 
 /* Прочитанный пост — немного тусклее */
 .post.post-read {
@@ -597,12 +597,12 @@ html, body {
   50%       { box-shadow: 0 0 10px rgba(46,166,255,0.9); transform: scale(1.2); }
 }
 
-.post-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.p-ava { width:42px; height:42px; border-radius:13px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; }
+.post-head { display:flex; align-items:center; gap:11px; margin-bottom:11px; }
+.p-ava { width:44px; height:44px; border-radius:14px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
 .p-meta { flex:1; min-width:0; }
 .p-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.p-cat { font-size:12px; color:var(--sub); margin-top:1px; }
-.p-time { font-size:11px; color:var(--muted); flex-shrink:0; background:var(--hover); padding:3px 8px; border-radius:20px; }
+.p-cat { font-size:12px; color:var(--sub); margin-top:2px; }
+.p-time { font-size:11px; color:var(--muted); flex-shrink:0; background:rgba(255,255,255,0.06); padding:3px 9px; border-radius:20px; border: 1px solid rgba(255,255,255,0.05); }
 .p-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; background:var(--acc); color:#fff; border-radius:50%; font-size:9px; font-weight:800; flex-shrink:0; }
 
 .post-img { height:180px; border-radius:10px; background:var(--hover); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:48px; overflow:hidden; }
@@ -610,38 +610,38 @@ html, body {
 /* Новый медиа-блок для постов */
 .post-media {
   position: relative;
-  height: 190px;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  height: 200px;
+  border-radius: 14px;
+  margin-bottom: 12px;
   overflow: hidden;
   background: var(--hover);
 }
 .post-media-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.35) 100%);
+  background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.4) 100%);
 }
-.post-text { font-size:14px; line-height:1.65; margin-bottom:12px; color:var(--text); }
+.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); }
 
 /* Разделитель перед реакциями */
-.post-divider { height:1px; background:var(--border); margin:0 -2px 10px; }
+.post-divider { height:1px; background:var(--border); margin:0 0 10px; }
 
-.post-foot { display:flex; align-items:center; gap:5px; }
+.post-foot { display:flex; align-items:center; gap:5px; flex-wrap: wrap; }
 .react {
   display:flex; align-items:center; gap:4px;
-  padding:5px 10px; border-radius:20px;
-  background:var(--hover); border:1px solid transparent;
+  padding:5px 11px; border-radius:22px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.07);
   font-size:13px; cursor:pointer; user-select:none;
-  transition: background .12s, border-color .12s, transform .1s;
+  transition: background .15s, border-color .15s, transform .1s;
 }
-.react:active { transform: scale(0.92); }
+.react:active { transform: scale(0.91); }
 .react span { font-size:12px; font-weight:600; color:var(--sub); }
-.react.on { background:rgba(46,166,255,0.12); border-color:rgba(46,166,255,0.3); }
+.react.on { background:rgba(46,166,255,0.13); border-color:rgba(46,166,255,0.32); }
 .react.on span { color:var(--acc); }
 .react-sep { flex:1; }
-.share { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; transition:.12s; }
+.share { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; transition:.15s; margin-left:auto; }
 .share svg { width:17px; height:17px; stroke:var(--sub); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.share:active { background:var(--hover); }
+.share:active { background:rgba(255,255,255,0.08); }
 
 /* Auth tabs */
 .auth-tab {
@@ -1374,8 +1374,8 @@ html, body {
   margin-bottom: 2px;
 }
 .comment-item {
-  display: flex; gap: 11px; padding: 12px 0 10px;
-  border-bottom: 1px solid var(--border);
+  display: flex; gap: 11px; padding: 13px 0 11px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
   position: relative;
   background: transparent;
   transform: translateX(0);
@@ -1450,7 +1450,8 @@ html, body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
+  margin-bottom: 4px;
 }
 .post-btn {
   flex: 1;
@@ -1459,23 +1460,25 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 14px;
-  background: var(--acc-dim);
+  padding: 11px 14px;
+  background: rgba(46,166,255,0.1);
   color: var(--acc);
-  border: 1px solid rgba(46,166,255,0.25);
-  border-radius: 12px;
+  border: 1px solid rgba(46,166,255,0.22);
+  border-radius: 14px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: background .15s, transform .1s, box-shadow .15s;
+  transition: background .15s, transform .12s, box-shadow .15s;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(46,166,255,0.08);
 }
 .post-btn:active {
   transform: scale(0.96);
-  background: rgba(46,166,255,0.22);
+  background: rgba(46,166,255,0.2);
+  box-shadow: 0 1px 4px rgba(46,166,255,0.15);
 }
 .post-btn svg {
   width: 13px; height: 13px;
@@ -4379,7 +4382,9 @@ async function openPostDetail(postId, event) {
           <div class="p-time">${timeAgo(p.created_at)}</div>
         </div>
         <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;">${esc(p.text)}</div>
-        <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+        ${p.image_url ? `<div style="border-radius:14px;overflow:hidden;margin-bottom:12px;"><img src="${esc(p.image_url)}" style="width:100%;display:block;max-height:320px;object-fit:cover;"></div>` : ''}
+        ${renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]))}
+        <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:12px;">
           ${reacts}
           <div class="react" style="cursor:default;pointer-events:none;">💬 <span>${commentsData?.length||0}</span></div>
           ${p.views_count ? `<div class="react" style="cursor:default;pointer-events:none;opacity:0.7;">
