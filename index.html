@@ -621,7 +621,7 @@ html, body {
   inset: 0;
   background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.4) 100%);
 }
-.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); }
+.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); white-space: pre-wrap; word-break: break-word; }
 
 /* Разделитель перед реакциями */
 .post-divider { height:1px; background:var(--border); margin:0 0 10px; }
@@ -1374,14 +1374,26 @@ html, body {
   margin-bottom: 2px;
 }
 .comment-item {
-  display: flex; gap: 11px; padding: 13px 0 11px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 10px; padding: 8px 0;
   position: relative;
   background: transparent;
   transform: translateX(0);
   transition: transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
   will-change: transform;
   user-select: none;
+}
+.comment-bubble {
+  flex: 1; min-width: 0;
+  background: var(--card);
+  border-radius: 4px 16px 16px 16px;
+  padding: 10px 13px 8px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.comment-item-reply .comment-bubble {
+  background: rgba(46,166,255,0.06);
+  border-color: rgba(46,166,255,0.14);
+  border-radius: 4px 16px 16px 16px;
 }
 /* Кликабельный пользователь в комментарии */
 .comment-item [onclick*="t.me"] {
@@ -2190,9 +2202,11 @@ html, body {
           </div>
           <div class="reply-cancel" onclick="cancelReply()">×</div>
         </div>
-        <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;">
-          <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;font-size:14px;">
-          <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;">↑</button>
+        <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;">
+          <input class="f-inp" id="postDetailCommentInput" placeholder="Написать комментарий..." 
+            style="margin:0;flex:1;font-size:14px;border-radius:22px;padding:10px 16px;"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPostDetailComment();}">
+          <button onclick="sendPostDetailComment()" style="background:var(--acc);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(46,166,255,0.35);transition:transform .15s,box-shadow .15s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform=''">↑</button>
         </div>
       </div>
     </div>
@@ -2333,13 +2347,23 @@ try { ME = JSON.parse(localStorage.getItem('bf_me')); } catch {}
 // ════════════════════════════════
 // АВАТАР БОТА ИЗ TELEGRAM
 // ════════════════════════════════
-function botAvatarHTML(username, size = 40, radius = 12) {
-  if (!username) return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${size*0.55}px;">🤖</div>`;
-  const clean = username.replace('@','');
-  return `<img src="https://t.me/i/userpic/320/${clean}.jpg" 
-    style="width:${size}px;height:${size}px;border-radius:${radius}px;object-fit:cover;display:block;"
-    onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:${radius}px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.55)}px;\\'>🤖</div>'"
-  >`;
+function botAvatarHTML(username, size = 40, radius = 12, name = '', photoUrl = '') {
+  const colors = ['#1a6fa8','#1a7a4a','#7a3a9a','#a85a1a','#1a5a7a','#6a1a3a'];
+  const label = (name || username || '').replace('@','');
+  const letter = label[0]?.toUpperCase() || '🤖';
+  const color = colors[(label.charCodeAt(0) || 0) % colors.length];
+  const fontSize = Math.round(size * 0.42);
+
+  const fallback = `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;">${letter}</div>`;
+
+  if (!photoUrl) return fallback;
+
+  return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${color};display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;font-weight:700;color:#fff;flex-shrink:0;position:relative;overflow:hidden;">
+    ${letter}
+    <img src="${photoUrl}" loading="lazy"
+      style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+      onerror="this.remove()">
+  </div>`;
 }
 
 function esc(str) {
@@ -2350,6 +2374,11 @@ function esc(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// esc + сохраняем переносы строк как <br> для innerHTML
+function escText(str) {
+  return esc(str).replace(/\n/g, '<br>');
 }
 
 // Тоггл реакций для статичных демо-постов
@@ -2629,7 +2658,7 @@ async function loadMyBots() {
   list.innerHTML = res.map(b => {
     total += Number(b.members || 0);
     const badge = b.verified ? '<div class="p-badge">✓</div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
-    const avaHtml = botAvatarHTML(b.username, 44, 14);
+    const avaHtml = botAvatarHTML(b.username, 44, 14, b.name, b.photo_url);
     return `<div class="my-bot" data-bot-id="${b.id}" data-bot-name="${esc(b.name)}" data-members="${b.members||0}" data-posts="${b.posts_count||0}" data-subs="${b.subscribers||0}">
       <div class="mb-ava" style="overflow:hidden;">${avaHtml}</div>
       <div class="mb-info">
@@ -2758,7 +2787,7 @@ async function openBotPage(botId, event) {
 }
 
 function botPostHTML(p, b) {
-  const avaHtml = botAvatarHTML(b.username, 38, 12);
+  const avaHtml = botAvatarHTML(b.username, 38, 12, b.name, b.photo_url);
   const imgHtml = p.image_url ? `<div class="post-media" style="background:url('${esc(p.image_url)}') center/cover;height:160px;margin-bottom:10px;"><div class="post-media-overlay"></div></div>` : '';
   const typeBadge = postTypeBadge(p.post_type);
   const reacts = (p.reactions||[]).map(r =>
@@ -2785,7 +2814,7 @@ function botPostHTML(p, b) {
     </div>
     ${imgHtml}
     ${typeBadge}
-    <div class="post-text">${esc(p.text)}</div>
+    <div class="post-text">${escText(p.text)}</div>
     <div class="post-divider"></div>
     <div class="post-foot">
       ${reacts}
@@ -3203,7 +3232,7 @@ function postHTML(p) {
   }
 
   const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
-  const avaHtml = botAvatarHTML(p.bot_username, 40, 12);
+  const avaHtml = botAvatarHTML(p.bot_username, 40, 12, p.bot_name, p.bot_photo);
   const typeBadge = postTypeBadge(p.post_type);
   const buttons = renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]));
   
@@ -3235,7 +3264,7 @@ function postHTML(p) {
     </div>
     ${imgHtml}
     ${typeBadge}
-    <div class="post-text">${esc(p.text)}</div>
+    <div class="post-text">${escText(p.text)}</div>
     ${buttons}
     <div class="post-divider"></div>
     <div class="post-foot">
@@ -3494,7 +3523,7 @@ function renderDiscFeatured() {
 
   el.innerHTML = top.map(b => {
     const isSub = mySubIds.has(Number(b.id));
-    const ava = botAvatarHTML(b.username, 48, 16);
+    const ava = botAvatarHTML(b.username, 48, 16, b.name, b.photo_url);
     const badge = b.verified ? '<div class="p-badge" style="display:inline-flex;font-size:9px;width:15px;height:15px;">✓</div>' : '';
     const m = Number(b.members||0);
     return `<div class="disc-feat-card" onclick="openBotPage(${b.id}, event)">
@@ -3644,7 +3673,7 @@ function botRowHTML(b) {
   const isSub = mySubIds.has(Number(b.id));
   const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
   const subText = isSub ? '✓ Подписан' : 'Подписаться';
-  const avaHtml = botAvatarHTML(b.username, 44, 14);
+  const avaHtml = botAvatarHTML(b.username, 44, 14, b.name, b.photo_url);
   return `<div class="bot-row" onclick="openBotPage(${b.id}, event)">
     <div class="br-ava" style="overflow:hidden;">${avaHtml}</div>
     <div class="br-info">
@@ -4365,7 +4394,7 @@ async function openPostDetail(postId, event) {
   ]);
 
   if (p && !p.error) {
-    const avaHtml = botAvatarHTML(p.bot_username, 44, 14);
+    const avaHtml = botAvatarHTML(p.bot_username, 44, 14, p.bot_name, p.bot_photo);
     const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
     const reacts = (p.reactions || []).map(r =>
       `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)"><span class="react-emoji">${r.emoji}</span> <span>${r.count}</span></div>`
@@ -4381,7 +4410,7 @@ async function openPostDetail(postId, event) {
           </div>
           <div class="p-time">${timeAgo(p.created_at)}</div>
         </div>
-        <div style="font-size:15px;line-height:1.65;margin:14px 0;white-space:pre-wrap;">${esc(p.text)}</div>
+        <div style="font-size:15px;line-height:1.65;margin:14px 0;word-break:break-word;">${escText(p.text)}</div>
         ${p.image_url ? `<div style="border-radius:14px;overflow:hidden;margin-bottom:12px;"><img src="${esc(p.image_url)}" style="width:100%;display:block;max-height:320px;object-fit:cover;"></div>` : ''}
         ${renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]))}
         <div class="post-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:12px;">
@@ -4483,54 +4512,47 @@ function renderPostDetailComments(data) {
     const userHover  = c.username ? 'active-user' : '';
 
     return `
-      <div class="comment-item" data-id="${c.id}" 
+      <div class="comment-item${isReply?' comment-item-reply':''}" data-id="${c.id}" 
            data-name="${esc(c.first_name||'Пользователь')}" 
            data-text="${esc(c.text)}"
-           style="${isReply ? 'padding-left:44px;background:rgba(46,166,255,0.03);' : ''}">
-        <!-- Аватарка — кликабельная -->
-        <div style="flex-shrink:0;${isReply?'display:none;':''}${userCursor}" ${userLink}>${ava}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;">
+           style="${isReply ? 'padding-left:42px;' : ''}">
+        <!-- Аватарка -->
+        ${!isReply ? `<div style="flex-shrink:0;${userCursor}margin-top:2px;" ${userLink}>${ava}</div>` : ''}
+        <div class="comment-bubble">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap;">
             ${isReply ? `<div style="flex-shrink:0;${userCursor}" ${userLink}>${ava}</div>` : ''}
-            <!-- Имя — кликабельное если есть username -->
-            <span style="font-weight:700;font-size:13px;color:var(--text);${userCursor}${c.username?'text-decoration:none;':''}" ${userLink}>
+            <span style="font-weight:700;font-size:13px;color:var(--text);${userCursor}" ${userLink}>
               ${esc(c.first_name||'Пользователь')}
             </span>
-            ${c.username ? `
-              <span style="font-size:11px;color:var(--acc);cursor:pointer;font-weight:500;" ${userLink}>
-                @${esc(c.username)}
-              </span>` : ''}
+            ${c.username ? `<span style="font-size:11px;color:var(--acc);cursor:pointer;font-weight:500;" ${userLink}>@${esc(c.username)}</span>` : ''}
             <span style="font-size:11px;color:var(--muted);margin-left:auto;">${timeAgo(c.created_at||Date.now())}</span>
           </div>
           ${replyQuote}
-          <div style="font-size:14px;line-height:1.55;color:var(--text);word-break:break-word;">${esc(c.text)}</div>
-          <div style="margin-top:7px;display:flex;align-items:center;gap:12px;">
-            <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 0;"
+          <div style="font-size:14px;line-height:1.6;color:var(--text);word-break:break-word;">${escText(c.text)}</div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:12px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px;padding:2px 0;opacity:0.8;"
                   onclick="startReply(${c.id},'${esc(c.first_name||'Пользователь').replace(/'/g,'&#39;')}','${esc(c.text).replace(/'/g,'&#39;').slice(0,80)}')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
               Ответить
             </span>
             ${c.username ? `
-              <span style="font-size:12px;color:var(--acc);cursor:pointer;display:flex;align-items:center;gap:3px;" ${userLink}>
+              <span style="font-size:12px;color:var(--acc);cursor:pointer;display:flex;align-items:center;gap:3px;opacity:0.85;" ${userLink}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z" fill="currentColor" stroke="none"/></svg>
                 Написать
               </span>` : ''}
             ${c.replies?.length ? `<span style="font-size:12px;color:var(--sub);">↳ ${c.replies.length} ${c.replies.length===1?'ответ':c.replies.length<5?'ответа':'ответов'}</span>` : ''}
             ${ME && String(c.user_id) === String(ME.id) ? `
-              <span style="font-size:12px;color:var(--red);cursor:pointer;margin-left:auto;opacity:0.7;" onclick="deleteComment(${c.id}, this)">
-                Удалить
-              </span>` : ''}
+              <span style="font-size:12px;color:var(--red);cursor:pointer;margin-left:auto;opacity:0.7;" onclick="deleteComment(${c.id}, this)">Удалить</span>` : ''}
           </div>
         </div>
         <div class="comment-reply-indicator" id="ri-${c.id}">
           <svg viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
         </div>
       </div>
-      ${replies}
-      <div style="height:1px;background:var(--border);"></div>`;
+      ${replies}`;
   }
 
-  el.innerHTML = roots.map(c => commentHTML(c)).join('') + '<div style="height:90px;"></div>';
+  el.innerHTML = roots.map(c => commentHTML(c)).join('') + '<div style="height:100px;"></div>';
 
   // Свайп-ответ на комментарий
   el.querySelectorAll('.comment-item').forEach(item => {
@@ -4581,16 +4603,88 @@ async function sendPostDetailComment() {
   const inp = document.getElementById('postDetailCommentInput');
   const text = inp.value.trim();
   if (!text) return;
+  
   const body = { text };
   if (replyToComment) body.reply_to_id = replyToComment.id;
+  
+  // ── OPTIMISTIC UPDATE — показываем сразу ──
+  const tempId = 'temp-' + Date.now();
+  const el = document.getElementById('postDetailComments');
+  
+  // Убираем пустое состояние если есть
+  el.querySelector('[style*="48px"]')?.closest('div[style*="text-align:center"]')?.remove();
+  
+  // Создаём временный комментарий
+  const colors = ['#2ea6ff','#4dcd6a','#f5a623','#ff4c6d','#a855f7','#f97316'];
+  const name = ME?.first_name || 'Я';
+  const letter = name[0].toUpperCase();
+  const color = colors[(name.charCodeAt(0)||0) % colors.length];
+  const ava = ME?.photo_url
+    ? `<img src="${esc(ME.photo_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+    : `<div style="width:36px;height:36px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;">${letter}</div>`;
+  
+  const replyQuoteHtml = replyToComment
+    ? `<div style="display:flex;align-items:flex-start;gap:6px;background:var(--hover);border-left:2.5px solid var(--acc);border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:7px;">
+         <div style="font-size:12px;line-height:1.4;min-width:0;"><span style="color:var(--acc);font-weight:700;">${esc(replyToComment.name)}</span> <span style="color:var(--sub);">${esc((replyToComment.text||'').slice(0,55))}</span></div>
+       </div>` : '';
+  
+  const tempEl = document.createElement('div');
+  tempEl.id = tempId;
+  tempEl.className = 'comment-item';
+  tempEl.style.cssText = 'opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;';
+  tempEl.innerHTML = `
+    <div style="flex-shrink:0;margin-top:2px;">${ava}</div>
+    <div class="comment-bubble" style="border-color:rgba(46,166,255,0.25);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <span style="font-weight:700;font-size:13px;color:var(--text);">${esc(name)}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto;">только что</span>
+      </div>
+      ${replyQuoteHtml}
+      <div style="font-size:14px;line-height:1.6;color:var(--text);word-break:break-word;">${escText(text)}</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Отправка...
+      </div>
+    </div>`;
+  
+  // Вставляем перед spacer или в конец
+  const spacer = el.querySelector('[style*="height:100px"]');
+  if (spacer) el.insertBefore(tempEl, spacer);
+  else el.appendChild(tempEl);
+  
+  // Анимация появления
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    tempEl.style.opacity = '1';
+    tempEl.style.transform = 'none';
+  }));
+  tempEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  
+  // Очищаем инпут сразу
+  inp.value = '';
+  const savedReply = replyToComment;
+  cancelReply();
+  window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+  
+  // ── Отправляем запрос в фоне ──
   const res = await api('POST', `/posts/${currentPostDetailId}/comments`, body);
   if (res?.id) {
-    inp.value = '';
-    cancelReply();
-    toast('💬', 'Комментарий отправлен');
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+    // Обновляем реальными данными
     const data = await api('GET', `/posts/${currentPostDetailId}/comments`);
     renderPostDetailComments(data);
+    // Обновляем счётчик в постах
+    document.querySelectorAll(`.post[data-id="${currentPostDetailId}"] .react`).forEach(el => {
+      if (el.textContent.includes('💬')) {
+        const sp = el.querySelector('span');
+        if (sp) sp.textContent = Math.max(0, parseInt(sp.textContent||'0') + 1);
+      }
+    });
+  } else {
+    // Откатываем — убираем временный комментарий
+    tempEl.style.opacity = '0';
+    tempEl.style.transform = 'translateY(8px)';
+    setTimeout(() => tempEl.remove(), 260);
+    toast('❌', res?.error || 'Ошибка отправки');
+    inp.value = text; // возвращаем текст
   }
 }
 
