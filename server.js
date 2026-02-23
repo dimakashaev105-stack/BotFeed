@@ -751,12 +751,9 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
     } catch (e) { console.error('Notify error:', e.message) }
   })()
 
-  // SSE — разослать всем подписчикам + гостям
+  // SSE — разослать ВСЕМ подключённым (реальный реалтайм)
   ;(async () => {
     try {
-      const { rows: subs } = await db.query(
-        'SELECT user_id FROM subscriptions WHERE bot_id=$1 AND notify IS NOT false', [req.params.botId]
-      )
       const payload = {
         ...post,
         bot_id: b[0].id,
@@ -764,14 +761,8 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
         bot_username: b[0].username,
         reactions: [], comments_count: 0, views_count: 0
       }
-      ssePublish('new_post', payload, subs.map(r => String(r.user_id)))
-      // Гостям тоже
-      for (const [uid, clients] of sseClients.entries()) {
-        if (uid.startsWith('guest_')) {
-          const msg = `event: new_post\ndata: ${JSON.stringify(payload)}\n\n`
-          clients.forEach(r => { try { r.raw.write(msg) } catch {} })
-        }
-      }
+      // Рассылаем всем — и авторизованным и гостям
+      ssePublish('new_post', payload)
     } catch(e) { console.error('SSE post err:', e.message) }
   })()
 
@@ -788,24 +779,41 @@ app.delete('/api/posts/:id', { preHandler: auth }, async (req, reply) => {
 app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
   const { emoji } = req.body
   if (!['🔥', '👍', '❤️', '😂', '👏', '🎉'].includes(emoji)) return reply.code(400).send({ error: 'Неверный эмодзи' })
-  const { rows } = await db.query('SELECT id FROM reactions WHERE post_id=$1 AND user_id=$2 AND emoji=$3', [req.params.id, req.user.id, emoji])
+
+  const postId = parseInt(req.params.id)
+  const userId = req.user.id
+
+  // Ищем текущую реакцию пользователя на этот пост (любую)
+  const { rows: existing } = await db.query(
+    'SELECT id, emoji FROM reactions WHERE post_id=$1 AND user_id=$2',
+    [postId, userId]
+  )
+
   let action
-  if (rows[0]) {
-    await db.query('DELETE FROM reactions WHERE id=$1', [rows[0].id])
+  let removedEmoji = null
+
+  if (existing[0]?.emoji === emoji) {
+    // Тот же emoji — убираем (toggle off)
+    await db.query('DELETE FROM reactions WHERE id=$1', [existing[0].id])
     action = 'removed'
   } else {
-    await db.query('INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1,$2,$3)', [req.params.id, req.user.id, emoji])
+    // Другой или нет — удаляем старую (если была) и ставим новую
+    if (existing[0]) {
+      removedEmoji = existing[0].emoji
+      await db.query('DELETE FROM reactions WHERE id=$1', [existing[0].id])
+    }
+    await db.query('INSERT INTO reactions (post_id, user_id, emoji) VALUES ($1,$2,$3)', [postId, userId, emoji])
     action = 'added'
   }
 
-  // SSE — счётчик реакций всем кто смотрит этот пост
+  // SSE — актуальные счётчики всем
   const { rows: cnt } = await db.query(
     'SELECT emoji, COUNT(*) as count FROM reactions WHERE post_id=$1 GROUP BY emoji',
-    [req.params.id]
+    [postId]
   )
-  ssePublish('reaction_update', { post_id: parseInt(req.params.id), emoji, action, reactions: cnt })
+  ssePublish('reaction_update', { post_id: postId, emoji, action, removed_emoji: removedEmoji, reactions: cnt.map(r => ({ emoji: r.emoji, count: parseInt(r.count) })) })
 
-  return { action }
+  return { action, removed_emoji: removedEmoji }
 })
 
 // Один пост по id — со всеми данными бота
@@ -1056,10 +1064,10 @@ app.get('/api/sse', { preHandler: optAuth }, async (req, reply) => {
   // Приветствие
   reply.raw.write(`event: connected\ndata: {"userId":"${userId}"}\n\n`)
 
-  // Heartbeat каждые 25 сек чтобы не дропало соединение
+  // Heartbeat каждые 15 сек чтобы не дропало соединение (Render убивает после 30с тишины)
   const heartbeat = setInterval(() => {
     try { reply.raw.write(': heartbeat\n\n') } catch { clearInterval(heartbeat) }
-  }, 25000)
+  }, 15000)
 
   // Cleanup при дисконнекте
   req.socket.on('close', () => {
