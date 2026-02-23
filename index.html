@@ -1320,6 +1320,25 @@ html, body {
 .set-row.danger .set-lbl { color:var(--red); }
 .set-row.danger .set-ico-wrap { background: rgba(240,64,64,0.1); }
 
+/* Переключатель в настройках */
+.set-toggle {
+  width: 44px; height: 26px; border-radius: 13px;
+  background: var(--muted); flex-shrink: 0;
+  position: relative; cursor: pointer;
+  transition: background .25s;
+}
+.set-toggle.on { background: var(--acc); }
+.set-toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff; border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: transform .25s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.set-toggle.on::after { transform: translateX(18px); }
+
 
 /* ══════════════════════════════════════
    BOT PAGE
@@ -1717,9 +1736,6 @@ html, body {
     <div class="screen active" id="s-home">
       <div class="home-topbar">
         <div class="home-tabs-row">
-          <div style="position:absolute;left:14px;top:50%;transform:translateY(-50%);">
-            <div class="theme-btn" onclick="toggleTheme()" id="themeBtn" title="Сменить тему">🌙</div>
-          </div>
           <div class="home-tabs">
             <div class="home-tab active" id="tab-subs" onclick="switchFeedTab('subs')">Подписки</div>
             <div class="home-tab" id="tab-rec" onclick="switchFeedTab('rec')">Рекомендации</div>
@@ -2072,6 +2088,13 @@ html, body {
 
         <div id="tb-settings" style="display:none;">
           <div class="set-group">
+            <div class="set-row" onclick="toggle3DScroll()" style="cursor:pointer;">
+              <div class="set-ico-wrap">🎞</div>
+              <div class="set-lbl">3D скролл постов</div>
+              <div id="toggle3d" class="set-toggle on"></div>
+            </div>
+          </div>
+          <div class="set-group">
             <div class="set-row" onclick="toast('🔔','Скоро')">
               <div class="set-ico-wrap">🔔</div>
               <div class="set-lbl">Уведомления</div>
@@ -2390,6 +2413,10 @@ html, body {
       <div class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div class="nav-lbl">Каталог</div>
     </div>
+    <div class="nav-item" onclick="openSettingsSheet()">
+      <div class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+      <div class="nav-lbl">Настройки</div>
+    </div>
     <div class="nav-item" onclick="go('profile',this)">
       <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="nav-lbl">Профиль</div>
@@ -2507,6 +2534,42 @@ const API = 'https://botfeed-9v15.onrender.com/api';
 let TOKEN = localStorage.getItem('bf_token') || null;
 let ME = null;
 try { ME = JSON.parse(localStorage.getItem('bf_me')); } catch {}
+
+// ════════════════════════════════
+// АВТО-ЛОГИН через Telegram Mini App
+// Если открыто внутри Telegram — логиним автоматически
+// ════════════════════════════════
+async function tryWebAppAutoLogin() {
+  const twa = window.Telegram?.WebApp
+  if (!twa) return false // открыто не в Telegram
+
+  const initData = twa.initData
+  const user = twa.initDataUnsafe?.user
+  if (!initData || !user) return false // нет данных пользователя
+
+  // Если уже залогинен тем же пользователем — не повторяем
+  if (TOKEN && ME && String(ME.telegram_id) === String(user.id)) return true
+
+  try {
+    const res = await fetch(API + '/auth/webapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData })
+    })
+    const data = await res.json()
+    if (data?.token) {
+      TOKEN = data.token
+      ME = data.user
+      localStorage.setItem('bf_token', TOKEN)
+      localStorage.setItem('bf_me', JSON.stringify(ME))
+      console.log('✅ WebApp auto-login:', ME.first_name)
+      return true
+    }
+  } catch(e) {
+    console.warn('WebApp auth failed:', e.message)
+  }
+  return false
+}
 
 // ════════════════════════════════
 // УТИЛИТЫ
@@ -3073,7 +3136,7 @@ function closeBotPage() {
   prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
   currentScreen = prevScreenBeforeBot;
   // Обновляем nav
-  const navMap = { home:0, catalog:1, search:1, profile:2 };
+  const navMap = { home:0, catalog:1, search:1, profile:3 };
   const idx = navMap[prevScreenBeforeBot] ?? 0;
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
   updateNavPill(idx);
@@ -4996,7 +5059,7 @@ function closePostDetail() {
   prev.classList.add('active','anim-left');
   prev.addEventListener('animationend', () => prev.classList.remove('anim-left'), { once: true });
   currentScreen = prevScreenBeforePost;
-  const navMap = { home:0, catalog:1, search:1, profile:2 };
+  const navMap = { home:0, catalog:1, search:1, profile:3 };
   const idx = navMap[prevScreenBeforePost] ?? 0;
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i === idx));
   updateNavPill(idx);
@@ -5031,11 +5094,13 @@ function go(id, el) {
   void next.offsetWidth;
   next.classList.add(dir === 'right' ? 'anim-right' : 'anim-left');
 
-  // Nav
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  // Nav — снимаем active только с кнопок экранов (не settings)
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (!n.getAttribute('onclick')?.includes('openSettings')) n.classList.remove('active')
+  });
   el.classList.add('active');
 
-  // Nav pill
+  // Nav pill — настройки (индекс 2) не имеют экрана, pill на профиль идёт на индекс 3
   updateNavPill(nextIdx);
 
   currentScreen = id;
@@ -5049,10 +5114,12 @@ function updateNavPill(idx) {
   if (!pill) return;
   const navEl = pill.closest('.nav');
   if (!navEl) return;
-  const items = navEl.querySelectorAll('.nav-item');
-  if (!items[idx]) return;
+  // Берём только кнопки с реальными экранами (не settings)
+  const realItems = [...navEl.querySelectorAll('.nav-item')].filter(n => !n.getAttribute('onclick')?.includes('openSettings'));
+  const target = realItems[idx];
+  if (!target) return;
   const navRect = navEl.getBoundingClientRect();
-  const itemRect = items[idx].getBoundingClientRect();
+  const itemRect = target.getBoundingClientRect();
   pill.style.left = (itemRect.left - navRect.left + 8) + 'px';
   pill.style.width = (itemRect.width - 16) + 'px';
 }
@@ -5518,6 +5585,12 @@ function initCoverflow(feedEl) {
     const posts = Array.from(feedEl.querySelectorAll('.post'));
     if (!posts.length) return;
 
+    // Если 3D выключен — сбрасываем и выходим
+    if (!scroll3DEnabled) {
+      posts.forEach(p => { p.style.transform = 'none'; p.style.opacity = '1'; p.style.zIndex = ''; });
+      return;
+    }
+
     const srTop    = scroller.getBoundingClientRect().top;
     const srHeight = scroller.clientHeight;
     const cy       = srTop + srHeight * 0.44;
@@ -5570,6 +5643,12 @@ function setupAllCoverflows() {
 }
 
 async function initApp() {
+  // ── Авто-логин через Telegram Mini App ──
+  // Если открыто внутри Telegram — логиним до загрузки ленты
+  if (window.Telegram?.WebApp?.initData) {
+    await tryWebAppAutoLogin()
+  }
+
   loadFeed();
   showProfile();
   // Запускаем Coverflow 3D скролл
@@ -5627,13 +5706,221 @@ initApp();
 // ══════════════════════════════════════
 // ТЕМА
 // ══════════════════════════════════════
+// ══════════════════════════════════════
+// 3D СКРОЛЛ — вкл/выкл
+// ══════════════════════════════════════
+let scroll3DEnabled = localStorage.getItem('bf-3d') !== 'off'
+
+function toggle3DScroll() {
+  scroll3DEnabled = !scroll3DEnabled
+  localStorage.setItem('bf-3d', scroll3DEnabled ? 'on' : 'off')
+  // Обновляем оба тоггла (в настройках профиля и в шите)
+  document.getElementById('toggle3d')?.classList.toggle('on', scroll3DEnabled)
+  document.getElementById('sheet-toggle3d')?.classList.toggle('on', scroll3DEnabled)
+
+  if (!scroll3DEnabled) {
+    document.querySelectorAll('.post').forEach(p => {
+      p.style.transform = 'none'
+      p.style.opacity   = '1'
+      p.style.zIndex    = ''
+    })
+  }
+}
+
+// ══════════════════════════════════════
+// НАСТРОЙКИ — bottom sheet из навбара
+// ══════════════════════════════════════
+function openSettingsSheet() {
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium')
+  const sheet    = document.getElementById('settingsSheet')
+  const backdrop = document.getElementById('settingsBackdrop')
+  const handle   = document.getElementById('sheetHandle')
+
+  // Синхронизируем тогглы
+  document.getElementById('sheet-toggle3d')?.classList.toggle('on', scroll3DEnabled)
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light'
+  const themeIco = document.getElementById('themeIco')
+  const themeLbl = document.getElementById('themeLbl')
+  if (themeIco) themeIco.textContent = isLight ? '☀️' : '🌙'
+  if (themeLbl) themeLbl.textContent = isLight ? 'Светлая' : 'Тёмная'
+  detectPerf()
+
+  // Показываем backdrop
+  backdrop.style.pointerEvents = 'all'
+  backdrop.style.background    = 'rgba(0,0,0,0.5)'
+  backdrop.style.backdropFilter = 'blur(8px)'
+
+  // Поднимаем шит
+  sheet.style.transform = 'translateX(-50%) translateY(0)'
+
+  // Пульсация ручки
+  if (handle) {
+    handle.style.animation = 'handlePulse .6s ease .2s both'
+    setTimeout(() => handle.style.animation = '', 800)
+  }
+
+  // Stagger анимация строк
+  const rows = sheet.querySelectorAll('.sset-row')
+  rows.forEach((r, i) => {
+    r.classList.remove('visible')
+    r.style.animationDelay = (0.06 + i * 0.07) + 's'
+    setTimeout(() => r.classList.add('visible'), 20)
+  })
+}
+
+function closeSettingsSheet() {
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
+  const sheet    = document.getElementById('settingsSheet')
+  const backdrop = document.getElementById('settingsBackdrop')
+
+  // Строки уходят вниз
+  const rows = sheet.querySelectorAll('.sset-row')
+  rows.forEach((r, i) => {
+    r.style.transition = `opacity .2s ${i * 0.03}s, transform .2s ${i * 0.03}s`
+    r.style.opacity  = '0'
+    r.style.transform = 'translateY(12px)'
+  })
+
+  setTimeout(() => {
+    sheet.style.transform = 'translateX(-50%) translateY(110%)'
+    backdrop.style.background = 'rgba(0,0,0,0)'
+    backdrop.style.backdropFilter = 'blur(0px)'
+    setTimeout(() => {
+      backdrop.style.pointerEvents = 'none'
+      // Сбрасываем строки для следующего открытия
+      rows.forEach(r => {
+        r.classList.remove('visible')
+        r.style.transition = ''
+        r.style.opacity    = ''
+        r.style.transform  = ''
+      })
+    }, 350)
+  }, 80)
+}
+
+function detectPerf() {
+  const status = document.getElementById('perfStatus')
+  if (!status) return
+  const mem = navigator.deviceMemory
+  const cores = navigator.hardwareConcurrency
+  const conn = navigator.connection?.effectiveType
+
+  let tier = 'high'
+  if (mem && mem <= 2) tier = 'low'
+  else if (mem && mem <= 4) tier = 'mid'
+  else if (cores && cores <= 2) tier = 'low'
+  else if (cores && cores <= 4) tier = 'mid'
+
+  const labels = { high: '🟢 Мощное устройство', mid: '🟡 Среднее устройство', low: '🔴 Слабое устройство' }
+  const hints  = { high: 'Всё включено, лагов нет', mid: 'Рекомендуется выключить 3D', low: 'Рекомендуется оптимизация' }
+  status.textContent = `${labels[tier]} — ${hints[tier]}`
+  status._tier = tier
+}
+
+function runOptimize() {
+  const btn = document.getElementById('optimizeBtn')
+  const result = document.getElementById('optimizeResult')
+  const status = document.getElementById('perfStatus')
+  const tier = status?._tier || 'mid'
+
+  btn.textContent = '⏳ Оптимизирую...'
+  btn.style.opacity = '0.6'
+
+  const actions = []
+
+  // 1. Отключаем 3D если слабое/среднее
+  if ((tier === 'low' || tier === 'mid') && scroll3DEnabled) {
+    scroll3DEnabled = false
+    localStorage.setItem('bf-3d', 'off')
+    document.getElementById('sheet-toggle3d')?.classList.remove('on')
+    document.getElementById('toggle3d')?.classList.remove('on')
+    document.querySelectorAll('.post').forEach(p => {
+      p.style.transform = 'none'; p.style.opacity = '1'; p.style.zIndex = ''
+    })
+    actions.push('Выключен 3D скролл')
+  }
+
+  // 2. Убираем анимации карточек если совсем слабое
+  if (tier === 'low') {
+    const style = document.createElement('style')
+    style.id = 'perf-style'
+    document.getElementById('perf-style')?.remove()
+    style.textContent = `
+      .post { animation: none !important; transition: background .1s !important; }
+      .react { transition: none !important; }
+      .bot-row { animation: none !important; }
+    `
+    document.head.appendChild(style)
+    localStorage.setItem('bf-perf', 'low')
+    actions.push('Упрощены анимации карточек')
+  } else {
+    document.getElementById('perf-style')?.remove()
+    localStorage.removeItem('bf-perf')
+  }
+
+  // 3. Сжимаем интервал polling
+  if (tier === 'low' && pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = setInterval(async () => {
+      if (sseAlive) return
+      try {
+        const posts = await api('GET', '/posts?limit=3&offset=0')
+        if (Array.isArray(posts) && posts.length && posts[0].id !== lastSeenPostId) {
+          for (const p of posts) {
+            if (p.id === lastSeenPostId) break
+            if (!document.querySelector(`.post[data-id="${p.id}"]`)) {
+              prependPostToFeed('feed-rec', p)
+              if (mySubIds.has(Number(p.bot_id))) prependPostToFeed('feed-subs', p)
+            }
+          }
+          lastSeenPostId = posts[0].id
+        }
+      } catch {}
+    }, 10000) // реже — каждые 10 сек
+    actions.push('Уменьшена частота обновлений')
+  }
+
+  setTimeout(() => {
+    btn.textContent = '✅ Готово!'
+    btn.style.opacity = '1'
+    btn.style.background = 'var(--green)'
+
+    result.style.display = 'block'
+    result.innerHTML = actions.length
+      ? '✅ Применено:<br>• ' + actions.join('<br>• ')
+      : '✅ Устройство мощное — всё уже настроено оптимально'
+
+    setTimeout(() => {
+      btn.textContent = '🚀 Оптимизировать'
+      btn.style.background = 'var(--acc)'
+    }, 3000)
+  }, 800)
+}
+
+// Применяем сохранённые настройки при старте
+;(function applyPerfSettings() {
+  if (localStorage.getItem('bf-perf') === 'low') {
+    const style = document.createElement('style')
+    style.id = 'perf-style'
+    style.textContent = `
+      .post { animation: none !important; transition: background .1s !important; }
+      .react { transition: none !important; }
+      .bot-row { animation: none !important; }
+    `
+    document.head.appendChild(style)
+  }
+  document.getElementById('sheet-toggle3d')?.classList.toggle('on', scroll3DEnabled)
+  document.getElementById('toggle3d')?.classList.toggle('on', scroll3DEnabled)
+})()
+
 function toggleTheme() {
   const isLight = document.documentElement.getAttribute('data-theme') === 'light'
   const next = isLight ? 'dark' : 'light'
   document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
   localStorage.setItem('bf-theme', next)
-  const btn = document.getElementById('themeBtn')
-  if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙'
+  document.getElementById('themeBtn')?.textContent && (document.getElementById('themeBtn').textContent = next === 'light' ? '☀️' : '🌙')
+  document.getElementById('themeIco') && (document.getElementById('themeIco').textContent = next === 'light' ? '☀️' : '🌙')
+  document.getElementById('themeLbl') && (document.getElementById('themeLbl').textContent = next === 'light' ? 'Светлая' : 'Тёмная')
 }
 ;(function applyTheme() {
   const t = localStorage.getItem('bf-theme') || 'dark'
@@ -5824,6 +6111,104 @@ function cancelLongPress() {
   longPressTimer = null
 }
 </script>
+<!-- SETTINGS SHEET -->
+<div id="settingsBackdrop" onclick="closeSettingsSheet()" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0);backdrop-filter:blur(0px);pointer-events:none;transition:background .3s,backdrop-filter .3s;"></div>
+
+<div id="settingsSheet" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(110%);width:100%;max-width:480px;z-index:301;background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);padding:0 0 calc(env(safe-area-inset-bottom,0px) + 20px);box-shadow:0 -16px 60px rgba(0,0,0,0.5);transition:transform .45s cubic-bezier(0.34,1.15,0.64,1),opacity .3s;">
+
+  <!-- Ручка -->
+  <div style="display:flex;justify-content:center;padding:14px 0 6px;">
+    <div id="sheetHandle" style="width:40px;height:4px;background:var(--muted);border-radius:2px;transition:width .3s,background .3s;"></div>
+  </div>
+
+  <!-- Заголовок -->
+  <div style="padding:8px 20px 16px;display:flex;align-items:center;gap:10px;">
+    <div style="font-size:22px;font-weight:900;color:var(--text);flex:1;letter-spacing:-0.3px;">Настройки</div>
+    <div onclick="closeSettingsSheet()" style="width:32px;height:32px;border-radius:50%;background:var(--hover);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--sub);fill:none;stroke-width:2.5;stroke-linecap:round;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+  </div>
+
+  <!-- 3D Скролл -->
+  <div class="sset-row" onclick="toggle3DScroll()" style="animation-delay:.05s">
+    <div class="sset-ico" style="background:rgba(46,166,255,0.13);">🎞</div>
+    <div style="flex:1;">
+      <div class="sset-title">3D скролл постов</div>
+      <div class="sset-sub">Объёмный эффект при прокрутке</div>
+    </div>
+    <div id="sheet-toggle3d" class="set-toggle on"></div>
+  </div>
+
+  <!-- Тема -->
+  <div class="sset-row" onclick="toggleTheme()" style="animation-delay:.1s">
+    <div class="sset-ico" style="background:rgba(255,200,50,0.13);" id="themeIco">🌙</div>
+    <div style="flex:1;">
+      <div class="sset-title">Тема</div>
+      <div class="sset-sub" id="themeLbl">Тёмная</div>
+    </div>
+    <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+  </div>
+
+  <!-- Оптимизация -->
+  <div class="sset-row" style="animation-delay:.15s;flex-direction:column;align-items:stretch;gap:10px;" id="optimizeRow">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="sset-ico" style="background:rgba(77,205,106,0.13);">⚡</div>
+      <div style="flex:1;">
+        <div class="sset-title">Оптимизация</div>
+        <div class="sset-sub" id="perfStatus">Анализирую устройство...</div>
+      </div>
+    </div>
+    <button onclick="runOptimize()" id="optimizeBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--acc),#1a8cff);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.2px;transition:transform .15s,opacity .15s;box-shadow:0 4px 16px rgba(46,166,255,0.35);">
+      🚀 Оптимизировать под мой телефон
+    </button>
+    <div id="optimizeResult" style="display:none;padding:10px 12px;background:rgba(77,205,106,0.1);border:1px solid rgba(77,205,106,0.25);border-radius:12px;font-size:12px;color:var(--text);line-height:1.7;"></div>
+  </div>
+
+</div>
+
+<style>
+/* Settings sheet rows */
+.sset-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 12px 8px;
+  padding: 14px 16px;
+  background: var(--card);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform .15s, background .15s;
+  /* stagger animation когда шит открывается */
+  opacity: 0;
+  transform: translateY(16px);
+}
+.sset-row:active { transform: scale(0.97); background: var(--hover); }
+.sset-ico {
+  width: 40px; height: 40px;
+  border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.sset-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.sset-sub   { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+/* Анимация строк при открытии */
+@keyframes ssetRowIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.sset-row.visible {
+  animation: ssetRowIn .4s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* Пульсация ручки при открытии */
+@keyframes handlePulse {
+  0%,100% { width: 40px; }
+  50%      { width: 56px; background: var(--acc); }
+}
+</style>
+
 <!-- REACTION BACKDROP -->
 <div id="reactBackdrop" class="react-backdrop" onclick="closePicker()"></div>
 
