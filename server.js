@@ -882,7 +882,7 @@ app.post('/api/posts/:id/react', { preHandler: auth }, async (req, reply) => {
     'SELECT emoji, COUNT(*) as count FROM reactions WHERE post_id=$1 GROUP BY emoji',
     [postId]
   )
-  ssePublish('reaction_update', { post_id: postId, emoji, action, removed_emoji: removedEmoji, reactions: cnt.map(r => ({ emoji: r.emoji, count: parseInt(r.count) })) })
+  ssePublish('reaction_update', { post_id: postId, emoji, action, removed_emoji: removedEmoji, by_user_id: userId, reactions: cnt.map(r => ({ emoji: r.emoji, count: parseInt(r.count) })) })
 
   return { action, removed_emoji: removedEmoji }
 })
@@ -952,7 +952,7 @@ app.post('/api/posts/:id/comments', { preHandler: auth }, async (req, reply) => 
   const enriched = { ...comment, ...uRows[0] }
 
   // SSE — всем кто смотрит этот пост
-  ssePublish('new_comment', { post_id: postId, comment: enriched })
+  ssePublish('new_comment', { post_id: postId, comment: enriched, by_user_id: req.user.id })
 
   // ════════════════════════════════════════
   // TG УВЕДОМЛЕНИЕ — если это ответ на чужой комментарий
@@ -1134,9 +1134,15 @@ function ssePublish(event, data, targetUserIds = null) {
   }
 }
 
-// SSE подключение
-app.get('/api/sse', { preHandler: optAuth }, async (req, reply) => {
-  const userId = req.user?.id ? String(req.user.id) : `guest_${++guestCounter}`
+// SSE подключение — EventSource не поддерживает заголовки, токен идёт в query
+app.get('/api/sse', async (req, reply) => {
+  let userId = `guest_${++guestCounter}`
+  if (req.query.token) {
+    try {
+      const decoded = app.jwt.verify(req.query.token)
+      if (decoded?.id) userId = String(decoded.id)
+    } catch {}
+  }
 
   reply.raw.setHeader('Content-Type', 'text/event-stream')
   reply.raw.setHeader('Cache-Control', 'no-cache')
