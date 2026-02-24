@@ -3761,12 +3761,11 @@ function isPostRead(postId) {
 // ════════════════════════════════
 
 // Очередь запросов чтобы не было гонки при быстрых тапах
-const reactQueue = {};
+// реакции блокируются через el.dataset.pending
 
 async function reactPost(postId, emoji, el) {
   if (!TOKEN) {
     toast('👤', 'Войди чтобы ставить реакции');
-    // Shake анимация для подсказки
     el.style.animation = 'none';
     void el.offsetWidth;
     el.style.animation = 'reactShake .35s ease both';
@@ -3774,25 +3773,22 @@ async function reactPost(postId, emoji, el) {
     return;
   }
 
-  const key = `${postId}-${emoji}`;
-  if (reactQueue[key]) return; // дебаунс — игнорируем двойные тапы
-  reactQueue[key] = true;
+  // Блокируем на самом элементе пока запрос не завершён
+  if (el.dataset.pending) return;
+  el.dataset.pending = '1';
 
   const wasOn = el.classList.contains('on');
-  // Ищем именно span со счётчиком (не .react-emoji)
   const sp = el.querySelector('span:not(.react-emoji)');
   const currentCount = parseInt(sp?.textContent?.trim() || '0') || 0;
   const newOn = !wasOn;
 
   // ── МГНОВЕННЫЙ optimistic update ──
   el.classList.toggle('on', newOn);
-  if (sp) {
-    sp.textContent = currentCount + (newOn ? 1 : -1);
-  }
+  if (sp) sp.textContent = currentCount + (newOn ? 1 : -1);
 
   // ── Анимация эмодзи ──
   el.classList.remove('anim-add', 'anim-remove');
-  void el.offsetWidth; // reflow
+  void el.offsetWidth;
   el.classList.add(newOn ? 'anim-add' : 'anim-remove');
   setTimeout(() => el.classList.remove('anim-add', 'anim-remove'), 600);
 
@@ -3811,20 +3807,22 @@ async function reactPost(postId, emoji, el) {
   // ── Отправляем запрос ──
   try {
     const res = await api('POST', `/posts/${postId}/react`, { emoji });
+    // Если сервер не согласен с optimistic — корректируем
+    // Счётчик НЕ трогаем — придёт точный через SSE reaction_update
     if (res?.action) {
       const serverOn = res.action === 'added';
-      // Корректируем если сервер не совпал с optimistic
       if (serverOn !== newOn) {
         el.classList.toggle('on', serverOn);
         if (sp) sp.textContent = currentCount + (serverOn ? 1 : -1);
       }
     }
   } catch(e) {
-    // Откатываем если ошибка
+    // Откатываем если ошибка сети
     el.classList.toggle('on', wasOn);
     if (sp) sp.textContent = currentCount;
   } finally {
-    delete reactQueue[key];
+    // Небольшая задержка — SSE должен успеть прийти и не создать гонку
+    setTimeout(() => delete el.dataset.pending, 800);
   }
 }
 
@@ -5437,6 +5435,7 @@ let sseSource = null
 let sseReconnectTimer = null
 let sseReconnectDelay = 1500
 let sseAlive = false          // true если SSE реально работает
+let sseUserId = null          // userId с сервера — чтобы скипать свои события
 let pollTimer = null
 let lastSeenPostId = null     // для polling — последний виденный пост
 let lastSeenCommentTs = {}    // post_id -> timestamp последнего комментария
@@ -5498,6 +5497,7 @@ function sseConnect() {
     clearTimeout(connectTimeout)
     sseAlive = true
     sseReconnectDelay = 1500
+    sseUserId = JSON.parse(e.data).userId  // запоминаем свой SSE userId
     stopPolling() // SSE работает — polling не нужен
   })
 
@@ -5521,87 +5521,68 @@ function sseConnect() {
 
   // ── Обновление реакций (от других пользователей) ──
   sseSource.addEventListener('reaction_update', (e) => {
-    const { post_id, emoji, action, removed_emoji, reactions } = JSON.parse(e.data)
+    const { post_id, emoji, action, removed_emoji, by_user_id, reactions } = JSON.parse(e.data)
 
-    // Обновляем все карточки и открытый детейл этого поста
+    // Своё событие — пропускаем, у нас уже optimistic update стоит
+    if (by_user_id && String(by_user_id) === sseUserId) return
+
+    // Обновляем все карточки поста и открытый детейл
     document.querySelectorAll(`.post[data-id="${post_id}"] .post-foot, #postDetailContent .post-foot`).forEach(foot => {
-      // Если была удалена другая реакция (смена реакции) — убираем старую кнопку или уменьшаем счётчик
+
+      // Удаляем или обновляем removed_emoji кнопку
       if (removed_emoji) {
-        const oldBtn = [...foot.querySelectorAll('.react')].find(el => {
-          const sp = el.querySelector('.react-emoji')
-          return sp && sp.textContent.trim() === removed_emoji
-        })
+        const oldBtn = [...foot.querySelectorAll('.react')].find(b => b.querySelector('.react-emoji')?.textContent.trim() === removed_emoji)
         if (oldBtn && !oldBtn.classList.contains('on')) {
-          // Не наша кнопка — обновляем счётчик из server data
           const serverR = reactions.find(r => r.emoji === removed_emoji)
-          const oldSp = oldBtn.querySelector('span:not(.react-emoji)')
           if (!serverR || serverR.count <= 0) {
-            // Плавно убираем если 0
             oldBtn.style.transition = 'opacity .3s, transform .3s, max-width .35s, padding .35s'
-            oldBtn.style.opacity = '0'
-            oldBtn.style.transform = 'scale(0.7)'
-            oldBtn.style.maxWidth = '0'
-            oldBtn.style.padding = '0'
+            oldBtn.style.opacity = '0'; oldBtn.style.transform = 'scale(0.7)'
+            oldBtn.style.maxWidth = '0'; oldBtn.style.padding = '0'
             setTimeout(() => oldBtn.remove(), 360)
-          } else if (oldSp) {
-            oldSp.textContent = serverR.count
+          } else {
+            const sp = oldBtn.querySelector('span:not(.react-emoji)')
+            if (sp) sp.textContent = serverR.count
           }
         }
       }
 
-      // Обновляем/добавляем кнопку для текущего emoji
+      // Обновляем emoji кнопку — используем серверный счётчик как источник истины
       const serverR = reactions.find(r => r.emoji === emoji)
-      const existingBtn = [...foot.querySelectorAll('.react')].find(el => {
-        const sp = el.querySelector('.react-emoji')
-        return sp && sp.textContent.trim() === emoji
-      })
+      const existingBtn = [...foot.querySelectorAll('.react')].find(b => b.querySelector('.react-emoji')?.textContent.trim() === emoji)
 
-      if (action === 'removed' && !existingBtn?.classList.contains('on')) {
-        if (!serverR || serverR.count <= 0) {
-          // Убираем кнопку плавно
-          if (existingBtn) {
+      if (existingBtn) {
+        // Обновляем счётчик только если это не наша кнопка с optimistic update
+        if (!existingBtn.classList.contains('on') || action === 'removed') {
+          const sp = existingBtn.querySelector('span:not(.react-emoji)')
+          if (sp && serverR) sp.textContent = serverR.count
+          if (!serverR || serverR.count <= 0) {
             existingBtn.style.transition = 'opacity .3s, transform .3s, max-width .35s, padding .35s'
-            existingBtn.style.opacity = '0'
-            existingBtn.style.transform = 'scale(0.7)'
-            existingBtn.style.maxWidth = '0'
-            existingBtn.style.padding = '0'
+            existingBtn.style.opacity = '0'; existingBtn.style.transform = 'scale(0.7)'
+            existingBtn.style.maxWidth = '0'; existingBtn.style.padding = '0'
             setTimeout(() => existingBtn.remove(), 360)
           }
-        } else if (existingBtn) {
-          const sp = existingBtn.querySelector('span:not(.react-emoji)')
-          if (sp && !existingBtn.classList.contains('on')) sp.textContent = serverR.count
         }
-      } else if (action === 'added') {
-        if (existingBtn) {
-          // Обновляем счётчик если это не наша кнопка (не optimistic)
-          if (!existingBtn.classList.contains('on')) {
-            const sp = existingBtn.querySelector('span:not(.react-emoji)')
-            if (sp && serverR) sp.textContent = serverR.count
-          }
-        } else if (serverR && serverR.count > 0) {
-          // Добавляем новую кнопку реакции которой ещё не было
-          const newBtn = document.createElement('div')
-          newBtn.className = 'react'
-          const postIdForBtn = foot.closest('.post')?.dataset?.id || post_id
-          newBtn.setAttribute('onclick', `event.stopPropagation();reactPost(${postIdForBtn},'${emoji}',this)`)
-          newBtn.innerHTML = `<span class="react-emoji">${emoji}</span><span>${serverR.count}</span>`
-          newBtn.style.cssText = 'opacity:0;transform:scale(0.7);transition:opacity .3s,transform .3s'
-          // Вставляем перед кнопкой комментариев и share
-          const shareSep = foot.querySelector('.react-sep') || foot.querySelector('.share')
-          if (shareSep) foot.insertBefore(newBtn, shareSep)
-          else foot.appendChild(newBtn)
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            newBtn.style.opacity = '1'
-            newBtn.style.transform = 'scale(1)'
-          }))
-        }
+      } else if (action === 'added' && serverR && serverR.count > 0) {
+        // Новая реакция которой ещё не было — добавляем кнопку
+        const newBtn = document.createElement('div')
+        newBtn.className = 'react'
+        const pid = foot.closest('.post')?.dataset?.id || post_id
+        newBtn.setAttribute('onclick', `event.stopPropagation();reactPost(${pid},'${emoji}',this)`)
+        newBtn.innerHTML = `<span class="react-emoji">${emoji}</span><span>${serverR.count}</span>`
+        newBtn.style.cssText = 'opacity:0;transform:scale(0.7);transition:opacity .3s,transform .3s'
+        const anchor = foot.querySelector('.react-sep') || foot.querySelector('.share')
+        if (anchor) foot.insertBefore(newBtn, anchor)
+        else foot.appendChild(newBtn)
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          newBtn.style.opacity = '1'; newBtn.style.transform = 'scale(1)'
+        }))
       }
     })
   })
 
   // ── Новый комментарий ──
   sseSource.addEventListener('new_comment', (e) => {
-    const { post_id, comment } = JSON.parse(e.data)
+    const { post_id, comment, by_user_id } = JSON.parse(e.data)
 
     // Обновляем счётчик комментариев везде
     document.querySelectorAll(`.post[data-id="${post_id}"] .react`).forEach(el => {
@@ -5613,8 +5594,8 @@ function sseConnect() {
 
     // Если открыт этот пост — добавляем комментарий в список
     if (String(currentPostDetailId) === String(post_id)) {
-      // Не добавляем свой (уже есть optimistic)
-      if (String(comment.user_id) !== String(ME?.id)) {
+      // Не добавляем свой — он уже есть через optimistic update
+      if (!by_user_id || String(by_user_id) !== String(ME?.id)) {
         appendCommentToDetail(comment)
       }
     }
