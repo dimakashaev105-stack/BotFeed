@@ -241,13 +241,14 @@ html, body {
   position: relative;
   overflow: visible !important;
   display: flex; align-items: center; gap: 4px;
-  padding: 5px 10px; border-radius: 20px;
-  background: var(--hover); border: 1px solid transparent;
+  padding: 6px 12px; border-radius: 22px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
   font-size: 13px; cursor: pointer; user-select: none;
-  transition: background .18s, border-color .18s, color .18s;
+  transition: background .18s, border-color .18s, color .18s, transform .18s;
 }
+.react:hover { background: rgba(255,255,255,0.08); }
 .react:active { transform: scale(0.9); }
-.react.on { background: rgba(46,166,255,0.12); border-color: rgba(46,166,255,0.3); }
+.react.on { background: rgba(46,166,255,0.13); border-color: rgba(46,166,255,0.28); }
 .react.on span { color: var(--acc); }
 
 /* ── Эмодзи внутри реакции ── */
@@ -594,25 +595,35 @@ html, body {
 /* ══════════════════════════════════════
    FEED & POSTS — стильные карточки
 ══════════════════════════════════════ */
-.feed { padding:8px 12px 90px; display:flex; flex-direction:column; gap:0; }
+.feed { padding:10px 12px 100px; display:flex; flex-direction:column; gap:0; }
 
 /* Карточка поста */
 .post {
-  background: linear-gradient(145deg, #232f40, #1e2a39);
-  border-radius: 20px;
-  padding: 16px;
-  border: 1px solid rgba(255,255,255,0.07);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  background: linear-gradient(160deg, #1e2d3f 0%, #192535 100%);
+  border-radius: 22px;
+  padding: 18px 16px 14px;
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 12px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.07);
   cursor: pointer;
-  margin-bottom: 14px;
-  transition: transform .18s cubic-bezier(0.34,1.56,0.64,1), box-shadow .15s, background .12s, opacity .4s;
+  margin-bottom: 10px;
+  transition: transform .2s cubic-bezier(0.34,1.56,0.64,1), box-shadow .2s, opacity .4s;
+  position: relative;
+  overflow: hidden;
+}
+.post::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(46,166,255,0.2), transparent);
+  pointer-events: none;
 }
 [data-theme="light"] .post {
   background: #ffffff;
-  border: 1px solid rgba(0,0,0,0.07);
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.06);
 }
-.post:active { transform: scale(0.984); box-shadow: 0 1px 6px rgba(0,0,0,0.25); }
+[data-theme="light"] .post::before { background: linear-gradient(90deg, transparent, rgba(46,166,255,0.08), transparent); }
+.post:active { transform: scale(0.982); box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
 
 /* Прочитанный пост — немного тусклее */
 .post.post-read {
@@ -638,11 +649,11 @@ html, body {
 }
 
 .post-head { display:flex; align-items:center; gap:11px; margin-bottom:11px; }
-.p-ava { width:44px; height:44px; border-radius:14px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+.p-ava { width:46px; height:46px; border-radius:15px; background:var(--hover); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden; box-shadow: 0 3px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.07); }
 .p-meta { flex:1; min-width:0; }
-.p-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.p-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-0.01em; }
 .p-cat { font-size:12px; color:var(--sub); margin-top:2px; }
-.p-time { font-size:11px; color:var(--muted); flex-shrink:0; background:rgba(255,255,255,0.06); padding:3px 9px; border-radius:20px; border: 1px solid rgba(255,255,255,0.05); }
+.p-time { font-size:11px; color:var(--sub); flex-shrink:0; background:rgba(255,255,255,0.06); padding:3px 10px; border-radius:20px; border: 1px solid rgba(255,255,255,0.07); letter-spacing:0.01em; }
 .p-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; background:var(--acc); color:#fff; border-radius:50%; font-size:9px; font-weight:800; flex-shrink:0; }
 
 .post-img { height:180px; border-radius:10px; background:var(--hover); margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:48px; overflow:hidden; }
@@ -650,9 +661,9 @@ html, body {
 /* Новый медиа-блок для постов */
 .post-media {
   position: relative;
-  height: 200px;
-  border-radius: 14px;
-  margin-bottom: 12px;
+  height: 210px;
+  border-radius: 16px;
+  margin-bottom: 14px;
   overflow: hidden;
   background: var(--hover);
 }
@@ -661,12 +672,12 @@ html, body {
   inset: 0;
   background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.4) 100%);
 }
-.post-text { font-size:14px; line-height:1.7; margin-bottom:12px; color:var(--text); word-break: break-word; }
+.post-text { font-size:14px; line-height:1.75; margin-bottom:14px; color:var(--text); word-break: break-word; letter-spacing:0.01em; }
 .post-text-clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
 .post-read-more { font-size:13px; color:var(--acc); cursor:pointer; margin-bottom:12px; display:inline-block; }
 
 /* Разделитель перед реакциями */
-.post-divider { height:1px; background:var(--border); margin:0 0 10px; }
+.post-divider { height:1px; background:rgba(255,255,255,0.05); margin:2px 0 11px; }
 
 .post-foot { display:flex; align-items:center; gap:5px; flex-wrap: wrap; }
 .react {
@@ -1576,11 +1587,16 @@ html, body {
 ══════════════════════════════════════ */
 .home-topbar {
   position: sticky; top: 0; z-index: 20;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  background: rgba(15,25,35,0.97);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+}
+[data-theme="light"] .home-topbar {
+  background: rgba(240,244,248,0.97);
 }
 .home-tabs-row {
   display: flex;
@@ -1597,13 +1613,14 @@ html, body {
 }
 .home-tab {
   font-size: 15px;
-  font-weight: 600;
-  color: var(--sub);
-  padding: 6px 20px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 6px 22px;
   cursor: pointer;
   position: relative;
-  transition: color .2s;
+  transition: color .22s;
   user-select: none;
+  letter-spacing: -0.01em;
 }
 .home-tab::after {
   content: '';
@@ -1628,24 +1645,26 @@ html, body {
 }
 .feed-filters::-webkit-scrollbar { display: none; }
 .feed-chip {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 12px;
-  border-radius: 20px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 14px;
+  border-radius: 22px;
   font-size: 12px; font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   flex-shrink: 0;
-  background: var(--card);
+  background: rgba(255,255,255,0.05);
   color: var(--sub);
-  border: 1px solid var(--border);
-  transition: all .18s cubic-bezier(0.34,1.56,0.64,1);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all .2s cubic-bezier(0.34,1.56,0.64,1);
   user-select: none;
+  letter-spacing: 0.01em;
 }
-.feed-chip:active { transform: scale(0.92); }
+.feed-chip:active { transform: scale(0.91); }
 .feed-chip.on {
-  background: var(--acc-dim);
-  border-color: rgba(46,166,255,.3);
+  background: rgba(46,166,255,0.15);
+  border-color: rgba(46,166,255,.35);
   color: var(--acc);
+  box-shadow: 0 2px 12px rgba(46,166,255,0.15);
 }
 
 @keyframes feedSlideInRight {
@@ -1678,17 +1697,14 @@ html, body {
 
 /* ── Post type buttons ── */
 .post-type-btn {
-  flex-shrink:0; padding:6px 12px; border-radius:20px;
+  flex-shrink:0; padding:6px 14px; border-radius:22px;
   font-size:12px; font-weight:600; cursor:pointer;
-  background:var(--bg); color:var(--sub);
-  border:1.5px solid var(--border);
-  transition:all .15s;
+  background:rgba(255,255,255,0.05); color:var(--sub);
+  border:1px solid rgba(255,255,255,0.09);
+  transition:all .18s cubic-bezier(0.34,1.56,0.64,1);
   white-space:nowrap;
 }
-.post-type-btn.active {
-  background:var(--acc-dim); color:var(--acc);
-  border-color:var(--acc);
-}
+.post-type-btn.active { background:rgba(46,166,255,0.15); color:var(--acc); border-color:rgba(46,166,255,0.35); box-shadow:0 2px 10px rgba(46,166,255,0.15); }
 
 /* ══════════════════════════════════════
    COMMENTS — свайп-ответ как в TG
@@ -2369,48 +2385,86 @@ html, body {
       </div>
 
       <!-- ── ПОСТЫ ── -->
-      <div id="mng-posts" style="display:none;padding:16px;">
-        <!-- Новый пост -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">Новый пост</div>
+      <div id="mng-posts" style="display:none;padding:14px 14px 20px;">
+
+        <!-- ── РЕДАКТОР ПОСТА ── -->
+        <div style="background:linear-gradient(160deg,#1e2d3f,#192535);border-radius:20px;border:1px solid rgba(255,255,255,0.09);box-shadow:0 8px 32px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.06);overflow:hidden;margin-bottom:16px;">
+
+          <!-- Шапка редактора -->
+          <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px rgba(46,166,255,0.6);"></div>
+              <span style="font-size:14px;font-weight:700;color:var(--text);">Новый пост</span>
+            </div>
+            <div id="postCharCount" style="font-size:11px;color:var(--muted);background:rgba(255,255,255,0.06);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.07);">0 / 1000</div>
+          </div>
+
           <!-- Тип поста -->
-          <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+          <div style="padding:12px 16px 0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;">
             <div class="post-type-btn active" data-type="news" onclick="selectPostType(this)">📢 Новость</div>
             <div class="post-type-btn" data-type="update" onclick="selectPostType(this)">🚀 Обновление</div>
             <div class="post-type-btn" data-type="tip" onclick="selectPostType(this)">💡 Совет</div>
             <div class="post-type-btn" data-type="promo" onclick="selectPostType(this)">🎁 Акция</div>
           </div>
-          <textarea id="newPostText" placeholder="Расскажи об обновлении, новой фиче или совете..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;height:120px;outline:none;line-height:1.5;"></textarea>
 
-          <!-- Загрузка изображения -->
-          <div style="margin-top:10px;">
+          <!-- Текстовое поле -->
+          <div style="padding:12px 16px;">
+            <textarea id="newPostText"
+              placeholder="Расскажи об обновлении, новой фиче или новости…"
+              style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;min-height:120px;outline:none;line-height:1.65;transition:border-color .2s,background .2s;"
+              onfocus="this.style.borderColor='rgba(46,166,255,0.35)';this.style.background='rgba(0,0,0,0.28)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='rgba(0,0,0,0.2)'"></textarea>
+          </div>
+
+          <!-- Превью изображения -->
+          <div id="postImagePreview" style="display:none;position:relative;margin:0 16px 12px;">
+            <img id="postImageThumb" src="" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;display:block;">
+            <div onclick="removePostImage()" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1;border:1px solid rgba(255,255,255,0.15);">×</div>
+          </div>
+
+          <!-- Панель действий -->
+          <div style="padding:10px 16px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(255,255,255,0.06);">
+            <!-- Кнопка изображения -->
             <input type="file" id="postImageFile" accept="image/*" style="display:none;" onchange="handleImageSelect(this)">
-            <div id="postImagePreview" style="display:none;position:relative;margin-bottom:10px;">
-              <img id="postImageThumb" src="" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;display:block;">
-              <div onclick="removePostImage()" style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.65);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;">×</div>
+            <div id="postImageUploadBtn" onclick="document.getElementById('postImageFile').click()"
+              style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s;"
+              title="Добавить изображение">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             </div>
-            <div id="postImageUploadBtn" onclick="document.getElementById('postImageFile').click()" style="display:flex;align-items:center;gap:7px;padding:8px 12px;background:var(--bg);border:1.5px dashed rgba(46,166,255,0.3);border-radius:10px;cursor:pointer;color:var(--sub);font-size:13px;transition:border-color .15s;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span>Добавить изображение</span>
-            </div>
-            <div id="postImageStatus" style="font-size:11px;color:var(--sub);margin-top:4px;display:none;"></div>
-          </div>
-
-          <!-- Кнопки поста -->
-          <div style="margin-top:12px;">
-            <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Кнопки в посте <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.6;">(необязательно, макс. 4)</span></div>
-            <div id="btnEditorList"></div>
-            <div class="add-btn-row" onclick="addPostButton()" id="addBtnRow">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Добавить кнопку
-            </div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-            <div style="font-size:12px;color:var(--muted);" id="postCharCount">0 / 1000</div>
-            <button onclick="publishPost()" style="background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Опубликовать</button>
+            <!-- Статус загрузки -->
+            <div id="postImageStatus" style="font-size:11px;color:var(--sub);display:none;flex:1;"></div>
+            <div style="flex:1;"></div>
+            <!-- Кнопка публикации -->
+            <button onclick="publishPost()"
+              style="background:linear-gradient(135deg,#2ea6ff,#1a8fe0);color:#fff;border:none;border-radius:12px;padding:10px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(46,166,255,0.35);transition:transform .15s,box-shadow .15s;letter-spacing:-0.01em;"
+              onmousedown="this.style.transform='scale(0.96)';this.style.boxShadow='0 2px 8px rgba(46,166,255,0.2)'"
+              onmouseup="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(46,166,255,0.35)'"
+              ontouchstart="this.style.transform='scale(0.96)'"
+              ontouchend="this.style.transform=''">
+              Опубликовать
+            </button>
           </div>
         </div>
-        <div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Все посты</div>
+
+        <!-- Кнопки в посте -->
+        <div style="background:rgba(255,255,255,0.03);border-radius:16px;border:1px solid rgba(255,255,255,0.07);padding:14px 16px;margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Кнопки <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.5;font-size:11px;">до 4 шт</span>
+          </div>
+          <div id="btnEditorList"></div>
+          <div class="add-btn-row" onclick="addPostButton()" id="addBtnRow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Добавить кнопку
+          </div>
+        </div>
+
+        <!-- Список постов -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.06);"></div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;">Опубликованные</div>
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.06);"></div>
+        </div>
         <div id="myPostsList"></div>
       </div>
 
@@ -3957,7 +4011,7 @@ function renderDiscFeatured() {
       <div class="disc-feat-name">${esc(b.name)} ${badge}</div>
       <div class="disc-feat-desc">${esc(b.description||'')}</div>
       <div class="disc-feat-foot">
-        <div class="disc-feat-m"><div class="gdot"></div>${(()=>{const s=Number(b.subscribers||0);return s>=1000?Math.floor(s/1000)+'K':s})()} подп.</div>
+        <div class="disc-feat-m"><div class="gdot"></div>${m>1000?Math.floor(m/1000)+'K':m}</div>
         <div class="${isSub?'sub-btn subbed':'sub-btn'}" style="font-size:11px;padding:5px 10px;" onclick="event.stopPropagation();subBot(${b.id},this)">${isSub?'✓':'+'}</div>
       </div>
     </div>`;
@@ -4108,7 +4162,7 @@ function botRowHTML(b) {
       <div class="br-tags">${tags}</div>
     </div>
     <div class="br-right">
-      <div class="br-count"><div class="gdot"></div>${(()=>{const s=Number(b.subscribers||0);return s>=1000?Math.floor(s/1000)+'K':s})()} подп.</div>
+      <div class="br-count"><div class="gdot"></div>${b.members||0}</div>
       <div class="${subClass}" onclick="event.stopPropagation();subBot(${b.id},this)">${subText}</div>
     </div>
   </div>`;
