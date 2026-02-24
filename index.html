@@ -774,7 +774,74 @@ html, body {
 .onboard-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: all .25s; }
 .onboard-dot.active { width: 20px; border-radius: 3px; background: var(--acc); }
 
-/* ══ THEME TOGGLE ══ */
+/* ══ NAV ICON ANIMATIONS ══ */
+
+/* --- Главная: очень лёгкое медленное покачивание — ненавязчивое --- */
+@keyframes homeIdle {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-2px) rotate(-2deg); }
+  75%      { transform: translateY(-1px) rotate(2deg); }
+}
+/* Тап на главную — домик подпрыгивает */
+@keyframes homeTap {
+  0%   { transform: translateY(0)   scale(1); }
+  25%  { transform: translateY(-6px) scale(1.15) rotate(-4deg); }
+  55%  { transform: translateY(1px) scale(0.92) rotate(2deg); }
+  75%  { transform: translateY(-2px) scale(1.05); }
+  100% { transform: translateY(0)   scale(1); }
+}
+#navHomeIco {
+  transform-origin: bottom center;
+}
+.nav-item.active #navHomeIco {
+  animation: homeIdle 3.5s ease-in-out 1.2s infinite;
+}
+.nav-item.nav-tap #navHomeIco {
+  animation: homeTap .55s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* --- Каталог: лупа делает круговое движение "поиска" --- */
+@keyframes catalogTap {
+  0%   { transform: rotate(0deg)   scale(1); }
+  20%  { transform: rotate(-20deg) scale(1.18); }
+  45%  { transform: rotate(15deg)  scale(0.9); }
+  65%  { transform: rotate(-8deg)  scale(1.08); }
+  82%  { transform: rotate(4deg)   scale(1.02); }
+  100% { transform: rotate(0deg)   scale(1); }
+}
+#navCatalogIco { transform-origin: center; }
+.nav-item.nav-tap #navCatalogIco {
+  animation: catalogTap .6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* --- Настройки: пружинистый спин --- */
+@keyframes gearTap {
+  0%   { transform: rotate(0deg)   scale(1); }
+  30%  { transform: rotate(130deg) scale(1.18); }
+  60%  { transform: rotate(210deg) scale(0.9); }
+  80%  { transform: rotate(340deg) scale(1.06); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+#settingsGear { transform-origin: center; }
+.nav-item.nav-tap #settingsGear {
+  animation: gearTap .65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* --- Профиль: голова всплывает снизу и мягко садится --- */
+@keyframes profileTap {
+  0%   { transform: translateY(0)    scale(1); }
+  20%  { transform: translateY(-5px) scale(1.18); }
+  50%  { transform: translateY(2px)  scale(0.9); }
+  70%  { transform: translateY(-2px) scale(1.06); }
+  85%  { transform: translateY(1px)  scale(0.98); }
+  100% { transform: translateY(0)    scale(1); }
+}
+#navProfileIco { transform-origin: bottom center; }
+.nav-item.nav-tap #navProfileIco {
+  animation: profileTap .55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ══ END NAV ANIMATIONS ══ */
 .theme-btn {
   width: 36px; height: 36px;
   border-radius: 12px;
@@ -1341,8 +1408,89 @@ html, body {
 
 
 /* ══════════════════════════════════════
-   BOT PAGE
+   SETTINGS SCREEN — fullscreen
 ══════════════════════════════════════ */
+.set-screen-header {
+  position: relative;
+  padding: 36px 20px 28px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.set-screen-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, var(--surface) 0%, var(--bg) 100%);
+  z-index: 0;
+}
+.set-screen-bg::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -40px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(46,166,255,0.14) 0%, transparent 70%);
+}
+.set-screen-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: -20px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(77,205,106,0.08) 0%, transparent 70%);
+}
+.set-screen-inner {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+}
+.set-screen-icon {
+  font-size: 52px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 12px rgba(46,166,255,0.2));
+  animation: avatarIn .5s cubic-bezier(0.22,1,0.36,1) both;
+}
+.set-screen-title {
+  font-size: 28px; font-weight: 900; letter-spacing: -1px;
+  color: var(--text); margin-bottom: 4px;
+  animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) .06s both;
+}
+.set-screen-sub {
+  font-size: 13px; color: var(--sub);
+  animation: authFadeUp .4s cubic-bezier(0.22,1,0.36,1) .12s both;
+}
+.set-screen-body { padding: 20px 14px 0; }
+.set-section-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin: 20px 4px 8px;
+}
+.set-section-label:first-child { margin-top: 4px; }
+.set-row-sub {
+  font-size: 12px; color: var(--sub); margin-top: 2px;
+}
+.set-coming {
+  font-size: 10px; font-weight: 700;
+  color: var(--sub);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  padding: 3px 8px; border-radius: 8px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+.set-optimize-btn {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--acc), #1a8cff);
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  letter-spacing: .2px;
+  transition: transform .15s, opacity .15s;
+  box-shadow: 0 4px 16px rgba(46,166,255,0.3);
+}
+.set-optimize-btn:active { transform: scale(0.97); opacity: .85; }
+
+/* ══ Уже существующие стили settings sheet — убраны ══ */
 @keyframes heroIn {
   from { opacity: 0; transform: scale(1.04); }
   to   { opacity: 1; transform: scale(1); }
@@ -1753,81 +1901,7 @@ html, body {
         </div>
       </div>
 
-      <div class="feed" id="feed-subs">
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">🤖</div>
-            <div class="p-meta">
-              <div class="p-name">ChatAI Bot <div class="p-badge">✓</div></div>
-              <div class="p-cat">ИИ · Утилиты</div>
-            </div>
-            <div class="p-time">2 ч</div>
-          </div>
-          <div class="post-text">🚀 Вышло обновление v2.4 — теперь бот умеет анализировать изображения. Просто пришли фото и задай вопрос. Работает на базе GPT-4o Vision.</div>
-          <div class="post-foot">
-            <div class="react on" onclick="tap(this)">🔥 <span>127</span></div>
-            <div class="react" onclick="tap(this)">👍 <span>94</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>31</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">🎵</div>
-            <div class="p-meta">
-              <div class="p-name">MusicFlow</div>
-              <div class="p-cat">Музыка · Развлечения</div>
-            </div>
-            <div class="p-time">5 ч</div>
-          </div>
-          <div class="post-img">🎧</div>
-          <div class="post-text">Добавили поддержку Apple Music и Deezer. Теперь скачивай из 5 платформ в одном боте.</div>
-          <div class="post-foot">
-            <div class="react" onclick="tap(this)">🔥 <span>88</span></div>
-            <div class="react" onclick="tap(this)">❤️ <span>203</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>17</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">📈</div>
-            <div class="p-meta">
-              <div class="p-name">CryptoTracker <div class="p-badge">✓</div></div>
-              <div class="p-cat">Финансы · Крипто</div>
-            </div>
-            <div class="p-time">вчера</div>
-          </div>
-          <div class="post-text">📊 За неделю обработано 4.2M запросов и создано 12K алертов. BTC снова выше 95K — наши пользователи в плюсе.</div>
-          <div class="post-foot">
-            <div class="react" onclick="tap(this)">🔥 <span>64</span></div>
-            <div class="react" onclick="tap(this)">👍 <span>51</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>9</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-        <div class="post">
-          <div class="post-head">
-            <div class="p-ava">🧠</div>
-            <div class="p-meta">
-              <div class="p-name">BrainBot</div>
-              <div class="p-cat">ИИ · Идеи</div>
-            </div>
-            <div class="p-time">2 дня</div>
-          </div>
-          <div class="post-text">Попробуй новый режим «Мозговой штурм» — описываешь задачу, бот генерирует 20 идей за 10 секунд. Уже помогло 3 000 пользователям.</div>
-          <div class="post-foot">
-            <div class="react" onclick="tap(this)">🔥 <span>42</span></div>
-            <div class="react" onclick="tap(this)">👍 <span>38</span></div>
-            <div class="react" onclick="tap(this)">💬 <span>14</span></div>
-            <div class="react-sep"></div>
-            <div class="share" onclick="toast('🔗','Ссылка скопирована')"><svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          </div>
-        </div>
-      </div>
+      <div class="feed" id="feed-subs"></div>
 
       <!-- Рекомендации -->
       <div class="feed" id="feed-rec" style="display:none;"></div>
@@ -2075,7 +2149,6 @@ html, body {
 
         <div class="p-tabs">
           <div class="p-tab on" onclick="profTab(this,'tb-bots')">Мои боты</div>
-          <div class="p-tab" onclick="profTab(this,'tb-settings')">Настройки</div>
         </div>
 
         <div id="tb-bots">
@@ -2086,50 +2159,131 @@ html, body {
           </div>
         </div>
 
-        <div id="tb-settings" style="display:none;">
-          <div class="set-group">
-            <div class="set-row" onclick="toggle3DScroll()" style="cursor:pointer;">
-              <div class="set-ico-wrap">🎞</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div class="screen" id="s-settings">
+
+      <!-- Sticky header с градиентом -->
+      <div class="set-screen-header">
+        <div class="set-screen-bg"></div>
+        <div class="set-screen-inner">
+          <div class="set-screen-icon">⚙️</div>
+          <div class="set-screen-title">Настройки</div>
+          <div class="set-screen-sub">Персонализируй BotFeed под себя</div>
+        </div>
+      </div>
+
+      <div class="set-screen-body">
+
+        <!-- Секция: Внешний вид -->
+        <div class="set-section-label">Внешний вид</div>
+        <div class="set-group">
+          <div class="set-row" onclick="toggleTheme()" style="cursor:pointer;">
+            <div class="set-ico-wrap" id="themeIcoWrap" style="background:rgba(255,200,50,0.13);">🌙</div>
+            <div style="flex:1;">
+              <div class="set-lbl">Тема оформления</div>
+              <div class="set-row-sub" id="themeLbl">Тёмная</div>
+            </div>
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <!-- Секция: Производительность -->
+        <div class="set-section-label">Производительность</div>
+        <div class="set-group">
+          <div class="set-row" onclick="toggle3DScroll()" style="cursor:pointer;">
+            <div class="set-ico-wrap" style="background:rgba(46,166,255,0.13);">🎞</div>
+            <div style="flex:1;">
               <div class="set-lbl">3D скролл постов</div>
-              <div id="toggle3d" class="set-toggle on"></div>
+              <div class="set-row-sub">Объёмный эффект при прокрутке</div>
             </div>
+            <div id="toggle3d" class="set-toggle on"></div>
           </div>
-          <div class="set-group">
-            <div class="set-row" onclick="toast('🔔','Скоро')">
-              <div class="set-ico-wrap">🔔</div>
+          <div class="set-row" style="flex-direction:column;align-items:stretch;gap:10px;cursor:default;">
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div class="set-ico-wrap" style="background:rgba(77,205,106,0.13);">⚡</div>
+              <div style="flex:1;">
+                <div class="set-lbl">Оптимизация</div>
+                <div class="set-row-sub" id="perfStatus">Анализирую устройство...</div>
+              </div>
+            </div>
+            <button onclick="runOptimize()" id="optimizeBtn" class="set-optimize-btn">
+              🚀 Оптимизировать под моё устройство
+            </button>
+            <div id="optimizeResult" style="display:none;padding:10px 12px;background:rgba(77,205,106,0.1);border:1px solid rgba(77,205,106,0.25);border-radius:12px;font-size:12px;color:var(--text);line-height:1.7;"></div>
+          </div>
+        </div>
+
+        <!-- Секция: Аккаунт -->
+        <div class="set-section-label">Аккаунт</div>
+        <div class="set-group">
+          <div class="set-row" onclick="toast('🔔','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(255,160,50,0.13);">🔔</div>
+            <div style="flex:1;">
               <div class="set-lbl">Уведомления</div>
-              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+              <div class="set-row-sub">Настройка push-уведомлений</div>
             </div>
-            <div class="set-row" onclick="toast('🔑','Скоро')">
-              <div class="set-ico-wrap">🔑</div>
+            <div class="set-coming">Скоро</div>
+          </div>
+          <div class="set-row" onclick="toast('🔑','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(120,100,255,0.13);">🔑</div>
+            <div style="flex:1;">
               <div class="set-lbl">API ключи</div>
-              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+              <div class="set-row-sub">Доступ для разработчиков</div>
             </div>
-            <div class="set-row" onclick="toast('📊','Скоро')">
-              <div class="set-ico-wrap">📊</div>
+            <div class="set-coming">Скоро</div>
+          </div>
+          <div class="set-row" onclick="toast('📊','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(77,205,106,0.13);">📊</div>
+            <div style="flex:1;">
               <div class="set-lbl">Аналитика</div>
-              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+              <div class="set-row-sub">Статистика твоих ботов</div>
             </div>
+            <div class="set-coming">Скоро</div>
           </div>
-          <div class="set-group">
-            <div class="set-row" onclick="toast('📋','Скоро')">
-              <div class="set-ico-wrap">📋</div>
+        </div>
+
+        <!-- Секция: Поддержка -->
+        <div class="set-section-label">Поддержка</div>
+        <div class="set-group">
+          <div class="set-row" onclick="toast('📋','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(46,166,255,0.1);">📋</div>
+            <div style="flex:1;">
               <div class="set-lbl">Документация</div>
-              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+              <div class="set-row-sub">Руководство по BotFeed API</div>
             </div>
-            <div class="set-row" onclick="window.open('https://t.me/Cary_python','_blank')">
-              <div class="set-ico-wrap">💬</div>
-              <div class="set-lbl">Поддержка — @Cary_python</div>
-              <div class="set-chev"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-            </div>
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
+          <div class="set-row" onclick="window.open('https://t.me/Cary_python','_blank')">
+            <div class="set-ico-wrap" style="background:rgba(36,129,204,0.13);">💬</div>
+            <div style="flex:1;">
+              <div class="set-lbl">Поддержка</div>
+              <div class="set-row-sub">@Cary_python в Telegram</div>
+            </div>
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <!-- Версия -->
+        <div style="text-align:center;padding:20px 0 8px;font-size:12px;color:var(--muted);">
+          BotFeed v1.0 · Made with ❤️
+        </div>
+
+        <!-- Выйти (только если авторизован) -->
+        <div id="settingsLogoutBlock" style="display:none;padding:0 0 90px;">
           <div class="set-group">
             <div class="set-row danger" onclick="logout()">
               <div class="set-ico-wrap">🚪</div>
-              <div class="set-lbl">Выйти</div>
+              <div style="flex:1;">
+                <div class="set-lbl">Выйти из аккаунта</div>
+              </div>
             </div>
           </div>
         </div>
+        <div style="height:90px;"></div>
+
       </div>
     </div>
 
@@ -2405,20 +2559,20 @@ html, body {
   <div class="nav-wrap">
   <div class="nav">
     <div class="nav-pill" id="navPill"></div>
-    <div class="nav-item active" onclick="go('home',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    <div class="nav-item active" data-nav="home" onclick="go('home',this)">
+      <div class="nav-ico"><svg id="navHomeIco" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
       <div class="nav-lbl">Главная</div>
     </div>
-    <div class="nav-item" onclick="go('catalog',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    <div class="nav-item" data-nav="catalog" onclick="go('catalog',this)">
+      <div class="nav-ico"><svg id="navCatalogIco" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div class="nav-lbl">Каталог</div>
     </div>
-    <div class="nav-item" onclick="openSettingsSheet()">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    <div class="nav-item" data-nav="settings" onclick="go('settings',this)">
+      <div class="nav-ico"><svg id="settingsGear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
       <div class="nav-lbl">Настройки</div>
     </div>
-    <div class="nav-item" onclick="go('profile',this)">
-      <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div class="nav-item" data-nav="profile" onclick="go('profile',this)">
+      <div class="nav-ico"><svg id="navProfileIco" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="nav-lbl">Профиль</div>
     </div>
   </div>
@@ -5078,7 +5232,7 @@ function go(id, el) {
 
   window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
 
-  const NAV_TABS = ['home', 'catalog', 'profile'];
+  const NAV_TABS = ['home', 'catalog', 'settings', 'profile'];
   const prevIdx = NAV_TABS.indexOf(currentScreen);
   const nextIdx = NAV_TABS.indexOf(id);
   const dir = (prevIdx === -1 || nextIdx > prevIdx) ? 'right' : 'left';
@@ -5094,19 +5248,24 @@ function go(id, el) {
   void next.offsetWidth;
   next.classList.add(dir === 'right' ? 'anim-right' : 'anim-left');
 
-  // Nav — снимаем active только с кнопок экранов (не settings)
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (!n.getAttribute('onclick')?.includes('openSettings')) n.classList.remove('active')
-  });
+  // Nav — update active state
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
 
-  // Nav pill — настройки (индекс 2) не имеют экрана, pill на профиль идёт на индекс 3
+  // Nav pill
   updateNavPill(nextIdx);
 
   currentScreen = id;
-  if (id === 'home')    loadFeed();
-  if (id === 'catalog') loadCatalog();
-  if (id === 'profile') showProfile();
+  if (id === 'home')     loadFeed();
+  if (id === 'catalog')  loadCatalog();
+  if (id === 'profile')  showProfile();
+  if (id === 'settings') initSettingsScreen();
+
+  // Анимация иконки при тапе — для всех кнопок навбара
+  el.classList.remove('nav-tap');
+  void el.offsetWidth; // reflow
+  el.classList.add('nav-tap');
+  setTimeout(() => el.classList.remove('nav-tap'), 700);
 }
 
 function updateNavPill(idx) {
@@ -5114,9 +5273,8 @@ function updateNavPill(idx) {
   if (!pill) return;
   const navEl = pill.closest('.nav');
   if (!navEl) return;
-  // Берём только кнопки с реальными экранами (не settings)
-  const realItems = [...navEl.querySelectorAll('.nav-item')].filter(n => !n.getAttribute('onclick')?.includes('openSettings'));
-  const target = realItems[idx];
+  const allItems = [...navEl.querySelectorAll('.nav-item')];
+  const target = allItems[idx];
   if (!target) return;
   const navRect = navEl.getBoundingClientRect();
   const itemRect = target.getBoundingClientRect();
@@ -5143,7 +5301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function profTab(el, id) {
   document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('on'));
   el.classList.add('on');
-  ['tb-bots','tb-settings'].forEach(i => document.getElementById(i).style.display = 'none');
+  ['tb-bots'].forEach(i => { const el = document.getElementById(i); if(el) el.style.display = 'none'; });
   document.getElementById(id).style.display = 'block';
 }
 
@@ -5714,9 +5872,7 @@ let scroll3DEnabled = localStorage.getItem('bf-3d') !== 'off'
 function toggle3DScroll() {
   scroll3DEnabled = !scroll3DEnabled
   localStorage.setItem('bf-3d', scroll3DEnabled ? 'on' : 'off')
-  // Обновляем оба тоггла (в настройках профиля и в шите)
   document.getElementById('toggle3d')?.classList.toggle('on', scroll3DEnabled)
-  document.getElementById('sheet-toggle3d')?.classList.toggle('on', scroll3DEnabled)
 
   if (!scroll3DEnabled) {
     document.querySelectorAll('.post').forEach(p => {
@@ -5728,76 +5884,30 @@ function toggle3DScroll() {
 }
 
 // ══════════════════════════════════════
-// НАСТРОЙКИ — bottom sheet из навбара
+// ЭКРАН НАСТРОЕК — инициализация
 // ══════════════════════════════════════
-function openSettingsSheet() {
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium')
-  const sheet    = document.getElementById('settingsSheet')
-  const backdrop = document.getElementById('settingsBackdrop')
-  const handle   = document.getElementById('sheetHandle')
-
+function initSettingsScreen() {
   // Синхронизируем тогглы
-  document.getElementById('sheet-toggle3d')?.classList.toggle('on', scroll3DEnabled)
+  document.getElementById('toggle3d')?.classList.toggle('on', scroll3DEnabled)
+
+  // Тема
   const isLight = document.documentElement.getAttribute('data-theme') === 'light'
-  const themeIco = document.getElementById('themeIco')
+  const themeIcoWrap = document.getElementById('themeIcoWrap')
   const themeLbl = document.getElementById('themeLbl')
-  if (themeIco) themeIco.textContent = isLight ? '☀️' : '🌙'
+  if (themeIcoWrap) themeIcoWrap.textContent = isLight ? '☀️' : '🌙'
   if (themeLbl) themeLbl.textContent = isLight ? 'Светлая' : 'Тёмная'
+
+  // Кнопка выйти — только если залогинен
+  const logoutBlock = document.getElementById('settingsLogoutBlock')
+  if (logoutBlock) logoutBlock.style.display = TOKEN ? 'block' : 'none'
+
   detectPerf()
-
-  // Показываем backdrop
-  backdrop.style.pointerEvents = 'all'
-  backdrop.style.background    = 'rgba(0,0,0,0.5)'
-  backdrop.style.backdropFilter = 'blur(8px)'
-
-  // Поднимаем шит
-  sheet.style.transform = 'translateX(-50%) translateY(0)'
-
-  // Пульсация ручки
-  if (handle) {
-    handle.style.animation = 'handlePulse .6s ease .2s both'
-    setTimeout(() => handle.style.animation = '', 800)
-  }
-
-  // Stagger анимация строк
-  const rows = sheet.querySelectorAll('.sset-row')
-  rows.forEach((r, i) => {
-    r.classList.remove('visible')
-    r.style.animationDelay = (0.06 + i * 0.07) + 's'
-    setTimeout(() => r.classList.add('visible'), 20)
-  })
 }
 
-function closeSettingsSheet() {
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
-  const sheet    = document.getElementById('settingsSheet')
-  const backdrop = document.getElementById('settingsBackdrop')
 
-  // Строки уходят вниз
-  const rows = sheet.querySelectorAll('.sset-row')
-  rows.forEach((r, i) => {
-    r.style.transition = `opacity .2s ${i * 0.03}s, transform .2s ${i * 0.03}s`
-    r.style.opacity  = '0'
-    r.style.transform = 'translateY(12px)'
-  })
-
-  setTimeout(() => {
-    sheet.style.transform = 'translateX(-50%) translateY(110%)'
-    backdrop.style.background = 'rgba(0,0,0,0)'
-    backdrop.style.backdropFilter = 'blur(0px)'
-    setTimeout(() => {
-      backdrop.style.pointerEvents = 'none'
-      // Сбрасываем строки для следующего открытия
-      rows.forEach(r => {
-        r.classList.remove('visible')
-        r.style.transition = ''
-        r.style.opacity    = ''
-        r.style.transform  = ''
-      })
-    }, 350)
-  }, 80)
-}
-
+// ══════════════════════════════════════
+// ОПТИМИЗАЦИЯ
+// ══════════════════════════════════════
 function detectPerf() {
   const status = document.getElementById('perfStatus')
   if (!status) return
@@ -5832,7 +5942,6 @@ function runOptimize() {
   if ((tier === 'low' || tier === 'mid') && scroll3DEnabled) {
     scroll3DEnabled = false
     localStorage.setItem('bf-3d', 'off')
-    document.getElementById('sheet-toggle3d')?.classList.remove('on')
     document.getElementById('toggle3d')?.classList.remove('on')
     document.querySelectorAll('.post').forEach(p => {
       p.style.transform = 'none'; p.style.opacity = '1'; p.style.zIndex = ''
@@ -5909,7 +6018,6 @@ function runOptimize() {
     `
     document.head.appendChild(style)
   }
-  document.getElementById('sheet-toggle3d')?.classList.toggle('on', scroll3DEnabled)
   document.getElementById('toggle3d')?.classList.toggle('on', scroll3DEnabled)
 })()
 
@@ -5918,8 +6026,8 @@ function toggleTheme() {
   const next = isLight ? 'dark' : 'light'
   document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
   localStorage.setItem('bf-theme', next)
-  document.getElementById('themeBtn')?.textContent && (document.getElementById('themeBtn').textContent = next === 'light' ? '☀️' : '🌙')
-  document.getElementById('themeIco') && (document.getElementById('themeIco').textContent = next === 'light' ? '☀️' : '🌙')
+  document.getElementById('themeBtn') && (document.getElementById('themeBtn').textContent = next === 'light' ? '☀️' : '🌙')
+  document.getElementById('themeIcoWrap') && (document.getElementById('themeIcoWrap').textContent = next === 'light' ? '☀️' : '🌙')
   document.getElementById('themeLbl') && (document.getElementById('themeLbl').textContent = next === 'light' ? 'Светлая' : 'Тёмная')
 }
 ;(function applyTheme() {
@@ -6111,104 +6219,6 @@ function cancelLongPress() {
   longPressTimer = null
 }
 </script>
-<!-- SETTINGS SHEET -->
-<div id="settingsBackdrop" onclick="closeSettingsSheet()" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0);backdrop-filter:blur(0px);pointer-events:none;transition:background .3s,backdrop-filter .3s;"></div>
-
-<div id="settingsSheet" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(110%);width:100%;max-width:480px;z-index:301;background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);padding:0 0 calc(env(safe-area-inset-bottom,0px) + 20px);box-shadow:0 -16px 60px rgba(0,0,0,0.5);transition:transform .45s cubic-bezier(0.34,1.15,0.64,1),opacity .3s;">
-
-  <!-- Ручка -->
-  <div style="display:flex;justify-content:center;padding:14px 0 6px;">
-    <div id="sheetHandle" style="width:40px;height:4px;background:var(--muted);border-radius:2px;transition:width .3s,background .3s;"></div>
-  </div>
-
-  <!-- Заголовок -->
-  <div style="padding:8px 20px 16px;display:flex;align-items:center;gap:10px;">
-    <div style="font-size:22px;font-weight:900;color:var(--text);flex:1;letter-spacing:-0.3px;">Настройки</div>
-    <div onclick="closeSettingsSheet()" style="width:32px;height:32px;border-radius:50%;background:var(--hover);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
-      <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--sub);fill:none;stroke-width:2.5;stroke-linecap:round;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </div>
-  </div>
-
-  <!-- 3D Скролл -->
-  <div class="sset-row" onclick="toggle3DScroll()" style="animation-delay:.05s">
-    <div class="sset-ico" style="background:rgba(46,166,255,0.13);">🎞</div>
-    <div style="flex:1;">
-      <div class="sset-title">3D скролл постов</div>
-      <div class="sset-sub">Объёмный эффект при прокрутке</div>
-    </div>
-    <div id="sheet-toggle3d" class="set-toggle on"></div>
-  </div>
-
-  <!-- Тема -->
-  <div class="sset-row" onclick="toggleTheme()" style="animation-delay:.1s">
-    <div class="sset-ico" style="background:rgba(255,200,50,0.13);" id="themeIco">🌙</div>
-    <div style="flex:1;">
-      <div class="sset-title">Тема</div>
-      <div class="sset-sub" id="themeLbl">Тёмная</div>
-    </div>
-    <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
-  </div>
-
-  <!-- Оптимизация -->
-  <div class="sset-row" style="animation-delay:.15s;flex-direction:column;align-items:stretch;gap:10px;" id="optimizeRow">
-    <div style="display:flex;align-items:center;gap:14px;">
-      <div class="sset-ico" style="background:rgba(77,205,106,0.13);">⚡</div>
-      <div style="flex:1;">
-        <div class="sset-title">Оптимизация</div>
-        <div class="sset-sub" id="perfStatus">Анализирую устройство...</div>
-      </div>
-    </div>
-    <button onclick="runOptimize()" id="optimizeBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--acc),#1a8cff);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.2px;transition:transform .15s,opacity .15s;box-shadow:0 4px 16px rgba(46,166,255,0.35);">
-      🚀 Оптимизировать под мой телефон
-    </button>
-    <div id="optimizeResult" style="display:none;padding:10px 12px;background:rgba(77,205,106,0.1);border:1px solid rgba(77,205,106,0.25);border-radius:12px;font-size:12px;color:var(--text);line-height:1.7;"></div>
-  </div>
-
-</div>
-
-<style>
-/* Settings sheet rows */
-.sset-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 0 12px 8px;
-  padding: 14px 16px;
-  background: var(--card);
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: transform .15s, background .15s;
-  /* stagger animation когда шит открывается */
-  opacity: 0;
-  transform: translateY(16px);
-}
-.sset-row:active { transform: scale(0.97); background: var(--hover); }
-.sset-ico {
-  width: 40px; height: 40px;
-  border-radius: 13px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-}
-.sset-title { font-size: 14px; font-weight: 700; color: var(--text); }
-.sset-sub   { font-size: 12px; color: var(--sub); margin-top: 2px; }
-
-/* Анимация строк при открытии */
-@keyframes ssetRowIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
-}
-.sset-row.visible {
-  animation: ssetRowIn .4s cubic-bezier(0.22,1,0.36,1) both;
-}
-
-/* Пульсация ручки при открытии */
-@keyframes handlePulse {
-  0%,100% { width: 40px; }
-  50%      { width: 56px; background: var(--acc); }
-}
-</style>
-
 <!-- REACTION BACKDROP -->
 <div id="reactBackdrop" class="react-backdrop" onclick="closePicker()"></div>
 
