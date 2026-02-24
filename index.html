@@ -88,9 +88,7 @@ html, body {
 
 .nav {
   height: 64px;
-  background: rgba(15, 22, 32, 0.55);
-  backdrop-filter: blur(28px) saturate(140%) brightness(0.9);
-  -webkit-backdrop-filter: blur(28px) saturate(140%) brightness(0.9);
+  background: rgba(15, 22, 32, 0.97);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 28px;
   display: flex;
@@ -98,6 +96,11 @@ html, body {
   box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
   overflow: hidden;
   pointer-events: all;
+}
+.is-telegram .nav {
+  background: rgba(15, 22, 32, 0.55);
+  backdrop-filter: blur(28px) saturate(140%) brightness(0.9);
+  -webkit-backdrop-filter: blur(28px) saturate(140%) brightness(0.9);
 }
 
 /* Одна пилюля — единственный индикатор активного элемента */
@@ -303,8 +306,7 @@ html, body {
 .toast {
   position: fixed; top: 12px;
   left: 50%; transform: translateX(-50%) translateY(-90px);
-  background: rgba(36, 47, 61, 0.95);
-  backdrop-filter: blur(12px);
+  background: rgba(36, 47, 61, 0.98);
   border: 1px solid rgba(46,166,255,0.2);
   border-radius: 12px;
   padding: 10px 18px;
@@ -313,6 +315,10 @@ html, body {
   z-index: 9999; white-space: nowrap;
   transition: none;
   max-width: calc(100% - 32px);
+}
+.is-telegram .toast {
+  background: rgba(36, 47, 61, 0.95);
+  backdrop-filter: blur(12px);
 }
 @keyframes toastIn {
   0%   { transform: translateX(-50%) translateY(-90px) scale(0.8); opacity: 0; }
@@ -374,6 +380,9 @@ html, body {
    COVERFLOW 3D SCROLL — ultra smooth
 ══════════════════════════════════════ */
 .feed {
+  /* perspective включается только в TG — см. .is-telegram ниже */
+}
+.is-telegram .feed {
   perspective: 900px;
   perspective-origin: 50% 38%;
 }
@@ -384,9 +393,11 @@ html, body {
     transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     opacity   0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     background 0.12s;
-  will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+}
+.is-telegram .post {
+  will-change: transform, opacity;
 }
 
 /* ══════════════════════════════════════
@@ -572,7 +583,8 @@ html, body {
 /* ══════════════════════════════════════
    TOPBAR
 ══════════════════════════════════════ */
-.topbar { display:flex; align-items:center; padding:13px 16px 9px; gap:10px; position:sticky; top:0; z-index:10; background:rgba(15,25,35,0.85); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
+.topbar { display:flex; align-items:center; padding:13px 16px 9px; gap:10px; position:sticky; top:0; z-index:10; background:var(--surface); border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
+.is-telegram .topbar { background:rgba(15,25,35,0.85); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 .topbar-logo { font-size:18px; font-weight:800; color:var(--acc); flex:1; letter-spacing:-0.3px; }
 .topbar-title { font-size:17px; font-weight:700; flex:1; }
 .tb-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:12px; cursor:pointer; flex-shrink:0; transition: background .15s; }
@@ -677,15 +689,15 @@ html, body {
 .react-backdrop {
   position: fixed; inset: 0; z-index: 998;
   background: rgba(0,0,0,0);
-  backdrop-filter: blur(0px);
   transition: background .25s, backdrop-filter .25s;
   pointer-events: none;
 }
 .react-backdrop.show {
-  background: rgba(0,0,0,0.35);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.5);
   pointer-events: all;
 }
+.is-telegram .react-backdrop { backdrop-filter: blur(0px); }
+.is-telegram .react-backdrop.show { background: rgba(0,0,0,0.35); backdrop-filter: blur(6px); }
 .react-picker {
   position: fixed;
   bottom: -500px;
@@ -1516,11 +1528,13 @@ html, body {
 /* Кнопки topbar — стеклянные кружки, видны на любом фоне */
 #s-botpage .topbar .tb-btn {
   background: rgba(0,0,0,0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-radius: 50%;
   width: 36px; height: 36px;
   border: 1px solid rgba(255,255,255,0.15);
+}
+.is-telegram #s-botpage .topbar .tb-btn {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 #s-botpage .topbar .tb-btn svg { stroke: rgba(255,255,255,0.92); }
 #s-botpage .topbar .topbar-title { color: transparent; transition: color .25s; }
@@ -1691,9 +1705,9 @@ html, body {
   background: transparent;
   transform: translateX(0);
   transition: transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
-  will-change: transform;
   user-select: none;
 }
+.is-telegram .comment-item { will-change: transform; }
 .comment-bubble {
   flex: 1; min-width: 0;
   background: var(--card);
@@ -2677,6 +2691,15 @@ if (window.Telegram?.WebApp) {
   Telegram.WebApp.expand();
   Telegram.WebApp.setHeaderColor('#0f1923');
   Telegram.WebApp.setBackgroundColor('#0f1923');
+}
+
+// ════════════════════════════════
+// TELEGRAM DETECTION
+// Всё тяжёлое (blur, 3D, will-change) — только в TG
+// ════════════════════════════════
+const isTelegram = !!(window.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.platform)
+if (isTelegram) {
+  document.documentElement.classList.add('is-telegram')
 }
 
 // ════════════════════════════════
@@ -5665,7 +5688,7 @@ function showSSEToast(avatarUrl, botName, text) {
   t.style.cssText = `
     position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-80px);
     max-width:340px;width:calc(100% - 32px);
-    background:rgba(30,42,58,0.96);backdrop-filter:blur(20px);
+    background:rgba(30,42,58,0.98);${isTelegram ? 'backdrop-filter:blur(20px);' : ''}
     border:1px solid rgba(255,255,255,0.1);border-radius:16px;
     padding:12px 14px;display:flex;align-items:center;gap:10px;
     box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999;
@@ -5865,7 +5888,10 @@ initApp();
 // ══════════════════════════════════════
 // 3D СКРОЛЛ — вкл/выкл
 // ══════════════════════════════════════
-let scroll3DEnabled = localStorage.getItem('bf-3d') !== 'off'
+// В браузере (не TG) 3D скролл выключен по умолчанию — слишком тяжело
+let scroll3DEnabled = isTelegram
+  ? localStorage.getItem('bf-3d') !== 'off'
+  : false
 
 function toggle3DScroll() {
   scroll3DEnabled = !scroll3DEnabled
