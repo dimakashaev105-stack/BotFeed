@@ -48,6 +48,10 @@ db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notify BOOLEAN DEFA
 db.query(`ALTER TABLE bots ADD COLUMN IF NOT EXISTS photo_data BYTEA`)
   .catch(e => console.log('Bot photo_data migration note:', e.message))
 
+// Миграция — лимит постов в час на бота (можно менять вручную в БД)
+db.query(`ALTER TABLE bots ADD COLUMN IF NOT EXISTS posts_per_hour INTEGER NOT NULL DEFAULT 1`)
+  .catch(e => console.log('Posts per hour migration note:', e.message))
+
 // OTP таблицы
 try {
   await db.query(`
@@ -774,8 +778,27 @@ app.get('/api/bots/:botId/posts', { preHandler: optAuth }, async (req) => {
 app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
   const { text, image_url, post_type, buttons } = req.body
   if (!text?.trim()) return reply.code(400).send({ error: 'Текст обязателен' })
-  const { rows: b } = await db.query('SELECT id, name, username FROM bots WHERE id=$1 AND owner_id=$2', [req.params.botId, req.user.id])
+  const { rows: b } = await db.query('SELECT id, name, username, posts_per_hour FROM bots WHERE id=$1 AND owner_id=$2', [req.params.botId, req.user.id])
   if (!b[0]) return reply.code(403).send({ error: 'Нет доступа' })
+
+  // ── Проверка лимита постов в час ──
+  const limit = b[0].posts_per_hour ?? 1
+  const { rows: recent } = await db.query(
+    `SELECT COUNT(*) as cnt FROM posts WHERE bot_id=$1 AND created_at > NOW() - INTERVAL '1 hour'`,
+    [req.params.botId]
+  )
+  if (parseInt(recent[0].cnt) >= limit) {
+    const { rows: lastPost } = await db.query(
+      `SELECT created_at FROM posts WHERE bot_id=$1 ORDER BY created_at DESC LIMIT 1`,
+      [req.params.botId]
+    )
+    const nextAllowed = new Date(new Date(lastPost[0].created_at).getTime() + 60 * 60 * 1000)
+    const waitMin = Math.ceil((nextAllowed - Date.now()) / 60000)
+    return reply.code(429).send({
+      error: `Лимит: ${limit} пост в час. Следующий пост можно опубликовать через ${waitMin} мин.`
+    })
+  }
+  // ──────────────────────────────────
 
   const cleanButtons = Array.isArray(buttons)
     ? buttons.filter(b => b?.label?.trim() && b?.url?.trim()).slice(0, 4)
@@ -1251,4 +1274,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-                                   }
+    }
