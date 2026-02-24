@@ -3957,7 +3957,7 @@ function renderDiscFeatured() {
       <div class="disc-feat-name">${esc(b.name)} ${badge}</div>
       <div class="disc-feat-desc">${esc(b.description||'')}</div>
       <div class="disc-feat-foot">
-        <div class="disc-feat-m"><div class="gdot"></div>${m>1000?Math.floor(m/1000)+'K':m}</div>
+        <div class="disc-feat-m"><div class="gdot"></div>${(()=>{const s=Number(b.subscribers||0);return s>=1000?Math.floor(s/1000)+'K':s})()} подп.</div>
         <div class="${isSub?'sub-btn subbed':'sub-btn'}" style="font-size:11px;padding:5px 10px;" onclick="event.stopPropagation();subBot(${b.id},this)">${isSub?'✓':'+'}</div>
       </div>
     </div>`;
@@ -4108,7 +4108,7 @@ function botRowHTML(b) {
       <div class="br-tags">${tags}</div>
     </div>
     <div class="br-right">
-      <div class="br-count"><div class="gdot"></div>${b.members||0}</div>
+      <div class="br-count"><div class="gdot"></div>${(()=>{const s=Number(b.subscribers||0);return s>=1000?Math.floor(s/1000)+'K':s})()} подп.</div>
       <div class="${subClass}" onclick="event.stopPropagation();subBot(${b.id},this)">${subText}</div>
     </div>
   </div>`;
