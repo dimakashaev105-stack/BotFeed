@@ -333,7 +333,7 @@ html, body {
 }
 .toast.show  { animation: toastIn  .45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 .toast.hide  { animation: toastOut .3s  cubic-bezier(0.55, 0, 1, 0.45)  forwards; }
-.t-ico { font-size: 16px; }
+.t-ico { display:flex; align-items:center; justify-content:center; width:20px; height:20px; flex-shrink:0; }
 .t-msg { font-size: 13px; font-weight: 600; }
 
 /* ══════════════════════════════════════
@@ -1153,7 +1153,7 @@ html, body {
   align-items: center; justify-content: center;
   padding: 60px 24px; text-align: center;
 }
-.disc-empty-ico { font-size: 48px; margin-bottom: 16px; }
+.disc-empty-ico { margin-bottom: 8px; display:flex; align-items:center; justify-content:center; }
 .disc-empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 .disc-empty-sub { font-size: 13px; color: var(--sub); line-height: 1.5; }
 
@@ -1922,10 +1922,10 @@ html, body {
         </div>
         <div class="feed-filters" id="feedFilters">
           <div class="feed-chip on" data-filter="all" onclick="setFeedFilter(this,'all')">✨ Все</div>
-          <div class="feed-chip" data-filter="news" onclick="setFeedFilter(this,'news')">📢 Новости</div>
-          <div class="feed-chip" data-filter="update" onclick="setFeedFilter(this,'update')">🚀 Обновления</div>
-          <div class="feed-chip" data-filter="tip" onclick="setFeedFilter(this,'tip')">💡 Советы</div>
-          <div class="feed-chip" data-filter="promo" onclick="setFeedFilter(this,'promo')">🎁 Акции</div>
+          <div class="feed-chip" data-filter="news" onclick="setFeedFilter(this,'news')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg> Новости</div>
+          <div class="feed-chip" data-filter="update" onclick="setFeedFilter(this,'update')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Обновления</div>
+          <div class="feed-chip" data-filter="tip" onclick="setFeedFilter(this,'tip')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> Советы</div>
+          <div class="feed-chip" data-filter="promo" onclick="setFeedFilter(this,'promo')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Акции</div>
         </div>
       </div>
 
@@ -1956,12 +1956,12 @@ html, body {
         <!-- Табы: Топ / Новые / Поиск по категории -->
         <div class="disc-tabs-row" id="discTabsRow">
           <div class="disc-tab active" id="dtab-top" onclick="switchDiscTab('top',this)">⭐ Топ</div>
-          <div class="disc-tab" id="dtab-new" onclick="switchDiscTab('new',this)">🆕 Новые</div>
-          <div class="disc-tab" id="dtab-subs" onclick="switchDiscTab('subs',this)">❤️ Мои</div>
+          <div class="disc-tab" id="dtab-new" onclick="switchDiscTab('new',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Новые</div>
+          <div class="disc-tab" id="dtab-subs" onclick="switchDiscTab('subs',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Мои</div>
           <div class="disc-sep"></div>
           <div class="disc-cat-scroll" id="discCatScroll">
             <div class="disc-cat active" data-cat="all" onclick="discSetCat(this)">Все</div>
-            <div class="disc-cat" data-cat="ai" onclick="discSetCat(this)">🤖 ИИ</div>
+            <div class="disc-cat" data-cat="ai" onclick="discSetCat(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/></svg> ИИ</div>
             <div class="disc-cat" data-cat="games" onclick="discSetCat(this)">🎮 Игры</div>
             <div class="disc-cat" data-cat="music" onclick="discSetCat(this)">🎵 Музыка</div>
             <div class="disc-cat" data-cat="finance" onclick="discSetCat(this)">📈 Финансы</div>
@@ -2019,7 +2019,7 @@ html, body {
           <div class="disc-section-label">Мои подписки</div>
           <div class="disc-list" id="discSubsList">
             <div style="text-align:center;padding:60px 24px;color:var(--sub);">
-              <div style="font-size:40px;margin-bottom:12px;">❤️</div>
+              <div style="margin-bottom:12px;opacity:0.3;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
               <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">Нет подписок</div>
               <div style="font-size:13px;">Подпишись на ботов и они появятся здесь</div>
             </div>
@@ -2113,7 +2113,7 @@ html, body {
             <!-- Шаг 2: ввод кода (появляется после нажатия) -->
             <div id="tgStep2" style="display:none;">
               <div style="background:rgba(46,166,255,0.08);border:1px solid rgba(46,166,255,0.2);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center;">
-                <div style="font-size:13px;color:var(--acc);font-weight:600;margin-bottom:4px;">✅ Бот открыт!</div>
+                <div style="font-size:13px;color:var(--acc);font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Бот открыт!</div>
                 <div style="font-size:12px;color:var(--sub);">Введи код который прислал <b>@BotFeeds_bot</b></div>
               </div>
               <input id="tgCodeInput" type="text" inputmode="numeric" maxlength="7" placeholder="· · · · · ·"
@@ -2134,7 +2134,7 @@ html, body {
               </button>
               <div style="text-align:center;margin-top:10px;display:flex;justify-content:center;gap:16px;">
                 <span onclick="startTgAuth()" style="font-size:12px;color:var(--acc);cursor:pointer;">↺ Получить новый код</span>
-                <span onclick="resetTgAuth()" style="font-size:12px;color:var(--muted);cursor:pointer;">← Назад</span>
+                <span onclick="resetTgAuth()" style="font-size:12px;color:var(--muted);cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Назад</span>
               </div>
             </div>
 
@@ -2160,7 +2160,7 @@ html, body {
             <div class="prof-add-btn" onclick="openSheet()" title="Добавить бота">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </div>
-            <div class="prof-ava" id="profAva">👤</div>
+            <div class="prof-ava" id="profAva" style="display:flex;align-items:center;justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
             <div class="prof-hero-row">
               <div class="prof-name" id="profName">—
                 <div class="prof-badge" id="profBadge" style="display:none">✓</div>
@@ -2197,7 +2197,7 @@ html, body {
       <div class="set-screen-header">
         <div class="set-screen-bg"></div>
         <div class="set-screen-inner">
-          <div class="set-screen-icon">⚙️</div>
+          <div class="set-screen-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"</svg></div>
           <div class="set-screen-title">Настройки</div>
           <div class="set-screen-sub">Персонализируй BotFeed под себя</div>
         </div>
@@ -2222,7 +2222,7 @@ html, body {
         <div class="set-section-label">Производительность</div>
         <div class="set-group">
           <div class="set-row" onclick="toggle3DScroll()" style="cursor:pointer;">
-            <div class="set-ico-wrap" style="background:rgba(46,166,255,0.13);">🎞</div>
+            <div class="set-ico-wrap" style="background:rgba(46,166,255,0.13);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
             <div style="flex:1;">
               <div class="set-lbl">3D скролл постов</div>
               <div class="set-row-sub">Объёмный эффект при прокрутке</div>
@@ -2231,14 +2231,14 @@ html, body {
           </div>
           <div class="set-row" style="flex-direction:column;align-items:stretch;gap:10px;cursor:default;">
             <div style="display:flex;align-items:center;gap:14px;">
-              <div class="set-ico-wrap" style="background:rgba(77,205,106,0.13);">⚡</div>
+              <div class="set-ico-wrap" style="background:rgba(77,205,106,0.13);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
               <div style="flex:1;">
                 <div class="set-lbl">Оптимизация</div>
                 <div class="set-row-sub" id="perfStatus">Анализирую устройство...</div>
               </div>
             </div>
             <button onclick="runOptimize()" id="optimizeBtn" class="set-optimize-btn">
-              🚀 Оптимизировать под моё устройство
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Оптимизировать под моё устройство
             </button>
             <div id="optimizeResult" style="display:none;padding:10px 12px;background:rgba(77,205,106,0.1);border:1px solid rgba(77,205,106,0.25);border-radius:12px;font-size:12px;color:var(--text);line-height:1.7;"></div>
           </div>
@@ -2247,24 +2247,24 @@ html, body {
         <!-- Секция: Аккаунт -->
         <div class="set-section-label">Аккаунт</div>
         <div class="set-group">
-          <div class="set-row" onclick="toast('🔔','Скоро')">
-            <div class="set-ico-wrap" style="background:rgba(255,160,50,0.13);">🔔</div>
+          <div class="set-row" onclick="toast('bell','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(255,160,50,0.13);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
             <div style="flex:1;">
               <div class="set-lbl">Уведомления</div>
               <div class="set-row-sub">Настройка push-уведомлений</div>
             </div>
             <div class="set-coming">Скоро</div>
           </div>
-          <div class="set-row" onclick="toast('🔑','Скоро')">
-            <div class="set-ico-wrap" style="background:rgba(120,100,255,0.13);">🔑</div>
+          <div class="set-row" onclick="toast('key','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(120,100,255,0.13);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
             <div style="flex:1;">
               <div class="set-lbl">API ключи</div>
               <div class="set-row-sub">Доступ для разработчиков</div>
             </div>
             <div class="set-coming">Скоро</div>
           </div>
-          <div class="set-row" onclick="toast('📊','Скоро')">
-            <div class="set-ico-wrap" style="background:rgba(77,205,106,0.13);">📊</div>
+          <div class="set-row" onclick="toast('chart','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(77,205,106,0.13);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
             <div style="flex:1;">
               <div class="set-lbl">Аналитика</div>
               <div class="set-row-sub">Статистика твоих ботов</div>
@@ -2276,8 +2276,8 @@ html, body {
         <!-- Секция: Поддержка -->
         <div class="set-section-label">Поддержка</div>
         <div class="set-group">
-          <div class="set-row" onclick="toast('📋','Скоро')">
-            <div class="set-ico-wrap" style="background:rgba(46,166,255,0.1);">📋</div>
+          <div class="set-row" onclick="toast('copy','Скоро')">
+            <div class="set-ico-wrap" style="background:rgba(46,166,255,0.1);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></div>
             <div style="flex:1;">
               <div class="set-lbl">Документация</div>
               <div class="set-row-sub">Руководство по BotFeed API</div>
@@ -2285,7 +2285,7 @@ html, body {
             <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
           <div class="set-row" onclick="window.open('https://t.me/Cary_python','_blank')">
-            <div class="set-ico-wrap" style="background:rgba(36,129,204,0.13);">💬</div>
+            <div class="set-ico-wrap" style="background:rgba(36,129,204,0.13);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
             <div style="flex:1;">
               <div class="set-lbl">Поддержка</div>
               <div class="set-row-sub">@Cary_python в Telegram</div>
@@ -2303,7 +2303,7 @@ html, body {
         <div id="settingsLogoutBlock" style="display:none;padding:0 0 90px;">
           <div class="set-group">
             <div class="set-row danger" onclick="logout()">
-              <div class="set-ico-wrap">🚪</div>
+              <div class="set-ico-wrap" style="background:rgba(255,80,80,0.12);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
               <div style="flex:1;">
                 <div class="set-lbl">Выйти из аккаунта</div>
               </div>
@@ -2324,9 +2324,9 @@ html, body {
 
       <!-- Вкладки управления -->
       <div class="p-tabs" style="position:sticky;top:52px;z-index:10;background:var(--bg);">
-        <div class="p-tab on" onclick="mngTab(this,'mng-analytics')">📊 Аналитика</div>
-        <div class="p-tab" onclick="mngTab(this,'mng-posts')">📝 Посты</div>
-        <div class="p-tab" onclick="mngTab(this,'mng-settings')">⚙️ Настройки</div>
+        <div class="p-tab on" onclick="mngTab(this,'mng-analytics')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Аналитика</div>
+        <div class="p-tab" onclick="mngTab(this,'mng-posts')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Посты</div>
+        <div class="p-tab" onclick="mngTab(this,'mng-settings')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Настройки</div>
       </div>
 
       <!-- ── АНАЛИТИКА ── -->
@@ -2379,7 +2379,7 @@ html, body {
 
         <!-- Советы -->
         <div style="background:linear-gradient(135deg,rgba(46,166,255,0.12),rgba(46,166,255,0.04));border:1px solid rgba(46,166,255,0.2);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;">💡 Советы для роста</div>
+          <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:10px;display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> Советы для роста</div>
           <div id="growthTips" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
       </div>
@@ -2401,10 +2401,10 @@ html, body {
 
           <!-- Тип поста -->
           <div style="padding:12px 16px 0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;">
-            <div class="post-type-btn active" data-type="news" onclick="selectPostType(this)">📢 Новость</div>
-            <div class="post-type-btn" data-type="update" onclick="selectPostType(this)">🚀 Обновление</div>
-            <div class="post-type-btn" data-type="tip" onclick="selectPostType(this)">💡 Совет</div>
-            <div class="post-type-btn" data-type="promo" onclick="selectPostType(this)">🎁 Акция</div>
+            <div class="post-type-btn active" data-type="news" onclick="selectPostType(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg> Новость</div>
+            <div class="post-type-btn" data-type="update" onclick="selectPostType(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> Обновление</div>
+            <div class="post-type-btn" data-type="tip" onclick="selectPostType(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> Совет</div>
+            <div class="post-type-btn" data-type="promo" onclick="selectPostType(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Акция</div>
           </div>
 
           <!-- Текстовое поле -->
@@ -2503,10 +2503,10 @@ html, body {
 
         <div style="margin-bottom:16px;padding-top:4px;border-top:1px solid var(--border);">
           <button id="deleteBotBtn" onclick="showDeleteConfirm()" style="width:100%;padding:13px;background:rgba(240,64,64,0.1);color:var(--red);border:1px solid rgba(240,64,64,0.25);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">
-            🗑 Удалить бота навсегда
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Удалить бота навсегда
           </button>
           <div id="deleteBotConfirm" style="display:none;margin-top:10px;background:rgba(240,64,64,0.08);border:1px solid rgba(240,64,64,0.3);border-radius:10px;padding:14px;">
-            <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px;">⚠️ Это необратимо!</div>
+            <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px;display:flex;align-items:center;gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Это необратимо!</div>
             <div style="font-size:12px;color:var(--sub);margin-bottom:12px;">Все посты, подписчики и данные бота будут удалены навсегда.</div>
             <div style="display:flex;gap:8px;">
               <button onclick="hideDeleteConfirm()" style="flex:1;padding:10px;background:var(--card);color:var(--text);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Отмена</button>
@@ -2551,7 +2551,7 @@ html, body {
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
               <div id="botPageSubBtn" class="sub-btn" style="padding:10px 18px;font-size:13px;" onclick="subBotPage()">Подписаться</div>
-              <div id="botPageBellBtn" onclick="toggleBotNotify()" style="display:none;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:opacity .2s;">🔔</div>
+              <div id="botPageBellBtn" onclick="toggleBotNotify()" style="display:none;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;transition:opacity .2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
             </div>
           </div>
         </div>
@@ -2608,7 +2608,7 @@ html, body {
       <div id="commentInputBar" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);z-index:30;">
         <div id="replyBar">
           <div class="reply-bar-inner">
-            <span>↩ Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
+            <span style="display:inline-flex;align-items:center;gap:5px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Ответ <strong id="replyToName"></strong>: <span id="replyToText" style="opacity:0.7;"></span></span>
           </div>
           <div class="reply-cancel" onclick="cancelReply()">×</div>
         </div>
@@ -2653,7 +2653,7 @@ html, body {
       <div id="commentsList" style="max-height:50vh;overflow-y:auto;margin-bottom:14px;"></div>
       <div style="display:flex;gap:8px;">
         <input class="f-inp" id="commentInput" placeholder="Написать комментарий..." style="margin:0;flex:1;">
-        <button class="sh-btn" style="width:auto;padding:12px 16px;" onclick="sendComment()">→</button>
+        <button class="sh-btn" style="width:auto;padding:12px 16px;" onclick="sendComment()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
     </div>
   </div>
@@ -2671,12 +2671,12 @@ html, body {
         <input class="f-inp" id="botName" placeholder="Например: ChatAI Bot" type="text">
         <div class="f-lbl">Краткое описание</div>
         <input class="f-inp" id="botDesc" placeholder="Что умеет твой бот?" type="text">
-        <button class="sh-btn" onclick="submitBotStep1()">Далее →</button>
+        <button class="sh-btn" onclick="submitBotStep1()">Далее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
       <div id="st2" style="display:none">
         <div class="f-lbl">Категории</div>
         <div class="tags-grid">
-          <div class="t-opt" onclick="pickTag(this)">🤖 ИИ</div>
+          <div class="t-opt" onclick="pickTag(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/></svg> ИИ</div>
           <div class="t-opt" onclick="pickTag(this)">🎮 Игры</div>
           <div class="t-opt" onclick="pickTag(this)">🎵 Музыка</div>
           <div class="t-opt" onclick="pickTag(this)">📈 Финансы</div>
@@ -2685,7 +2685,7 @@ html, body {
           <div class="t-opt" onclick="pickTag(this)">🌐 Перевод</div>
           <div class="t-opt" onclick="pickTag(this)">📚 Обучение</div>
         </div>
-        <button class="sh-btn" onclick="submitBotStep2()">Далее →</button>
+        <button class="sh-btn" onclick="submitBotStep2()">Далее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
       <div id="st3" style="display:none">
         <div class="sheet-title" style="margin-bottom:6px;">Подтверди владение</div>
@@ -2732,7 +2732,7 @@ html, body {
         <a href="https://t.me/BotFather" target="_blank" style="display:block;text-align:center;padding:11px;background:var(--card);color:var(--acc);border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">
           Открыть @BotFather →
         </a>
-        <button class="sh-btn" id="verifyCheckBtn" onclick="submitBot()">✓ Проверить</button>
+        <button class="sh-btn" id="verifyCheckBtn" onclick="submitBot()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Проверить</button>
         <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">После проверки можно убрать токен из описания</div>
       </div>
     </div>
@@ -2809,7 +2809,7 @@ async function tryWebAppAutoLogin() {
 function botAvatarHTML(username, size = 40, radius = 12, name = '', photoUrl = '') {
   const colors = ['#1a6fa8','#1a7a4a','#7a3a9a','#a85a1a','#1a5a7a','#6a1a3a'];
   const label = (name || username || '').replace('@','');
-  const letter = label[0]?.toUpperCase() || '🤖';
+  const letter = label[0]?.toUpperCase() || '·';
   const color = colors[(label.charCodeAt(0) || 0) % colors.length];
   const fontSize = Math.round(size * 0.42);
 
@@ -2945,7 +2945,7 @@ let tgSessionId = null
 
 async function startTgAuth() {
   const btn = document.getElementById('tgStartBtn')
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Открываем бота...' }
+  if (btn) { btn.disabled = true; btn.textContent = 'Открываем...' }
 
   try {
     const res = await fetch('https://botfeed-9v15.onrender.com/api/auth/tg/start', {
@@ -2978,7 +2978,7 @@ async function verifyTgCode() {
   if (!code || code.length < 6) { toast('⚠️', 'Введи 6-значный код'); return }
 
   const btn = document.getElementById('tgVerifyBtn')
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Проверяем...' }
+  if (btn) { btn.disabled = true; btn.textContent = 'Проверяем...' }
 
   try {
     const res = await fetch('https://botfeed-9v15.onrender.com/api/auth/tg/verify', {
@@ -3022,7 +3022,7 @@ async function sendEmailCode() {
     toast('⚠️', 'Введи корректный email'); return;
   }
   const btn = document.getElementById('sendCodeBtn');
-  btn.disabled = true; btn.textContent = '⏳ Отправка...';
+  btn.disabled = true; btn.textContent = 'Отправка...';
 
   try {
     const r   = await fetch('https://botfeed-9v15.onrender.com/api/auth/email/send', {
@@ -3110,7 +3110,7 @@ function showProfile() {
   const ava = document.getElementById('profAva');
   ava.innerHTML = ME.photo_url
     ? `<img src="${ME.photo_url}" style="width:100%;height:100%;border-radius:20px;object-fit:cover;">`
-    : '👤';
+    : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>` ;
   document.getElementById('profName').childNodes[0].textContent = (ME.first_name || '') + ' ';
   document.getElementById('profUser').textContent = ME.username ? `@${ME.username}` : '';
   loadMyBots();
@@ -3132,7 +3132,7 @@ async function loadMyBots() {
   let total = 0;
   list.innerHTML = res.map(b => {
     total += Number(b.members || 0);
-    const badge = b.verified ? '<div class="p-badge">✓</div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
+    const badge = b.verified ? '<div class="p-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' : '<div style="font-size:10px;color:var(--red);margin-left:4px;">не верифицирован</div>';
     const avaHtml = botAvatarHTML(b.username, 44, 14, b.name, b.photo_url);
     return `<div class="my-bot" data-bot-id="${b.id}" data-bot-name="${esc(b.name)}" data-members="${b.members||0}" data-posts="${b.posts_count||0}" data-subs="${b.subscribers||0}">
       <div class="mb-ava" style="overflow:hidden;">${avaHtml}</div>
@@ -3200,7 +3200,7 @@ async function openBotPage(botId, event) {
 
   // Заполняем UI
   document.getElementById('botPageTitle').textContent = b.name;
-  document.getElementById('botPageName').innerHTML = esc(b.name) + (b.verified ? ' <div class="p-badge" style="display:inline-flex;">✓</div>' : '');
+  document.getElementById('botPageName').innerHTML = esc(b.name) + (b.verified ? ' <div class="p-badge" style="display:inline-flex;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' : '');
   document.getElementById('botPageUsername').textContent = '@' + esc(b.username);
   document.getElementById('botPageDesc').textContent = b.description || '';
   document.getElementById('botPageMembers').textContent = b.members || 0;
@@ -3247,7 +3247,7 @@ async function openBotPage(botId, event) {
     api('GET', '/my/subscriptions').then(subs => {
       const sub = (subs || []).find(s => Number(s.id) === Number(botId));
       currentBotNotify = sub ? sub.notify !== false : true;
-      bellBtn.textContent = currentBotNotify ? '🔔' : '🔕';
+      bellBtn.innerHTML = currentBotNotify ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.9 17.9 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
       bellBtn.style.opacity = currentBotNotify ? '1' : '0.5';
     });
   }
@@ -3334,7 +3334,7 @@ async function subBotPage() {
     btn.style.cssText = 'padding:10px 18px;font-size:13px;';
     btn.textContent = on ? '✓ Подписан' : 'Подписаться';
     bellBtn.style.display = on ? 'flex' : 'none';
-    bellBtn.textContent = '🔔';
+    bellBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
     bellBtn.style.opacity = '1';
     document.querySelectorAll(`[onclick*="subBot(${currentBotPageId},"]`).forEach(b => {
       b.classList.toggle('subbed', on);
@@ -3351,7 +3351,7 @@ async function toggleBotNotify() {
   if (res != null) {
     currentBotNotify = res.notify;
     const bellBtn = document.getElementById('botPageBellBtn');
-    bellBtn.textContent = currentBotNotify ? '🔔' : '🔕';
+    bellBtn.innerHTML = currentBotNotify ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.9 17.9 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
     bellBtn.style.opacity = currentBotNotify ? '1' : '0.5';
     toast(currentBotNotify ? '🔔' : '🔕', currentBotNotify ? 'Уведомления включены' : 'Уведомления выключены');
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
@@ -3403,7 +3403,7 @@ function setFeedFilter(el, filter) {
       noRes = document.createElement('div');
       noRes.className = 'filter-no-results';
       noRes.style.cssText = 'text-align:center;padding:40px 24px;color:var(--sub);';
-      noRes.innerHTML = '<div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Ничего не найдено</div><div style="font-size:13px;">Нет постов с таким типом</div>';
+      noRes.innerHTML = '<div style="margin-bottom:10px;opacity:0.3;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Ничего не найдено</div><div style="font-size:13px;">Нет постов с таким типом</div>';
       activeEl.appendChild(noRes);
     }
     noRes.style.display = '';
@@ -3563,7 +3563,7 @@ async function loadFeed() {
   if (data === null) {
     feedEl.innerHTML = `
       <div style="text-align:center;padding:48px 24px;color:var(--sub);">
-        <div style="font-size:40px;margin-bottom:12px;">📡</div>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
         <div style="font-weight:700;color:var(--text);margin-bottom:8px;">Нет соединения</div>
         <div style="font-size:13px;margin-bottom:16px;">Сервер не ответил. Нажми обновить.</div>
         <div onclick="loadFeed()" style="display:inline-block;padding:10px 24px;background:var(--acc);color:#fff;border-radius:20px;cursor:pointer;font-weight:600;">Обновить</div>
@@ -3574,7 +3574,7 @@ async function loadFeed() {
   if (!data?.length) {
     feedEl.innerHTML = `
       <div style="text-align:center;padding:48px 24px;color:var(--sub);">
-        <div style="font-size:40px;margin-bottom:12px;">📭</div>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         <div style="font-weight:700;color:var(--text);margin-bottom:8px;">Тут пусто</div>
         <div style="font-size:13px;line-height:1.6;margin-bottom:20px;">Подпишись на ботов чтобы видеть их посты</div>
         <div onclick="go('catalog', document.querySelector('.nav-item:nth-child(2)'))" 
@@ -3708,7 +3708,7 @@ function postHTML(p) {
     </div>`;
   }
 
-  const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
+  const badge = p.bot_verified ? '<div class="p-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' : '';
   const avaHtml = botAvatarHTML(p.bot_username, 40, 12, p.bot_name, p.bot_photo);
   const typeBadge = postTypeBadge(p.post_type);
   const buttons = renderPostButtons(typeof p.buttons === 'string' ? JSON.parse(p.buttons||'[]') : (p.buttons||[]));
@@ -4004,7 +4004,7 @@ function renderDiscFeatured() {
   el.innerHTML = top.map(b => {
     const isSub = mySubIds.has(Number(b.id));
     const ava = botAvatarHTML(b.username, 48, 16, b.name, b.photo_url);
-    const badge = b.verified ? '<div class="p-badge" style="display:inline-flex;font-size:9px;width:15px;height:15px;">✓</div>' : '';
+    const badge = b.verified ? '<div class="p-badge" style="display:inline-flex;width:15px;height:15px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' : '';
     const m = Number(b.members||0);
     return `<div class="disc-feat-card" onclick="openBotPage(${b.id}, event)">
       <div class="disc-feat-ava" style="overflow:hidden;">${ava}</div>
@@ -4059,7 +4059,7 @@ function renderDiscTab() {
     document.getElementById('discResultsList').innerHTML = results.length
       ? results.map(b => botRowHTML(b)).join('')
       : `<div class="disc-empty">
-          <div class="disc-empty-ico">🔍</div>
+          <div class="disc-empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           <div class="disc-empty-title">Ничего не найдено</div>
           <div class="disc-empty-sub">Попробуй другое название<br>или выбери другую категорию</div>
         </div>`;
@@ -4076,18 +4076,18 @@ function renderDiscTab() {
     document.getElementById('discAllLabel').textContent = label;
     document.getElementById('discList').innerHTML = sorted.length
       ? sorted.map(b => botRowHTML(b)).join('')
-      : `<div class="disc-empty"><div class="disc-empty-ico">🤖</div><div class="disc-empty-title">Нет ботов</div><div class="disc-empty-sub">В этой категории пока пусто</div></div>`;
+      : `<div class="disc-empty"><div class="disc-empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/></svg></div><div class="disc-empty-title">Нет ботов</div><div class="disc-empty-sub">В этой категории пока пусто</div></div>`;
   } else if (discTab === 'new') {
     document.getElementById('disc-new').style.display = 'block';
     const sorted = filterBots([...discAllBots].sort((a,b) => new Date(b.created_at||0)-new Date(a.created_at||0)));
     document.getElementById('discNewList').innerHTML = sorted.length
       ? sorted.map(b => botRowHTML(b)).join('')
-      : `<div class="disc-empty"><div class="disc-empty-ico">🆕</div><div class="disc-empty-title">Нет ботов</div><div class="disc-empty-sub">Новые боты появятся здесь</div></div>`;
+      : `<div class="disc-empty"><div class="disc-empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/></svg></div><div class="disc-empty-title">Нет ботов</div><div class="disc-empty-sub">Новые боты появятся здесь</div></div>`;
   } else if (discTab === 'subs') {
     document.getElementById('disc-subs').style.display = 'block';
     if (!TOKEN) {
       document.getElementById('discSubsList').innerHTML = `<div class="disc-empty">
-        <div class="disc-empty-ico">👤</div>
+        <div class="disc-empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <div class="disc-empty-title">Нужен вход</div>
         <div class="disc-empty-sub">Войди через Telegram чтобы видеть свои подписки</div>
       </div>`;
@@ -4096,7 +4096,7 @@ function renderDiscTab() {
       const filtered = filterBots(subBots);
       document.getElementById('discSubsList').innerHTML = filtered.length
         ? filtered.map(b => botRowHTML(b)).join('')
-        : `<div class="disc-empty"><div class="disc-empty-ico">❤️</div><div class="disc-empty-title">Нет подписок</div><div class="disc-empty-sub">Подпишись на ботов из каталога — они появятся здесь</div></div>`;
+        : `<div class="disc-empty"><div class="disc-empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><div class="disc-empty-title">Нет подписок</div><div class="disc-empty-sub">Подпишись на ботов из каталога — они появятся здесь</div></div>`;
     }
   }
 }
@@ -4148,7 +4148,7 @@ function tapCat(cat) {
 }
 
 function botRowHTML(b) {
-  const badge = b.verified ? '<div class="p-badge">✓</div>' : '';
+  const badge = b.verified ? '<div class="p-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' : '';
   const tags = (b.categories||[]).map(t => `<div class="tag">${esc(t)}</div>`).join('');
   const isSub = mySubIds.has(Number(b.id));
   const subClass = isSub ? 'sub-btn subbed' : 'sub-btn';
@@ -4260,7 +4260,7 @@ async function submitBotStep1() {
   const cleanUsername = username.replace('@', '').toLowerCase();
 
   const btn = document.querySelector('#st1 .sh-btn');
-  if (btn) { btn.textContent = '⏳ Создаём...'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Создаём...'; btn.disabled = true; }
 
   const res = await api('POST', '/bots', {
     username: cleanUsername,
@@ -4286,7 +4286,7 @@ async function submitBotStep2() {
   const cats = [...document.querySelectorAll('.t-opt.picked')].map(el => el.textContent.trim());
 
   const btn = document.querySelector('#st2 .sh-btn');
-  if (btn) { btn.textContent = '⏳ Сохраняем...'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Сохраняем...'; btn.disabled = true; }
 
   // Сохраняем категории
   if (cats.length > 0) {
@@ -4335,7 +4335,7 @@ function copyVerifyToken() {
 async function submitBot() {
   if (!newBotId) return;
   const btn = document.getElementById('verifyCheckBtn');
-  if (btn) { btn.textContent = '⏳ Проверяем...'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Проверяем...'; btn.disabled = true; }
 
   const res = await api('POST', `/bots/${newBotId}/verify/confirm`, {});
 
@@ -4487,14 +4487,22 @@ function renderSubsChart(posts) {
 function renderGrowthTips(b, posts) {
   const el = document.getElementById('growthTips');
   if (!el) return;
+  const _tipIco = {
+    'check':  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    'rocket': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>',
+    'pen':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    'star':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    'edit':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    'tag':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+  };
   const tips = [];
-  if (!b.verified)                tips.push({ ico:'✅', text:'<b>Верифицируй бота</b> — верифицированные боты попадают в каталог и получают больше доверия' });
-  if (!posts.length)              tips.push({ ico:'📝', text:'<b>Опубликуй первый пост</b> — расскажи что умеет бот, это привлечёт первых подписчиков' });
-  if (posts.length > 0 && posts.length < 5) tips.push({ ico:'🚀', text:'<b>Публикуй регулярно</b> — 3+ поста в неделю дают кратный рост аудитории' });
-  if (!(b.description||'').trim()) tips.push({ ico:'✏️', text:'<b>Добавь описание</b> — боты с описанием чаще находят в поиске' });
-  if (!(b.categories||[]).length)  tips.push({ ico:'🏷', text:'<b>Выбери категории</b> — так бот появится в нужных разделах' });
-  if (tips.length === 0)           tips.push({ ico:'🎉', text:'<b>Всё отлично!</b> Продолжай публиковать контент для роста аудитории' });
-  el.innerHTML = tips.map(t => `<div class="tip-row"><div class="tip-ico">${t.ico}</div><div class="tip-txt">${t.text}</div></div>`).join('');
+  if (!b.verified)                tips.push({ ico:'check', text:'<b>Верифицируй бота</b> — верифицированные боты попадают в каталог и получают больше доверия' });
+  if (!posts.length)              tips.push({ ico:'edit',  text:'<b>Опубликуй первый пост</b> — расскажи что умеет бот, это привлечёт первых подписчиков' });
+  if (posts.length > 0 && posts.length < 5) tips.push({ ico:'rocket', text:'<b>Публикуй регулярно</b> — 3+ поста в неделю дают кратный рост аудитории' });
+  if (!(b.description||'').trim()) tips.push({ ico:'pen', text:'<b>Добавь описание</b> — боты с описанием чаще находят в поиске' });
+  if (!(b.categories||[]).length)  tips.push({ ico:'tag', text:'<b>Выбери категории</b> — так бот появится в нужных разделах' });
+  if (tips.length === 0)           tips.push({ ico:'star', text:'<b>Всё отлично!</b> Продолжай публиковать контент для роста аудитории' });
+  el.innerHTML = tips.map(t => `<div class="tip-row"><div class="tip-ico">${_tipIco[t.ico]||t.ico}</div><div class="tip-txt">${t.text}</div></div>`).join('');
 }
 
 async function openBotManage(botId, botName, members, posts, subs) {
@@ -4516,7 +4524,7 @@ async function openBotManage(botId, botName, members, posts, subs) {
   // Сброс кнопки удаления
   const btn = document.getElementById('deleteBotBtn');
   const confirmEl = document.getElementById('deleteBotConfirm');
-  if (btn) { btn.style.display = 'block'; btn.textContent = '🗑 Удалить бота навсегда'; }
+  if (btn) { btn.style.display = 'block'; btn.textContent = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Удалить бота навсегда'; }
   if (confirmEl) confirmEl.style.display = 'none';
 
   // Показываем экран
@@ -4559,7 +4567,7 @@ async function openBotManage(botId, botName, members, posts, subs) {
       return rb - ra;
     }).slice(0,3);
     if (!sorted.length) {
-      topEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px;">Опубликуй первый пост ☝️</div>';
+      topEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px;">Опубликуй первый пост →</div>';
     } else {
       topEl.innerHTML = sorted.map((p,i) => {
         const reacts = (p.reactions||[]).reduce((s,r)=>s+Number(r.count||0),0);
@@ -4593,7 +4601,7 @@ async function openBotManage(botId, botName, members, posts, subs) {
       } else {
         const colors = ['#1a6fa8','#1a7a4a','#7a3a9a','#a85a1a','#1a5a7a','#6a1a3a'];
         const label = (myBot.name||myBot.username||'').replace('@','');
-        const letter = label[0]?.toUpperCase() || '🤖';
+        const letter = label[0]?.toUpperCase() || '·';
         const color = colors[(label.charCodeAt(0)||0) % colors.length];
         avaEl.innerHTML = `<div style="width:100%;height:100%;background:${color};display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;">${letter}</div>`;
       }
@@ -4707,7 +4715,7 @@ async function uploadPostImage(file) {
   const statusEl = document.getElementById('postImageStatus');
   pendingImageUrl = null;
   statusEl.style.display = 'block';
-  statusEl.textContent = '⏳ Загружаем изображение...';
+  statusEl.textContent = 'Загружаем изображение...'; statusEl.dataset.loading = '1';
   statusEl.style.color = 'var(--sub)';
 
   try {
@@ -4726,12 +4734,12 @@ async function uploadPostImage(file) {
       statusEl.textContent = '✓ Изображение готово';
       statusEl.style.color = 'var(--green)';
     } else {
-      statusEl.textContent = '❌ ' + (res?.error || 'Ошибка загрузки');
+      statusEl.textContent = res?.error || 'Ошибка загрузки'; statusEl.dataset.loading = '';
       statusEl.style.color = 'var(--red)';
       toast('❌', res?.error || 'Ошибка загрузки изображения');
     }
   } catch (e) {
-    statusEl.textContent = '❌ Нет связи с сервером';
+    statusEl.textContent = 'Нет связи с сервером'; statusEl.dataset.loading = '';
     statusEl.style.color = 'var(--red)';
   }
 }
@@ -4751,7 +4759,7 @@ async function publishPost() {
 
   // Проверяем — вдруг изображение ещё загружается
   const statusEl = document.getElementById('postImageStatus');
-  if (statusEl.textContent.includes('⏳')) {
+  if (statusEl.dataset.loading === '1') {
     toast('⏳', 'Дождись загрузки изображения'); return;
   }
 
@@ -4852,7 +4860,7 @@ async function deleteBot() {
 // ════════════════════════════════
 async function fetchBotPhotoFromTg() {
   const btn = document.getElementById('fetchPhotoBtn');
-  if (btn) { btn.textContent = '⏳ Загружаем...'; btn.disabled = true; }
+  if (btn) { btn.textContent = 'Загружаем...'; btn.disabled = true; }
   const res = await api('POST', `/bots/${currentBotId}/fetch-photo`);
   if (btn) { btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.571c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.895.65z"/></svg> Подтянуть из Telegram`; btn.disabled = false; }
   if (res?.url) {
@@ -4936,7 +4944,7 @@ async function openPostDetail(postId, event) {
 
   if (p && !p.error) {
     const avaHtml = botAvatarHTML(p.bot_username, 44, 14, p.bot_name, p.bot_photo);
-    const badge = p.bot_verified ? '<div class="p-badge">✓</div>' : '';
+    const badge = p.bot_verified ? '<div class="p-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>' : '';
     const reacts = (p.reactions || []).map(r =>
       `<div class="react${(p.my_reactions||[]).includes(r.emoji)?' on':''}" onclick="reactPost(${p.id},'${r.emoji}',this)"><span class="react-emoji">${r.emoji}</span> <span>${r.count}</span></div>`
     ).join('') || `<div class="react" onclick="reactPost(${p.id},'🔥',this)"><span class="react-emoji">🔥</span> <span>0</span></div>`;
@@ -4996,7 +5004,7 @@ function renderPostDetailComments(data) {
   const el = document.getElementById('postDetailComments');
   if (!data?.length) {
     el.innerHTML = `<div style="color:var(--sub);text-align:center;padding:40px 0 80px;">
-      <div style="font-size:48px;margin-bottom:12px;">💬</div>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Комментариев пока нет</div>
       <div style="font-size:13px;">Будь первым — напиши что-нибудь!</div>
     </div>`;
@@ -5251,7 +5259,7 @@ async function deleteComment(commentId, el) {
         if (!remaining.length) {
           document.getElementById('postDetailComments').innerHTML = `
             <div style="color:var(--sub);text-align:center;padding:40px 0 80px;">
-              <div style="font-size:48px;margin-bottom:12px;">💬</div>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Комментариев пока нет</div>
               <div style="font-size:13px;">Будь первым — напиши что-нибудь!</div>
             </div>`;
@@ -5389,20 +5397,48 @@ function subToggle(el) {
 // ════════════════════════════════
 let toastT;
 function toast(ico, msg, duration) {
-  document.getElementById('tIco').textContent = ico;
+  const _svg = (p, c='currentColor') => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const _map = {
+    '✓':  [_svg('<polyline points="20 6 9 17 4 12"/>'),                                                                    '#4caf8f', 2400],
+    '—':  [_svg('<polyline points="20 6 9 17 4 12"/>'),                                                                    '#4caf8f', 2400],
+    '✅': [_svg('<polyline points="20 6 9 17 4 12"/>'),                                                                    '#4caf8f', 2400],
+    '❌': [_svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'),                            '#ff5b5b', 5000],
+    '⚠️':[_svg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'), '#ffaa32', 4000],
+    '⚠': [_svg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'), '#ffaa32', 4000],
+    '👤': [_svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),                   'rgba(255,255,255,0.65)', 2400],
+    '🔗': [_svg('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'), 'rgba(255,255,255,0.65)', 2400],
+    '👋': [_svg('<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>'), 'rgba(255,255,255,0.65)', 2400],
+    '🔔': [_svg('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'),         '#ffaa32', 2400],
+    '🔕': [_svg('<path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.9 17.9 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/>'), 'rgba(255,255,255,0.4)', 2400],
+    '📋': [_svg('<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'), 'rgba(255,255,255,0.65)', 2400],
+    '🎉': [_svg('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'), '#ffaa32', 2400],
+    '🚀': [_svg('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>'), '#4caf8f', 2400],
+    '📧': [_svg('<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>'), 'rgba(255,255,255,0.65)', 2400],
+    '⏳': [_svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'),                                   'rgba(255,255,255,0.65)', 2400],
+    '🗑': [_svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'), '#ff5b5b', 2400],
+    '💬': [_svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),                             'rgba(255,255,255,0.65)', 2400],
+    '↗️':[_svg('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'), 'rgba(255,255,255,0.65)', 2400],
+    'bell':  [_svg('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'),    '#ffaa32', 2400],
+    'key':   [_svg('<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>'), 'rgba(255,255,255,0.65)', 2400],
+    'chart': [_svg('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'), 'rgba(255,255,255,0.65)', 2400],
+    'copy':  [_svg('<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'), 'rgba(255,255,255,0.65)', 2400],
+  };
+  const [svgStr, color, defDuration] = _map[ico] || [null, 'rgba(255,255,255,0.65)', 2400];
+  const icoEl = document.getElementById('tIco');
+  if (svgStr) { icoEl.innerHTML = svgStr; icoEl.style.color = color; }
+  else if (ico.startsWith('<svg')) { icoEl.innerHTML = ico; icoEl.style.color = 'rgba(255,255,255,0.65)'; }
+  else { icoEl.innerHTML = ''; icoEl.textContent = ico; icoEl.style.color = ''; }
   document.getElementById('tMsg').textContent = msg;
   const t = document.getElementById('toast');
   t.classList.remove('show', 'hide');
-  void t.offsetWidth; // reflow
+  void t.offsetWidth;
   t.classList.add('show');
   clearTimeout(toastT);
-  // Ошибки висят 6 сек, обычные — 2.4 сек
-  const d = duration || (ico === '❌' ? 6000 : 2400);
   toastT = setTimeout(() => {
     t.classList.remove('show');
     t.classList.add('hide');
     setTimeout(() => t.classList.remove('hide'), 300);
-  }, d);
+  }, duration || defDuration);
 }
 
 // ════════════════════════════════
@@ -5410,14 +5446,14 @@ function toast(ico, msg, duration) {
 // ════════════════════════════════
 function postTypeBadge(type) {
   const map = {
-    news:   ['📢', 'Новость',    'ptb-news'],
-    update: ['🚀', 'Обновление', 'ptb-update'],
-    tip:    ['💡', 'Совет',      'ptb-tip'],
-    promo:  ['🎁', 'Акция',      'ptb-promo'],
+    news:   ['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg>',   'Новость',     'ptb-news'],
+    update: ['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>', 'Обновление',  'ptb-update'],
+    tip:    ['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',    'Совет',       'ptb-tip'],
+    promo:  ['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',  'Акция',       'ptb-promo'],
   };
   if (!type || !map[type]) return '';
   const [ico, label, cls] = map[type];
-  return `<div class="post-type-badge ${cls}">${ico} ${label}</div>`;
+  return `<div class="post-type-badge ${cls}" style="display:inline-flex;align-items:center;gap:4px;">${ico} ${label}</div>`;
 }
 
 // ════════════════════════════════
@@ -5953,7 +5989,7 @@ function initSettingsScreen() {
   const isLight = document.documentElement.getAttribute('data-theme') === 'light'
   const themeIcoWrap = document.getElementById('themeIcoWrap')
   const themeLbl = document.getElementById('themeLbl')
-  if (themeIcoWrap) themeIcoWrap.textContent = isLight ? '☀️' : '🌙'
+  if (themeIcoWrap) themeIcoWrap.innerHTML = isLight ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
   if (themeLbl) themeLbl.textContent = isLight ? 'Светлая' : 'Тёмная'
 
   // Кнопка выйти — только если залогинен
@@ -6055,8 +6091,8 @@ function runOptimize() {
 
     result.style.display = 'block'
     result.innerHTML = actions.length
-      ? '✅ Применено:<br>• ' + actions.join('<br>• ')
-      : '✅ Устройство мощное — всё уже настроено оптимально'
+      ? '✓ Применено:<br>• ' + actions.join('<br>• ')
+      : '✓ Устройство мощное — всё уже настроено оптимально'
 
     setTimeout(() => {
       btn.textContent = '🚀 Оптимизировать'
@@ -6086,7 +6122,7 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
   localStorage.setItem('bf-theme', next)
   document.getElementById('themeBtn') && (document.getElementById('themeBtn').textContent = next === 'light' ? '☀️' : '🌙')
-  document.getElementById('themeIcoWrap') && (document.getElementById('themeIcoWrap').textContent = next === 'light' ? '☀️' : '🌙')
+  document.getElementById('themeIcoWrap') && (document.getElementById('themeIcoWrap').innerHTML = next === 'light' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>')
   document.getElementById('themeLbl') && (document.getElementById('themeLbl').textContent = next === 'light' ? 'Светлая' : 'Тёмная')
 }
 ;(function applyTheme() {
@@ -6300,19 +6336,19 @@ function cancelLongPress() {
       <div class="onboard-dot" id="od2"></div>
     </div>
     <div class="onboard-step active" id="obs0">
-      <div class="onboard-ico">🤖</div>
+      <div class="onboard-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;margin-bottom:12px;"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/></svg></div>
       <div class="onboard-title">Добро пожаловать в BotFeed</div>
       <div class="onboard-sub">Твоя лента новостей от Telegram-ботов. Подпишись на ботов, читай их обновления и реагируй на посты — всё в одном месте.</div>
-      <button class="onboard-btn" onclick="onboardNext(1)">Далее →</button>
+      <button class="onboard-btn" onclick="onboardNext(1)">Далее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
     </div>
     <div class="onboard-step" id="obs1">
-      <div class="onboard-ico">📢</div>
+      <div class="onboard-ico" style="opacity:0.7;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg></div>
       <div class="onboard-title">Лента от твоих ботов</div>
       <div class="onboard-sub">Следи за новостями, обновлениями и акциями от любимых Telegram-ботов. Двойной тап на пост — ставишь ❤️. Удерживай — выбираешь реакцию.</div>
-      <button class="onboard-btn" onclick="onboardNext(2)">Далее →</button>
+      <button class="onboard-btn" onclick="onboardNext(2)">Далее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
     </div>
     <div class="onboard-step" id="obs2">
-      <div class="onboard-ico">🚀</div>
+      <div class="onboard-ico" style="opacity:0.7;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg></div>
       <div class="onboard-title">Добавь своего бота</div>
       <div class="onboard-sub">Ты владелец Telegram-бота? Добавь его в каталог BotFeed — твоя аудитория получит удобную ленту. Это бесплатно и займёт 2 минуты.</div>
       <button class="onboard-btn" onclick="onboardFinish()">Начать!</button>
