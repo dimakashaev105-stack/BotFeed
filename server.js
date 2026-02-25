@@ -40,6 +40,16 @@ db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'`
 db.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0`)
   .catch(e => console.log('Views migration note:', e.message))
 
+// Индексы для производительности
+db.query(`
+  CREATE INDEX IF NOT EXISTS idx_reactions_post_id    ON reactions(post_id);
+  CREATE INDEX IF NOT EXISTS idx_comments_post_id     ON comments(post_id);
+  CREATE INDEX IF NOT EXISTS idx_posts_bot_id         ON posts(bot_id);
+  CREATE INDEX IF NOT EXISTS idx_posts_created_at     ON posts(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_subscriptions_user   ON subscriptions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_subscriptions_bot    ON subscriptions(bot_id);
+`).catch(e => console.log('Indexes note:', e.message))
+
 db.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notify BOOLEAN DEFAULT true`)
   .then(() => db.query(`UPDATE subscriptions SET notify = true WHERE notify IS NULL`))
   .catch(e => console.log('Notify migration note:', e.message))
@@ -826,7 +836,7 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
 
   const post = rows[0]
 
-  // Отправляем уведомления подписчикам асинхронно
+  // Отправляем уведомления подписчикам асинхронно (параллельно, до 10 одновременно)
   ;(async () => {
     try {
       const { rows: subs } = await db.query(`
@@ -836,11 +846,14 @@ app.post('/api/bots/:botId/posts', { preHandler: auth }, async (req, reply) => {
       `, [req.params.botId])
       const preview = text.trim().length > 200 ? text.trim().slice(0, 200) + '…' : text.trim()
       const postUrl = `${process.env.SITE_URL || 'https://botfeed.vercel.app'}?post=${post.id}`
-      for (const sub of subs) {
-        await tgSend(sub.telegram_id,
-          `🔔 <b>${b[0].name}</b> опубликовал новый пост!\n\n${preview}\n\n<a href="${postUrl}">Открыть →</a>`
-        )
-        await new Promise(r => setTimeout(r, 50))
+      const msg = `🔔 <b>${b[0].name}</b> опубликовал новый пост!\n\n${preview}\n\n<a href="${postUrl}">Открыть →</a>`
+
+      // Батчами по 10 — не блокируем, не спамим TG API
+      const BATCH = 10
+      for (let i = 0; i < subs.length; i += BATCH) {
+        const batch = subs.slice(i, i + BATCH)
+        await Promise.allSettled(batch.map(sub => tgSend(sub.telegram_id, msg)))
+        if (i + BATCH < subs.length) await new Promise(r => setTimeout(r, 100))
       }
     } catch (e) { console.error('Notify error:', e.message) }
   })()
@@ -1157,6 +1170,17 @@ function ssePublish(event, data, targetUserIds = null) {
   }
 }
 
+// Чистим мёртвые guest-соединения каждые 5 минут
+setInterval(() => {
+  for (const [uid, clients] of sseClients.entries()) {
+    for (const r of clients) {
+      if (!r.raw.socket?.writable) clients.delete(r)
+    }
+    if (clients.size === 0) sseClients.delete(uid)
+  }
+  console.log(`[SSE] active connections: ${[...sseClients.values()].reduce((n,s) => n + s.size, 0)}`)
+}, 5 * 60 * 1000)
+
 // SSE подключение — EventSource не поддерживает заголовки, токен идёт в query
 app.get('/api/sse', async (req, reply) => {
   let userId = `guest_${++guestCounter}`
@@ -1274,4 +1298,4 @@ try {
 } catch (err) {
   console.error(err)
   process.exit(1)
-    }
+            }
